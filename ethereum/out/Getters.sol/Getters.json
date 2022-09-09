@@ -1,0 +1,1659 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "name": "chainId",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCurrentGuardianSetIndex",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "index",
+          "type": "uint32"
+        }
+      ],
+      "name": "getGuardianSet",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address[]",
+              "name": "keys",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint32",
+              "name": "expirationTime",
+              "type": "uint32"
+            }
+          ],
+          "internalType": "struct Structs.GuardianSet",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getGuardianSetExpiry",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "governanceActionIsConsumed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governanceChainId",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governanceContract",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "impl",
+          "type": "address"
+        }
+      ],
+      "name": "isInitialized",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "messageFee",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "emitter",
+          "type": "address"
+        }
+      ],
+      "name": "nextSequence",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "hash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "verifiedHashCached",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": {
+    "object": "0x608060405234801561001057600080fd5b506103c7806100206000396000f3fe608060405234801561001057600080fd5b50600436106100a95760003560e01c80639a8a0592116100715780639a8a059214610186578063b172b222146101a1578063d60b347f146101a9578063eb8d3f12146101d5578063f951975a146101eb578063fbe3c2cd1461020b57600080fd5b80631a90a219146100ae5780631cfe7951146100c55780632c3c02a4146100e45780634cf842b51461011757806396cfc86d14610163575b600080fd5b6007545b6040519081526020015b60405180910390f35b60035463ffffffff165b60405163ffffffff90911681526020016100bc565b6101076100f23660046102ea565b60009081526005602052604090205460ff1690565b60405190151581526020016100bc565b61014a6101253660046102bc565b6001600160a01b031660009081526004602052604090205467ffffffffffffffff1690565b60405167ffffffffffffffff90911681526020016100bc565b6101076101713660046102ea565b60009081526008602052604090205460ff1690565b60005461ffff165b60405161ffff90911681526020016100bc565b6001546100b2565b6101076101b73660046102bc565b6001600160a01b031660009081526006602052604090205460ff1690565b600354640100000000900463ffffffff166100cf565b6101fe6101f9366004610302565b61021d565b6040516100bc9190610326565b60005462010000900461ffff1661018e565b60408051808201825260608082526000602080840182905263ffffffff8616825260028152908490208451815492830281018401865294850182815293949390928492849184018282801561029b57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161027d575b50505091835250506001919091015463ffffffff1660209091015292915050565b6000602082840312156102cd578081fd5b81356001600160a01b03811681146102e3578182fd5b9392505050565b6000602082840312156102fb578081fd5b5035919050565b600060208284031215610313578081fd5b813563ffffffff811681146102e3578182fd5b6020808252825160408383015280516060840181905260009291820190839060808601905b808310156103745783516001600160a01b0316825292840192600192909201919084019061034b565b5063ffffffff84880151166040870152809450505050509291505056fea2646970667358221220e881f93d62f55676175d3d467c1b6c31f7b7ce1b6f8c404c832219656575f0fc64736f6c63430008040033",
+    "sourceMap": "111:1379:0:-:0;;;;;;;;;;;;;;;;;;;",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x608060405234801561001057600080fd5b50600436106100a95760003560e01c80639a8a0592116100715780639a8a059214610186578063b172b222146101a1578063d60b347f146101a9578063eb8d3f12146101d5578063f951975a146101eb578063fbe3c2cd1461020b57600080fd5b80631a90a219146100ae5780631cfe7951146100c55780632c3c02a4146100e45780634cf842b51461011757806396cfc86d14610163575b600080fd5b6007545b6040519081526020015b60405180910390f35b60035463ffffffff165b60405163ffffffff90911681526020016100bc565b6101076100f23660046102ea565b60009081526005602052604090205460ff1690565b60405190151581526020016100bc565b61014a6101253660046102bc565b6001600160a01b031660009081526004602052604090205467ffffffffffffffff1690565b60405167ffffffffffffffff90911681526020016100bc565b6101076101713660046102ea565b60009081526008602052604090205460ff1690565b60005461ffff165b60405161ffff90911681526020016100bc565b6001546100b2565b6101076101b73660046102bc565b6001600160a01b031660009081526006602052604090205460ff1690565b600354640100000000900463ffffffff166100cf565b6101fe6101f9366004610302565b61021d565b6040516100bc9190610326565b60005462010000900461ffff1661018e565b60408051808201825260608082526000602080840182905263ffffffff8616825260028152908490208451815492830281018401865294850182815293949390928492849184018282801561029b57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161027d575b50505091835250506001919091015463ffffffff1660209091015292915050565b6000602082840312156102cd578081fd5b81356001600160a01b03811681146102e3578182fd5b9392505050565b6000602082840312156102fb578081fd5b5035919050565b600060208284031215610313578081fd5b813563ffffffff811681146102e3578182fd5b6020808252825160408383015280516060840181905260009291820190839060808601905b808310156103745783516001600160a01b0316825292840192600192909201919084019061034b565b5063ffffffff84880151166040870152809450505050509291505056fea2646970667358221220e881f93d62f55676175d3d467c1b6c31f7b7ce1b6f8c404c832219656575f0fc64736f6c63430008040033",
+    "sourceMap": "111:1379:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1272:93;1341:17;;1272:93;;;1159:25:63;;;1147:2;1132:18;1272:93:0;;;;;;;;286:114;370:23;;;;286:114;;;2592:10:63;2580:23;;;2562:42;;2550:2;2535:18;286:114:0;2517:93:63;521:139:0;;;;;;:::i;:::-;592:4;615:38;;;:32;:38;;;;;;;;;521:139;;;;986:14:63;;979:22;961:41;;949:2;934:18;521:139:0;916:92:63;1371:117:0;;;;;;:::i;:::-;-1:-1:-1;;;;;1456:25:0;1431:6;1456:25;;;:16;:25;;;;;;;;;1371:117;;;;2789:18:63;2777:31;;;2759:50;;2747:2;2732:18;1371:117:0;2714:101:63;666:123:0;;;;;;:::i;:::-;729:4;752:30;;;:24;:30;;;;;;;;;666:123;928:95;968:6;993:23;;;928:95;;;2217:6:63;2205:19;;;2187:38;;2175:2;2160:18;928:95:0;2142:89:63;1149:117:0;1225:34;;1149:117;;795:127;;;;;;:::i;:::-;-1:-1:-1;;;;;876:39:0;853:4;876:39;;;:33;:39;;;;;;;;;795:127;406:109;484:24;;;;;;;406:109;;143:137;;;;;;:::i;:::-;;:::i;:::-;;;;;;;:::i;1029:114::-;1079:6;1103:33;;;;;;1029:114;;143:137;-1:-1:-1;;;;;;;;;;;;;;;;;;;;247:26:0;;;;;:19;:26;;;;;;240:33;;;;;;;;;;;;;;;;;;;-1:-1:-1;;240:33:0;247:26;;240:33;;247:26;;240:33;;247:26;240:33;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;240:33:0;;;;;;;;;;;;;;;;-1:-1:-1;;;240:33:0;;;-1:-1:-1;;240:33:0;;;;;;;;;;;;;;143:137;-1:-1:-1;;143:137:0:o;14:306:63:-;73:6;126:2;114:9;105:7;101:23;97:32;94:2;;;147:6;139;132:22;94:2;178:23;;-1:-1:-1;;;;;230:31:63;;220:42;;210:2;;281:6;273;266:22;210:2;309:5;84:236;-1:-1:-1;;;84:236:63:o;325:190::-;384:6;437:2;425:9;416:7;412:23;408:32;405:2;;;458:6;450;443:22;405:2;-1:-1:-1;486:23:63;;395:120;-1:-1:-1;395:120:63:o;520:296::-;578:6;631:2;619:9;610:7;606:23;602:32;599:2;;;652:6;644;637:22;599:2;696:9;683:23;746:10;739:5;735:22;728:5;725:33;715:2;;777:6;769;762:22;1195:843;1374:2;1385:21;;;1476:13;;1525:4;1505:18;;;1498:32;1579:19;;1444:2;1429:18;;1607:22;;;1345:4;;1374:2;1687:21;;;1345:4;;1660:3;1645:19;;;1739:195;1753:6;1750:1;1747:13;1739:195;;;1818:13;;-1:-1:-1;;;;;1814:39:63;1802:52;;1909:15;;;;1850:1;1768:9;;;;;1874:12;;;;1739:195;;;1743:3;2000:10;1994:2;1986:6;1982:15;1976:22;1972:39;1965:4;1954:9;1950:20;1943:69;2029:3;2021:11;;;;;;1354:684;;;;:::o",
+    "linkReferences": {}
+  },
+  "methodIdentifiers": {
+    "chainId()": "9a8a0592",
+    "getCurrentGuardianSetIndex()": "1cfe7951",
+    "getGuardianSet(uint32)": "f951975a",
+    "getGuardianSetExpiry()": "eb8d3f12",
+    "governanceActionIsConsumed(bytes32)": "2c3c02a4",
+    "governanceChainId()": "fbe3c2cd",
+    "governanceContract()": "b172b222",
+    "isInitialized(address)": "d60b347f",
+    "messageFee()": "1a90a219",
+    "nextSequence(address)": "4cf842b5",
+    "verifiedHashCached(bytes32)": "96cfc86d"
+  },
+  "ast": {
+    "absolutePath": "contracts/Getters.sol",
+    "id": 129,
+    "exportedSymbols": {
+      "Events": [
+        2836
+      ],
+      "Getters": [
+        128
+      ],
+      "State": [
+        2872
+      ],
+      "Storage": [
+        2868
+      ],
+      "Structs": [
+        2969
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "63:1428:0",
+    "nodes": [
+      {
+        "id": 1,
+        "nodeType": "PragmaDirective",
+        "src": "63:23:0",
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".0"
+        ]
+      },
+      {
+        "id": 2,
+        "nodeType": "ImportDirective",
+        "src": "88:21:0",
+        "absolutePath": "contracts/State.sol",
+        "file": "./State.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 129,
+        "sourceUnit": 2873,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 128,
+        "nodeType": "ContractDefinition",
+        "src": "111:1379:0",
+        "nodes": [
+          {
+            "id": 18,
+            "nodeType": "FunctionDefinition",
+            "src": "143:137:0",
+            "body": {
+              "id": 17,
+              "nodeType": "Block",
+              "src": "230:50:0",
+              "statements": [
+                {
+                  "expression": {
+                    "baseExpression": {
+                      "expression": {
+                        "id": 12,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "247:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 13,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "guardianSets",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2844,
+                      "src": "247:19:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_uint32_$_t_struct$_GuardianSet_$2887_storage_$",
+                        "typeString": "mapping(uint32 => struct Structs.GuardianSet storage ref)"
+                      }
+                    },
+                    "id": 15,
+                    "indexExpression": {
+                      "id": 14,
+                      "name": "index",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 6,
+                      "src": "267:5:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint32",
+                        "typeString": "uint32"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "247:26:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_GuardianSet_$2887_storage",
+                      "typeString": "struct Structs.GuardianSet storage ref"
+                    }
+                  },
+                  "functionReturnParameters": 11,
+                  "id": 16,
+                  "nodeType": "Return",
+                  "src": "240:33:0"
+                }
+              ]
+            },
+            "functionSelector": "f951975a",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "getGuardianSet",
+            "nameLocation": "152:14:0",
+            "parameters": {
+              "id": 7,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6,
+                  "mutability": "mutable",
+                  "name": "index",
+                  "nameLocation": "174:5:0",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 18,
+                  "src": "167:12:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 5,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "167:6:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "166:14:0"
+            },
+            "returnParameters": {
+              "id": 11,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 10,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 18,
+                  "src": "202:26:0",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_struct$_GuardianSet_$2887_memory_ptr",
+                    "typeString": "struct Structs.GuardianSet"
+                  },
+                  "typeName": {
+                    "id": 9,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 8,
+                      "name": "Structs.GuardianSet",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 2887,
+                      "src": "202:19:0"
+                    },
+                    "referencedDeclaration": 2887,
+                    "src": "202:19:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_GuardianSet_$2887_storage_ptr",
+                      "typeString": "struct Structs.GuardianSet"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "201:28:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 27,
+            "nodeType": "FunctionDefinition",
+            "src": "286:114:0",
+            "body": {
+              "id": 26,
+              "nodeType": "Block",
+              "src": "353:47:0",
+              "statements": [
+                {
+                  "expression": {
+                    "expression": {
+                      "id": 23,
+                      "name": "_state",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2871,
+                      "src": "370:6:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                        "typeString": "struct Storage.WormholeState storage ref"
+                      }
+                    },
+                    "id": 24,
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "memberName": "guardianSetIndex",
+                    "nodeType": "MemberAccess",
+                    "referencedDeclaration": 2846,
+                    "src": "370:23:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "functionReturnParameters": 22,
+                  "id": 25,
+                  "nodeType": "Return",
+                  "src": "363:30:0"
+                }
+              ]
+            },
+            "functionSelector": "1cfe7951",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "getCurrentGuardianSetIndex",
+            "nameLocation": "295:26:0",
+            "parameters": {
+              "id": 19,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "321:2:0"
+            },
+            "returnParameters": {
+              "id": 22,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 21,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 27,
+                  "src": "345:6:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 20,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "345:6:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "344:8:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 36,
+            "nodeType": "FunctionDefinition",
+            "src": "406:109:0",
+            "body": {
+              "id": 35,
+              "nodeType": "Block",
+              "src": "467:48:0",
+              "statements": [
+                {
+                  "expression": {
+                    "expression": {
+                      "id": 32,
+                      "name": "_state",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2871,
+                      "src": "484:6:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                        "typeString": "struct Storage.WormholeState storage ref"
+                      }
+                    },
+                    "id": 33,
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "memberName": "guardianSetExpiry",
+                    "nodeType": "MemberAccess",
+                    "referencedDeclaration": 2848,
+                    "src": "484:24:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "functionReturnParameters": 31,
+                  "id": 34,
+                  "nodeType": "Return",
+                  "src": "477:31:0"
+                }
+              ]
+            },
+            "functionSelector": "eb8d3f12",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "getGuardianSetExpiry",
+            "nameLocation": "415:20:0",
+            "parameters": {
+              "id": 28,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "435:2:0"
+            },
+            "returnParameters": {
+              "id": 31,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 30,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 36,
+                  "src": "459:6:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint32",
+                    "typeString": "uint32"
+                  },
+                  "typeName": {
+                    "id": 29,
+                    "name": "uint32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "459:6:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint32",
+                      "typeString": "uint32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "458:8:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 49,
+            "nodeType": "FunctionDefinition",
+            "src": "521:139:0",
+            "body": {
+              "id": 48,
+              "nodeType": "Block",
+              "src": "598:62:0",
+              "statements": [
+                {
+                  "expression": {
+                    "baseExpression": {
+                      "expression": {
+                        "id": 43,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "615:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 44,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "consumedGovernanceActions",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2856,
+                      "src": "615:32:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_bytes32_$_t_bool_$",
+                        "typeString": "mapping(bytes32 => bool)"
+                      }
+                    },
+                    "id": 46,
+                    "indexExpression": {
+                      "id": 45,
+                      "name": "hash",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 38,
+                      "src": "648:4:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "615:38:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "functionReturnParameters": 42,
+                  "id": 47,
+                  "nodeType": "Return",
+                  "src": "608:45:0"
+                }
+              ]
+            },
+            "functionSelector": "2c3c02a4",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "governanceActionIsConsumed",
+            "nameLocation": "530:26:0",
+            "parameters": {
+              "id": 39,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 38,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "565:4:0",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 49,
+                  "src": "557:12:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 37,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "557:7:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "556:14:0"
+            },
+            "returnParameters": {
+              "id": 42,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 41,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 49,
+                  "src": "592:4:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 40,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "592:4:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "591:6:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 62,
+            "nodeType": "FunctionDefinition",
+            "src": "666:123:0",
+            "body": {
+              "id": 61,
+              "nodeType": "Block",
+              "src": "735:54:0",
+              "statements": [
+                {
+                  "expression": {
+                    "baseExpression": {
+                      "expression": {
+                        "id": 56,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "752:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 57,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "verifiedHashCache",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2866,
+                      "src": "752:24:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_bytes32_$_t_bool_$",
+                        "typeString": "mapping(bytes32 => bool)"
+                      }
+                    },
+                    "id": 59,
+                    "indexExpression": {
+                      "id": 58,
+                      "name": "hash",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 51,
+                      "src": "777:4:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "752:30:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "functionReturnParameters": 55,
+                  "id": 60,
+                  "nodeType": "Return",
+                  "src": "745:37:0"
+                }
+              ]
+            },
+            "functionSelector": "96cfc86d",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "verifiedHashCached",
+            "nameLocation": "675:18:0",
+            "parameters": {
+              "id": 52,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 51,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "702:4:0",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 62,
+                  "src": "694:12:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 50,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "694:7:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "693:14:0"
+            },
+            "returnParameters": {
+              "id": 55,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 54,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 62,
+                  "src": "729:4:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 53,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "729:4:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "728:6:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 75,
+            "nodeType": "FunctionDefinition",
+            "src": "795:127:0",
+            "body": {
+              "id": 74,
+              "nodeType": "Block",
+              "src": "859:63:0",
+              "statements": [
+                {
+                  "expression": {
+                    "baseExpression": {
+                      "expression": {
+                        "id": 69,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "876:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 70,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "initializedImplementations",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2860,
+                      "src": "876:33:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                        "typeString": "mapping(address => bool)"
+                      }
+                    },
+                    "id": 72,
+                    "indexExpression": {
+                      "id": 71,
+                      "name": "impl",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 64,
+                      "src": "910:4:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "876:39:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "functionReturnParameters": 68,
+                  "id": 73,
+                  "nodeType": "Return",
+                  "src": "869:46:0"
+                }
+              ]
+            },
+            "functionSelector": "d60b347f",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "isInitialized",
+            "nameLocation": "804:13:0",
+            "parameters": {
+              "id": 65,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 64,
+                  "mutability": "mutable",
+                  "name": "impl",
+                  "nameLocation": "826:4:0",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 75,
+                  "src": "818:12:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 63,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "818:7:0",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "817:14:0"
+            },
+            "returnParameters": {
+              "id": 68,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 67,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 75,
+                  "src": "853:4:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 66,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "853:4:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "852:6:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 85,
+            "nodeType": "FunctionDefinition",
+            "src": "928:95:0",
+            "body": {
+              "id": 84,
+              "nodeType": "Block",
+              "src": "976:47:0",
+              "statements": [
+                {
+                  "expression": {
+                    "expression": {
+                      "expression": {
+                        "id": 80,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "993:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 81,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "provider",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2839,
+                      "src": "993:15:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_Provider_$2881_storage",
+                        "typeString": "struct Structs.Provider storage ref"
+                      }
+                    },
+                    "id": 82,
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "memberName": "chainId",
+                    "nodeType": "MemberAccess",
+                    "referencedDeclaration": 2876,
+                    "src": "993:23:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "functionReturnParameters": 79,
+                  "id": 83,
+                  "nodeType": "Return",
+                  "src": "986:30:0"
+                }
+              ]
+            },
+            "functionSelector": "9a8a0592",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "chainId",
+            "nameLocation": "937:7:0",
+            "parameters": {
+              "id": 76,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "944:2:0"
+            },
+            "returnParameters": {
+              "id": 79,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 78,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 85,
+                  "src": "968:6:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 77,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "968:6:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "967:8:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 95,
+            "nodeType": "FunctionDefinition",
+            "src": "1029:114:0",
+            "body": {
+              "id": 94,
+              "nodeType": "Block",
+              "src": "1086:57:0",
+              "statements": [
+                {
+                  "expression": {
+                    "expression": {
+                      "expression": {
+                        "id": 90,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "1103:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 91,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "provider",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2839,
+                      "src": "1103:15:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_Provider_$2881_storage",
+                        "typeString": "struct Structs.Provider storage ref"
+                      }
+                    },
+                    "id": 92,
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "memberName": "governanceChainId",
+                    "nodeType": "MemberAccess",
+                    "referencedDeclaration": 2878,
+                    "src": "1103:33:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "functionReturnParameters": 89,
+                  "id": 93,
+                  "nodeType": "Return",
+                  "src": "1096:40:0"
+                }
+              ]
+            },
+            "functionSelector": "fbe3c2cd",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "governanceChainId",
+            "nameLocation": "1038:17:0",
+            "parameters": {
+              "id": 86,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1055:2:0"
+            },
+            "returnParameters": {
+              "id": 89,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 88,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 95,
+                  "src": "1079:6:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 87,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1079:6:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1078:8:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 105,
+            "nodeType": "FunctionDefinition",
+            "src": "1149:117:0",
+            "body": {
+              "id": 104,
+              "nodeType": "Block",
+              "src": "1208:58:0",
+              "statements": [
+                {
+                  "expression": {
+                    "expression": {
+                      "expression": {
+                        "id": 100,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "1225:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 101,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "provider",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2839,
+                      "src": "1225:15:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_Provider_$2881_storage",
+                        "typeString": "struct Structs.Provider storage ref"
+                      }
+                    },
+                    "id": 102,
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "memberName": "governanceContract",
+                    "nodeType": "MemberAccess",
+                    "referencedDeclaration": 2880,
+                    "src": "1225:34:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "functionReturnParameters": 99,
+                  "id": 103,
+                  "nodeType": "Return",
+                  "src": "1218:41:0"
+                }
+              ]
+            },
+            "functionSelector": "b172b222",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "governanceContract",
+            "nameLocation": "1158:18:0",
+            "parameters": {
+              "id": 96,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1176:2:0"
+            },
+            "returnParameters": {
+              "id": 99,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 98,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 105,
+                  "src": "1200:7:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 97,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1200:7:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1199:9:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 114,
+            "nodeType": "FunctionDefinition",
+            "src": "1272:93:0",
+            "body": {
+              "id": 113,
+              "nodeType": "Block",
+              "src": "1324:41:0",
+              "statements": [
+                {
+                  "expression": {
+                    "expression": {
+                      "id": 110,
+                      "name": "_state",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2871,
+                      "src": "1341:6:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                        "typeString": "struct Storage.WormholeState storage ref"
+                      }
+                    },
+                    "id": 111,
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "memberName": "messageFee",
+                    "nodeType": "MemberAccess",
+                    "referencedDeclaration": 2862,
+                    "src": "1341:17:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "functionReturnParameters": 109,
+                  "id": 112,
+                  "nodeType": "Return",
+                  "src": "1334:24:0"
+                }
+              ]
+            },
+            "functionSelector": "1a90a219",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "messageFee",
+            "nameLocation": "1281:10:0",
+            "parameters": {
+              "id": 106,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1291:2:0"
+            },
+            "returnParameters": {
+              "id": 109,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 108,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 114,
+                  "src": "1315:7:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 107,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1315:7:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1314:9:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "id": 127,
+            "nodeType": "FunctionDefinition",
+            "src": "1371:117:0",
+            "body": {
+              "id": 126,
+              "nodeType": "Block",
+              "src": "1439:49:0",
+              "statements": [
+                {
+                  "expression": {
+                    "baseExpression": {
+                      "expression": {
+                        "id": 121,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2871,
+                        "src": "1456:6:0",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_WormholeState_$2867_storage",
+                          "typeString": "struct Storage.WormholeState storage ref"
+                        }
+                      },
+                      "id": 122,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "sequences",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2852,
+                      "src": "1456:16:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_address_$_t_uint64_$",
+                        "typeString": "mapping(address => uint64)"
+                      }
+                    },
+                    "id": 124,
+                    "indexExpression": {
+                      "id": 123,
+                      "name": "emitter",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 116,
+                      "src": "1473:7:0",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "1456:25:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "functionReturnParameters": 120,
+                  "id": 125,
+                  "nodeType": "Return",
+                  "src": "1449:32:0"
+                }
+              ]
+            },
+            "functionSelector": "4cf842b5",
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "nextSequence",
+            "nameLocation": "1380:12:0",
+            "parameters": {
+              "id": 117,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 116,
+                  "mutability": "mutable",
+                  "name": "emitter",
+                  "nameLocation": "1401:7:0",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 127,
+                  "src": "1393:15:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 115,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1393:7:0",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1392:17:0"
+            },
+            "returnParameters": {
+              "id": 120,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 119,
+                  "mutability": "mutable",
+                  "name": "",
+                  "nameLocation": "-1:-1:-1",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 127,
+                  "src": "1431:6:0",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint64",
+                    "typeString": "uint64"
+                  },
+                  "typeName": {
+                    "id": 118,
+                    "name": "uint64",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1431:6:0",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint64",
+                      "typeString": "uint64"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1430:8:0"
+            },
+            "scope": 128,
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [
+          {
+            "baseName": {
+              "id": 3,
+              "name": "State",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 2872,
+              "src": "131:5:0"
+            },
+            "id": 4,
+            "nodeType": "InheritanceSpecifier",
+            "src": "131:5:0"
+          }
+        ],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [
+          128,
+          2872
+        ],
+        "name": "Getters",
+        "nameLocation": "120:7:0",
+        "scope": 129,
+        "usedErrors": []
+      }
+    ],
+    "license": "Apache 2"
+  },
+  "id": 0
+}

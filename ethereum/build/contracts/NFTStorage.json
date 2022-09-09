@@ -1,0 +1,1083 @@
+{
+  "contractName": "NFTStorage",
+  "abi": [],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.4+commit.c7e474f2\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/nft/token/NFTState.sol\":\"NFTStorage\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/nft/token/NFTState.sol\":{\"keccak256\":\"0x278c6d999ab918b9a88f819cdbb35032240fa4517f717d6647f3dae645c71dc6\",\"license\":\"Apache 2\",\"urls\":[\"bzz-raw://896e270fb745e6985d282945a32acf3e387b6763f7af98abb4b353b7f1a1c322\",\"dweb:/ipfs/QmVe8G5kx51ixJUdxSsxfJL9P67ScS9vG3yRBZuZz8n7Uv\"]}},\"version\":1}",
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea26469706673582212200bbed5981f714fdf6a2f4499546888adb9851770fa232ef11f0df7126c53c5f164736f6c63430008040033",
+  "deployedBytecode": "0x6080604052600080fdfea26469706673582212200bbed5981f714fdf6a2f4499546888adb9851770fa232ef11f0df7126c53c5f164736f6c63430008040033",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "86:756:66:-:0;;;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "86:756:66:-:0;;;;;",
+  "source": "// contracts/State.sol\n// SPDX-License-Identifier: Apache 2\n\npragma solidity ^0.8.0;\n\ncontract NFTStorage {\n    struct State {\n\n        // Token name\n        string name;\n\n        // Token symbol\n        string symbol;\n\n        // Mapping from token ID to owner address\n        mapping(uint256 => address) owners;\n\n        // Mapping owner address to token count\n        mapping(address => uint256) balances;\n\n        // Mapping from token ID to approved address\n        mapping(uint256 => address) tokenApprovals;\n\n        // Mapping from token ID to URI\n        mapping(uint256 => string) tokenURIs;\n\n        // Mapping from owner to operator approvals\n        mapping(address => mapping(address => bool)) operatorApprovals;\n\n        address owner;\n\n        bool initialized;\n\n        uint16 chainId;\n        bytes32 nativeContract;\n    }\n}\n\ncontract NFTState {\n    NFTStorage.State _state;\n}",
+  "sourcePath": "/home/asterioti/generic-relayer/ethereum/contracts/nft/token/NFTState.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/nft/token/NFTState.sol",
+    "exportedSymbols": {
+      "NFTState": [
+        14750
+      ],
+      "NFTStorage": [
+        14746
+      ]
+    },
+    "id": 14751,
+    "license": "Apache 2",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 14710,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "61:23:66"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 14746,
+        "linearizedBaseContracts": [
+          14746
+        ],
+        "name": "NFTStorage",
+        "nameLocation": "95:10:66",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "NFTStorage.State",
+            "id": 14745,
+            "members": [
+              {
+                "constant": false,
+                "id": 14712,
+                "mutability": "mutable",
+                "name": "name",
+                "nameLocation": "165:4:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "158:11:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_string_storage_ptr",
+                  "typeString": "string"
+                },
+                "typeName": {
+                  "id": 14711,
+                  "name": "string",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "158:6:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_string_storage_ptr",
+                    "typeString": "string"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14714,
+                "mutability": "mutable",
+                "name": "symbol",
+                "nameLocation": "211:6:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "204:13:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_string_storage_ptr",
+                  "typeString": "string"
+                },
+                "typeName": {
+                  "id": 14713,
+                  "name": "string",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "204:6:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_string_storage_ptr",
+                    "typeString": "string"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14718,
+                "mutability": "mutable",
+                "name": "owners",
+                "nameLocation": "306:6:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "278:34:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                  "typeString": "mapping(uint256 => address)"
+                },
+                "typeName": {
+                  "id": 14717,
+                  "keyType": {
+                    "id": 14715,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "286:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "278:27:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                    "typeString": "mapping(uint256 => address)"
+                  },
+                  "valueType": {
+                    "id": 14716,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "297:7:66",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14722,
+                "mutability": "mutable",
+                "name": "balances",
+                "nameLocation": "399:8:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "371:36:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                  "typeString": "mapping(address => uint256)"
+                },
+                "typeName": {
+                  "id": 14721,
+                  "keyType": {
+                    "id": 14719,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "379:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "371:27:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                    "typeString": "mapping(address => uint256)"
+                  },
+                  "valueType": {
+                    "id": 14720,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "390:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14726,
+                "mutability": "mutable",
+                "name": "tokenApprovals",
+                "nameLocation": "499:14:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "471:42:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                  "typeString": "mapping(uint256 => address)"
+                },
+                "typeName": {
+                  "id": 14725,
+                  "keyType": {
+                    "id": 14723,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "479:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "471:27:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                    "typeString": "mapping(uint256 => address)"
+                  },
+                  "valueType": {
+                    "id": 14724,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "490:7:66",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14730,
+                "mutability": "mutable",
+                "name": "tokenURIs",
+                "nameLocation": "591:9:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "564:36:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_uint256_$_t_string_storage_$",
+                  "typeString": "mapping(uint256 => string)"
+                },
+                "typeName": {
+                  "id": 14729,
+                  "keyType": {
+                    "id": 14727,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "572:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "564:26:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_uint256_$_t_string_storage_$",
+                    "typeString": "mapping(uint256 => string)"
+                  },
+                  "valueType": {
+                    "id": 14728,
+                    "name": "string",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "583:6:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_string_storage_ptr",
+                      "typeString": "string"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14736,
+                "mutability": "mutable",
+                "name": "operatorApprovals",
+                "nameLocation": "708:17:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "663:62:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_mapping$_t_address_$_t_bool_$_$",
+                  "typeString": "mapping(address => mapping(address => bool))"
+                },
+                "typeName": {
+                  "id": 14735,
+                  "keyType": {
+                    "id": 14731,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "671:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "663:44:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_mapping$_t_address_$_t_bool_$_$",
+                    "typeString": "mapping(address => mapping(address => bool))"
+                  },
+                  "valueType": {
+                    "id": 14734,
+                    "keyType": {
+                      "id": 14732,
+                      "name": "address",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "690:7:66",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Mapping",
+                    "src": "682:24:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                      "typeString": "mapping(address => bool)"
+                    },
+                    "valueType": {
+                      "id": 14733,
+                      "name": "bool",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "701:4:66",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14738,
+                "mutability": "mutable",
+                "name": "owner",
+                "nameLocation": "744:5:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "736:13:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 14737,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "736:7:66",
+                  "stateMutability": "nonpayable",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14740,
+                "mutability": "mutable",
+                "name": "initialized",
+                "nameLocation": "765:11:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "760:16:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bool",
+                  "typeString": "bool"
+                },
+                "typeName": {
+                  "id": 14739,
+                  "name": "bool",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "760:4:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14742,
+                "mutability": "mutable",
+                "name": "chainId",
+                "nameLocation": "794:7:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "787:14:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint16",
+                  "typeString": "uint16"
+                },
+                "typeName": {
+                  "id": 14741,
+                  "name": "uint16",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "787:6:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14744,
+                "mutability": "mutable",
+                "name": "nativeContract",
+                "nameLocation": "819:14:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "811:22:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bytes32",
+                  "typeString": "bytes32"
+                },
+                "typeName": {
+                  "id": 14743,
+                  "name": "bytes32",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "811:7:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "State",
+            "nameLocation": "119:5:66",
+            "nodeType": "StructDefinition",
+            "scope": 14746,
+            "src": "112:728:66",
+            "visibility": "public"
+          }
+        ],
+        "scope": 14751,
+        "src": "86:756:66",
+        "usedErrors": []
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 14750,
+        "linearizedBaseContracts": [
+          14750
+        ],
+        "name": "NFTState",
+        "nameLocation": "853:8:66",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 14749,
+            "mutability": "mutable",
+            "name": "_state",
+            "nameLocation": "885:6:66",
+            "nodeType": "VariableDeclaration",
+            "scope": 14750,
+            "src": "868:23:66",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_struct$_State_$14745_storage",
+              "typeString": "struct NFTStorage.State"
+            },
+            "typeName": {
+              "id": 14748,
+              "nodeType": "UserDefinedTypeName",
+              "pathNode": {
+                "id": 14747,
+                "name": "NFTStorage.State",
+                "nodeType": "IdentifierPath",
+                "referencedDeclaration": 14745,
+                "src": "868:16:66"
+              },
+              "referencedDeclaration": 14745,
+              "src": "868:16:66",
+              "typeDescriptions": {
+                "typeIdentifier": "t_struct$_State_$14745_storage_ptr",
+                "typeString": "struct NFTStorage.State"
+              }
+            },
+            "visibility": "internal"
+          }
+        ],
+        "scope": 14751,
+        "src": "844:50:66",
+        "usedErrors": []
+      }
+    ],
+    "src": "61:833:66"
+  },
+  "legacyAST": {
+    "absolutePath": "project:/contracts/nft/token/NFTState.sol",
+    "exportedSymbols": {
+      "NFTState": [
+        14750
+      ],
+      "NFTStorage": [
+        14746
+      ]
+    },
+    "id": 14751,
+    "license": "Apache 2",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 14710,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "61:23:66"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 14746,
+        "linearizedBaseContracts": [
+          14746
+        ],
+        "name": "NFTStorage",
+        "nameLocation": "95:10:66",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "NFTStorage.State",
+            "id": 14745,
+            "members": [
+              {
+                "constant": false,
+                "id": 14712,
+                "mutability": "mutable",
+                "name": "name",
+                "nameLocation": "165:4:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "158:11:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_string_storage_ptr",
+                  "typeString": "string"
+                },
+                "typeName": {
+                  "id": 14711,
+                  "name": "string",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "158:6:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_string_storage_ptr",
+                    "typeString": "string"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14714,
+                "mutability": "mutable",
+                "name": "symbol",
+                "nameLocation": "211:6:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "204:13:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_string_storage_ptr",
+                  "typeString": "string"
+                },
+                "typeName": {
+                  "id": 14713,
+                  "name": "string",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "204:6:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_string_storage_ptr",
+                    "typeString": "string"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14718,
+                "mutability": "mutable",
+                "name": "owners",
+                "nameLocation": "306:6:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "278:34:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                  "typeString": "mapping(uint256 => address)"
+                },
+                "typeName": {
+                  "id": 14717,
+                  "keyType": {
+                    "id": 14715,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "286:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "278:27:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                    "typeString": "mapping(uint256 => address)"
+                  },
+                  "valueType": {
+                    "id": 14716,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "297:7:66",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14722,
+                "mutability": "mutable",
+                "name": "balances",
+                "nameLocation": "399:8:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "371:36:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                  "typeString": "mapping(address => uint256)"
+                },
+                "typeName": {
+                  "id": 14721,
+                  "keyType": {
+                    "id": 14719,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "379:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "371:27:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                    "typeString": "mapping(address => uint256)"
+                  },
+                  "valueType": {
+                    "id": 14720,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "390:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14726,
+                "mutability": "mutable",
+                "name": "tokenApprovals",
+                "nameLocation": "499:14:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "471:42:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                  "typeString": "mapping(uint256 => address)"
+                },
+                "typeName": {
+                  "id": 14725,
+                  "keyType": {
+                    "id": 14723,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "479:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "471:27:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_uint256_$_t_address_$",
+                    "typeString": "mapping(uint256 => address)"
+                  },
+                  "valueType": {
+                    "id": 14724,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "490:7:66",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14730,
+                "mutability": "mutable",
+                "name": "tokenURIs",
+                "nameLocation": "591:9:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "564:36:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_uint256_$_t_string_storage_$",
+                  "typeString": "mapping(uint256 => string)"
+                },
+                "typeName": {
+                  "id": 14729,
+                  "keyType": {
+                    "id": 14727,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "572:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "564:26:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_uint256_$_t_string_storage_$",
+                    "typeString": "mapping(uint256 => string)"
+                  },
+                  "valueType": {
+                    "id": 14728,
+                    "name": "string",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "583:6:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_string_storage_ptr",
+                      "typeString": "string"
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14736,
+                "mutability": "mutable",
+                "name": "operatorApprovals",
+                "nameLocation": "708:17:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "663:62:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_mapping$_t_address_$_t_mapping$_t_address_$_t_bool_$_$",
+                  "typeString": "mapping(address => mapping(address => bool))"
+                },
+                "typeName": {
+                  "id": 14735,
+                  "keyType": {
+                    "id": 14731,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "671:7:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "nodeType": "Mapping",
+                  "src": "663:44:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_mapping$_t_address_$_t_mapping$_t_address_$_t_bool_$_$",
+                    "typeString": "mapping(address => mapping(address => bool))"
+                  },
+                  "valueType": {
+                    "id": 14734,
+                    "keyType": {
+                      "id": 14732,
+                      "name": "address",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "690:7:66",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Mapping",
+                    "src": "682:24:66",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                      "typeString": "mapping(address => bool)"
+                    },
+                    "valueType": {
+                      "id": 14733,
+                      "name": "bool",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "701:4:66",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    }
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14738,
+                "mutability": "mutable",
+                "name": "owner",
+                "nameLocation": "744:5:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "736:13:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 14737,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "736:7:66",
+                  "stateMutability": "nonpayable",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14740,
+                "mutability": "mutable",
+                "name": "initialized",
+                "nameLocation": "765:11:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "760:16:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bool",
+                  "typeString": "bool"
+                },
+                "typeName": {
+                  "id": 14739,
+                  "name": "bool",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "760:4:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14742,
+                "mutability": "mutable",
+                "name": "chainId",
+                "nameLocation": "794:7:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "787:14:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint16",
+                  "typeString": "uint16"
+                },
+                "typeName": {
+                  "id": 14741,
+                  "name": "uint16",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "787:6:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 14744,
+                "mutability": "mutable",
+                "name": "nativeContract",
+                "nameLocation": "819:14:66",
+                "nodeType": "VariableDeclaration",
+                "scope": 14745,
+                "src": "811:22:66",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bytes32",
+                  "typeString": "bytes32"
+                },
+                "typeName": {
+                  "id": 14743,
+                  "name": "bytes32",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "811:7:66",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "State",
+            "nameLocation": "119:5:66",
+            "nodeType": "StructDefinition",
+            "scope": 14746,
+            "src": "112:728:66",
+            "visibility": "public"
+          }
+        ],
+        "scope": 14751,
+        "src": "86:756:66",
+        "usedErrors": []
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 14750,
+        "linearizedBaseContracts": [
+          14750
+        ],
+        "name": "NFTState",
+        "nameLocation": "853:8:66",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 14749,
+            "mutability": "mutable",
+            "name": "_state",
+            "nameLocation": "885:6:66",
+            "nodeType": "VariableDeclaration",
+            "scope": 14750,
+            "src": "868:23:66",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_struct$_State_$14745_storage",
+              "typeString": "struct NFTStorage.State"
+            },
+            "typeName": {
+              "id": 14748,
+              "nodeType": "UserDefinedTypeName",
+              "pathNode": {
+                "id": 14747,
+                "name": "NFTStorage.State",
+                "nodeType": "IdentifierPath",
+                "referencedDeclaration": 14745,
+                "src": "868:16:66"
+              },
+              "referencedDeclaration": 14745,
+              "src": "868:16:66",
+              "typeDescriptions": {
+                "typeIdentifier": "t_struct$_State_$14745_storage_ptr",
+                "typeString": "struct NFTStorage.State"
+              }
+            },
+            "visibility": "internal"
+          }
+        ],
+        "scope": 14751,
+        "src": "844:50:66",
+        "usedErrors": []
+      }
+    ],
+    "src": "61:833:66"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.4+commit.c7e474f2.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.4.1",
+  "updatedAt": "2022-09-09T01:32:05.107Z",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  }
+}

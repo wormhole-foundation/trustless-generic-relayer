@@ -1,0 +1,4299 @@
+{
+  "contractName": "BridgeSetters",
+  "abi": [],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.4+commit.c7e474f2\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/bridge/BridgeSetters.sol\":\"BridgeSetters\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/bridge/BridgeSetters.sol\":{\"keccak256\":\"0x01ba3db640b81cb6c55a4fa8e3da80afc1c4d649cbd4644a3046f4cfcb30271e\",\"license\":\"Apache 2\",\"urls\":[\"bzz-raw://d9324a79a9f42ac05e6b04d5f29bc53f13b6a8678d9f74a7cd93cbf2d85c3769\",\"dweb:/ipfs/QmY1WZWsRUhZtgRkeeYQsLR4EcbEETrGHewNk5BPf8viS1\"]},\"project:/contracts/bridge/BridgeState.sol\":{\"keccak256\":\"0x0e0227db5b4aa782c39839b9fdcf7f1a1dba2bd4fad9d39ecd3bd22a21de06b1\",\"license\":\"Apache 2\",\"urls\":[\"bzz-raw://e415073dae72dfbe326f4d0360dc75f73f088da4f7e2c66bb797206aa7f3401d\",\"dweb:/ipfs/QmatoTnqZDiH5UUvpVk4oJvPUoJBzu9jfNQNhBr3zEFZ9b\"]},\"project:/contracts/bridge/BridgeStructs.sol\":{\"keccak256\":\"0x746a3873bbe567ffce1b132eb8300854632b4259b2f1268a696c9fd33cb0311e\",\"license\":\"Apache 2\",\"urls\":[\"bzz-raw://48728b17b3388e295704f1b461824752f3f909c1d72c42ba2de2aa6d468fe358\",\"dweb:/ipfs/QmUpVypvM1dHksfR8ipStrst2QAWUhU9yeVRkqAZ9hLcg2\"]}},\"version\":1}",
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea26469706673582212204779f00b2e4708977e89915766224563b358b101a0dfa4f942c9ad44b493c8e964736f6c63430008040033",
+  "deployedBytecode": "0x6080604052600080fdfea26469706673582212204779f00b2e4708977e89915766224563b358b101a0dfa4f942c9ad44b493c8e964736f6c63430008040033",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "117:1711:35:-:0;;;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "117:1711:35:-:0;;;;;",
+  "source": "// contracts/Setters.sol\n// SPDX-License-Identifier: Apache 2\n\npragma solidity ^0.8.0;\n\nimport \"./BridgeState.sol\";\n\ncontract BridgeSetters is BridgeState {\n    function setInitialized(address implementatiom) internal {\n        _state.initializedImplementations[implementatiom] = true;\n    }\n\n    function setGovernanceActionConsumed(bytes32 hash) internal {\n        _state.consumedGovernanceActions[hash] = true;\n    }\n\n    function setTransferCompleted(bytes32 hash) internal {\n        _state.completedTransfers[hash] = true;\n    }\n\n    function setChainId(uint16 chainId) internal {\n        _state.provider.chainId = chainId;\n    }\n\n    function setGovernanceChainId(uint16 chainId) internal {\n        _state.provider.governanceChainId = chainId;\n    }\n\n    function setGovernanceContract(bytes32 governanceContract) internal {\n        _state.provider.governanceContract = governanceContract;\n    }\n\n    function setBridgeImplementation(uint16 chainId, bytes32 bridgeContract) internal {\n        _state.bridgeImplementations[chainId] = bridgeContract;\n    }\n\n    function setTokenImplementation(address impl) internal {\n        _state.tokenImplementation = impl;\n    }\n\n    function setWETH(address weth) internal {\n        _state.provider.WETH = weth;\n    }\n\n    function setWormhole(address wh) internal {\n        _state.wormhole = payable(wh);\n    }\n\n    function setWrappedAsset(uint16 tokenChainId, bytes32 tokenAddress, address wrapper) internal {\n        _state.wrappedAssets[tokenChainId][tokenAddress] = wrapper;\n        _state.isWrappedAsset[wrapper] = true;\n    }\n\n    function setOutstandingBridged(address token, uint256 outstanding) internal {\n        _state.outstandingBridged[token] = outstanding;\n    }\n\n    function setFinality(uint8 finality) internal {\n        _state.provider.finality = finality;\n    }\n}\n",
+  "sourcePath": "/home/asterioti/generic-relayer/ethereum/contracts/bridge/BridgeSetters.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/bridge/BridgeSetters.sol",
+    "exportedSymbols": {
+      "BridgeSetters": [
+        8574
+      ],
+      "BridgeState": [
+        8698
+      ],
+      "BridgeStorage": [
+        8694
+      ],
+      "BridgeStructs": [
+        8777
+      ]
+    },
+    "id": 8575,
+    "license": "Apache 2",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 8371,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "63:23:35"
+      },
+      {
+        "absolutePath": "project:/contracts/bridge/BridgeState.sol",
+        "file": "./BridgeState.sol",
+        "id": 8372,
+        "nameLocation": "-1:-1:-1",
+        "nodeType": "ImportDirective",
+        "scope": 8575,
+        "sourceUnit": 8699,
+        "src": "88:27:35",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": false,
+        "baseContracts": [
+          {
+            "baseName": {
+              "id": 8373,
+              "name": "BridgeState",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 8698,
+              "src": "143:11:35"
+            },
+            "id": 8374,
+            "nodeType": "InheritanceSpecifier",
+            "src": "143:11:35"
+          }
+        ],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 8574,
+        "linearizedBaseContracts": [
+          8574,
+          8698
+        ],
+        "name": "BridgeSetters",
+        "nameLocation": "126:13:35",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 8387,
+              "nodeType": "Block",
+              "src": "218:73:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8385,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8379,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "228:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8382,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "initializedImplementations",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8674,
+                        "src": "228:33:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                          "typeString": "mapping(address => bool)"
+                        }
+                      },
+                      "id": 8383,
+                      "indexExpression": {
+                        "id": 8381,
+                        "name": "implementatiom",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8376,
+                        "src": "262:14:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "228:49:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8384,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "280:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "228:56:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8386,
+                  "nodeType": "ExpressionStatement",
+                  "src": "228:56:35"
+                }
+              ]
+            },
+            "id": 8388,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setInitialized",
+            "nameLocation": "170:14:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8377,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8376,
+                  "mutability": "mutable",
+                  "name": "implementatiom",
+                  "nameLocation": "193:14:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8388,
+                  "src": "185:22:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8375,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "185:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "184:24:35"
+            },
+            "returnParameters": {
+              "id": 8378,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "218:0:35"
+            },
+            "scope": 8574,
+            "src": "161:130:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8401,
+              "nodeType": "Block",
+              "src": "357:62:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8399,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8393,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "367:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8396,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "consumedGovernanceActions",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8666,
+                        "src": "367:32:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_bytes32_$_t_bool_$",
+                          "typeString": "mapping(bytes32 => bool)"
+                        }
+                      },
+                      "id": 8397,
+                      "indexExpression": {
+                        "id": 8395,
+                        "name": "hash",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8390,
+                        "src": "400:4:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "367:38:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8398,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "408:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "367:45:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8400,
+                  "nodeType": "ExpressionStatement",
+                  "src": "367:45:35"
+                }
+              ]
+            },
+            "id": 8402,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setGovernanceActionConsumed",
+            "nameLocation": "306:27:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8391,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8390,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "342:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8402,
+                  "src": "334:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8389,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "334:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "333:14:35"
+            },
+            "returnParameters": {
+              "id": 8392,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "357:0:35"
+            },
+            "scope": 8574,
+            "src": "297:122:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8415,
+              "nodeType": "Block",
+              "src": "478:55:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8413,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8407,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "488:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8410,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "completedTransfers",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8670,
+                        "src": "488:25:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_bytes32_$_t_bool_$",
+                          "typeString": "mapping(bytes32 => bool)"
+                        }
+                      },
+                      "id": 8411,
+                      "indexExpression": {
+                        "id": 8409,
+                        "name": "hash",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8404,
+                        "src": "514:4:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "488:31:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8412,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "522:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "488:38:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8414,
+                  "nodeType": "ExpressionStatement",
+                  "src": "488:38:35"
+                }
+              ]
+            },
+            "id": 8416,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setTransferCompleted",
+            "nameLocation": "434:20:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8405,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8404,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "463:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8416,
+                  "src": "455:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8403,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "455:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "454:14:35"
+            },
+            "returnParameters": {
+              "id": 8406,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "478:0:35"
+            },
+            "scope": 8574,
+            "src": "425:108:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8429,
+              "nodeType": "Block",
+              "src": "584:50:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8427,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8421,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "594:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8424,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "594:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8425,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "chainId",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8641,
+                      "src": "594:23:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8426,
+                      "name": "chainId",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8418,
+                      "src": "620:7:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "src": "594:33:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "id": 8428,
+                  "nodeType": "ExpressionStatement",
+                  "src": "594:33:35"
+                }
+              ]
+            },
+            "id": 8430,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setChainId",
+            "nameLocation": "548:10:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8419,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8418,
+                  "mutability": "mutable",
+                  "name": "chainId",
+                  "nameLocation": "566:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8430,
+                  "src": "559:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8417,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "559:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "558:16:35"
+            },
+            "returnParameters": {
+              "id": 8420,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "584:0:35"
+            },
+            "scope": 8574,
+            "src": "539:95:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8443,
+              "nodeType": "Block",
+              "src": "695:60:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8441,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8435,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "705:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8438,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "705:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8439,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "governanceChainId",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8643,
+                      "src": "705:33:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8440,
+                      "name": "chainId",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8432,
+                      "src": "741:7:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "src": "705:43:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "id": 8442,
+                  "nodeType": "ExpressionStatement",
+                  "src": "705:43:35"
+                }
+              ]
+            },
+            "id": 8444,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setGovernanceChainId",
+            "nameLocation": "649:20:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8433,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8432,
+                  "mutability": "mutable",
+                  "name": "chainId",
+                  "nameLocation": "677:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8444,
+                  "src": "670:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8431,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "670:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "669:16:35"
+            },
+            "returnParameters": {
+              "id": 8434,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "695:0:35"
+            },
+            "scope": 8574,
+            "src": "640:115:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8457,
+              "nodeType": "Block",
+              "src": "829:72:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8455,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8449,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "839:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8452,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "839:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8453,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "governanceContract",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8647,
+                      "src": "839:34:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8454,
+                      "name": "governanceContract",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8446,
+                      "src": "876:18:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "src": "839:55:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "id": 8456,
+                  "nodeType": "ExpressionStatement",
+                  "src": "839:55:35"
+                }
+              ]
+            },
+            "id": 8458,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setGovernanceContract",
+            "nameLocation": "770:21:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8447,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8446,
+                  "mutability": "mutable",
+                  "name": "governanceContract",
+                  "nameLocation": "800:18:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8458,
+                  "src": "792:26:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8445,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "792:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "791:28:35"
+            },
+            "returnParameters": {
+              "id": 8448,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "829:0:35"
+            },
+            "scope": 8574,
+            "src": "761:140:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8473,
+              "nodeType": "Block",
+              "src": "989:71:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8471,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8465,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "999:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8468,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "bridgeImplementations",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8692,
+                        "src": "999:28:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_uint16_$_t_bytes32_$",
+                          "typeString": "mapping(uint16 => bytes32)"
+                        }
+                      },
+                      "id": 8469,
+                      "indexExpression": {
+                        "id": 8467,
+                        "name": "chainId",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8460,
+                        "src": "1028:7:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint16",
+                          "typeString": "uint16"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "999:37:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8470,
+                      "name": "bridgeContract",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8462,
+                      "src": "1039:14:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "src": "999:54:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "id": 8472,
+                  "nodeType": "ExpressionStatement",
+                  "src": "999:54:35"
+                }
+              ]
+            },
+            "id": 8474,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setBridgeImplementation",
+            "nameLocation": "916:23:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8463,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8460,
+                  "mutability": "mutable",
+                  "name": "chainId",
+                  "nameLocation": "947:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8474,
+                  "src": "940:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8459,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "940:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8462,
+                  "mutability": "mutable",
+                  "name": "bridgeContract",
+                  "nameLocation": "964:14:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8474,
+                  "src": "956:22:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8461,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "956:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "939:40:35"
+            },
+            "returnParameters": {
+              "id": 8464,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "989:0:35"
+            },
+            "scope": 8574,
+            "src": "907:153:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8485,
+              "nodeType": "Block",
+              "src": "1121:50:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8483,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "id": 8479,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8697,
+                        "src": "1131:6:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_State_$8693_storage",
+                          "typeString": "struct BridgeStorage.State storage ref"
+                        }
+                      },
+                      "id": 8481,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "tokenImplementation",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8659,
+                      "src": "1131:26:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8482,
+                      "name": "impl",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8476,
+                      "src": "1160:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1131:33:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 8484,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1131:33:35"
+                }
+              ]
+            },
+            "id": 8486,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setTokenImplementation",
+            "nameLocation": "1075:22:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8477,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8476,
+                  "mutability": "mutable",
+                  "name": "impl",
+                  "nameLocation": "1106:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8486,
+                  "src": "1098:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8475,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1098:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1097:14:35"
+            },
+            "returnParameters": {
+              "id": 8478,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1121:0:35"
+            },
+            "scope": 8574,
+            "src": "1066:105:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8499,
+              "nodeType": "Block",
+              "src": "1217:44:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8497,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8491,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1227:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8494,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "1227:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8495,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "WETH",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8649,
+                      "src": "1227:20:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8496,
+                      "name": "weth",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8488,
+                      "src": "1250:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1227:27:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 8498,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1227:27:35"
+                }
+              ]
+            },
+            "id": 8500,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setWETH",
+            "nameLocation": "1186:7:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8489,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8488,
+                  "mutability": "mutable",
+                  "name": "weth",
+                  "nameLocation": "1202:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8500,
+                  "src": "1194:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8487,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1194:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1193:14:35"
+            },
+            "returnParameters": {
+              "id": 8490,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1217:0:35"
+            },
+            "scope": 8574,
+            "src": "1177:84:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8514,
+              "nodeType": "Block",
+              "src": "1309:46:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8512,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "id": 8505,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8697,
+                        "src": "1319:6:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_State_$8693_storage",
+                          "typeString": "struct BridgeStorage.State storage ref"
+                        }
+                      },
+                      "id": 8507,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "wormhole",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8657,
+                      "src": "1319:15:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address_payable",
+                        "typeString": "address payable"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "arguments": [
+                        {
+                          "id": 8510,
+                          "name": "wh",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8502,
+                          "src": "1345:2:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 8509,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "lValueRequested": false,
+                        "nodeType": "ElementaryTypeNameExpression",
+                        "src": "1337:8:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_address_payable_$",
+                          "typeString": "type(address payable)"
+                        },
+                        "typeName": {
+                          "id": 8508,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "1337:8:35",
+                          "stateMutability": "payable",
+                          "typeDescriptions": {}
+                        }
+                      },
+                      "id": 8511,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "1337:11:35",
+                      "tryCall": false,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address_payable",
+                        "typeString": "address payable"
+                      }
+                    },
+                    "src": "1319:29:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address_payable",
+                      "typeString": "address payable"
+                    }
+                  },
+                  "id": 8513,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1319:29:35"
+                }
+              ]
+            },
+            "id": 8515,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setWormhole",
+            "nameLocation": "1276:11:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8503,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8502,
+                  "mutability": "mutable",
+                  "name": "wh",
+                  "nameLocation": "1296:2:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8515,
+                  "src": "1288:10:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8501,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1288:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1287:12:35"
+            },
+            "returnParameters": {
+              "id": 8504,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1309:0:35"
+            },
+            "scope": 8574,
+            "src": "1267:88:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8542,
+              "nodeType": "Block",
+              "src": "1455:122:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8532,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "baseExpression": {
+                          "expression": {
+                            "id": 8524,
+                            "name": "_state",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 8697,
+                            "src": "1465:6:35",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_State_$8693_storage",
+                              "typeString": "struct BridgeStorage.State storage ref"
+                            }
+                          },
+                          "id": 8528,
+                          "isConstant": false,
+                          "isLValue": true,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "memberName": "wrappedAssets",
+                          "nodeType": "MemberAccess",
+                          "referencedDeclaration": 8680,
+                          "src": "1465:20:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_mapping$_t_uint16_$_t_mapping$_t_bytes32_$_t_address_$_$",
+                            "typeString": "mapping(uint16 => mapping(bytes32 => address))"
+                          }
+                        },
+                        "id": 8529,
+                        "indexExpression": {
+                          "id": 8526,
+                          "name": "tokenChainId",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8517,
+                          "src": "1486:12:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint16",
+                            "typeString": "uint16"
+                          }
+                        },
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "nodeType": "IndexAccess",
+                        "src": "1465:34:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_bytes32_$_t_address_$",
+                          "typeString": "mapping(bytes32 => address)"
+                        }
+                      },
+                      "id": 8530,
+                      "indexExpression": {
+                        "id": 8527,
+                        "name": "tokenAddress",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8519,
+                        "src": "1500:12:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "1465:48:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8531,
+                      "name": "wrapper",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8521,
+                      "src": "1516:7:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1465:58:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 8533,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1465:58:35"
+                },
+                {
+                  "expression": {
+                    "id": 8540,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8534,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1533:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8537,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "isWrappedAsset",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8684,
+                        "src": "1533:21:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                          "typeString": "mapping(address => bool)"
+                        }
+                      },
+                      "id": 8538,
+                      "indexExpression": {
+                        "id": 8536,
+                        "name": "wrapper",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8521,
+                        "src": "1555:7:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "1533:30:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8539,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "1566:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "1533:37:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8541,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1533:37:35"
+                }
+              ]
+            },
+            "id": 8543,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setWrappedAsset",
+            "nameLocation": "1370:15:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8522,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8517,
+                  "mutability": "mutable",
+                  "name": "tokenChainId",
+                  "nameLocation": "1393:12:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8543,
+                  "src": "1386:19:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8516,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1386:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8519,
+                  "mutability": "mutable",
+                  "name": "tokenAddress",
+                  "nameLocation": "1415:12:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8543,
+                  "src": "1407:20:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8518,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1407:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8521,
+                  "mutability": "mutable",
+                  "name": "wrapper",
+                  "nameLocation": "1437:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8543,
+                  "src": "1429:15:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8520,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1429:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1385:60:35"
+            },
+            "returnParameters": {
+              "id": 8523,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1455:0:35"
+            },
+            "scope": 8574,
+            "src": "1361:216:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8558,
+              "nodeType": "Block",
+              "src": "1659:63:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8556,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8550,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1669:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8553,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "outstandingBridged",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8688,
+                        "src": "1669:25:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                          "typeString": "mapping(address => uint256)"
+                        }
+                      },
+                      "id": 8554,
+                      "indexExpression": {
+                        "id": 8552,
+                        "name": "token",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8545,
+                        "src": "1695:5:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "1669:32:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8555,
+                      "name": "outstanding",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8547,
+                      "src": "1704:11:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "src": "1669:46:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "id": 8557,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1669:46:35"
+                }
+              ]
+            },
+            "id": 8559,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setOutstandingBridged",
+            "nameLocation": "1592:21:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8548,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8545,
+                  "mutability": "mutable",
+                  "name": "token",
+                  "nameLocation": "1622:5:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8559,
+                  "src": "1614:13:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8544,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1614:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8547,
+                  "mutability": "mutable",
+                  "name": "outstanding",
+                  "nameLocation": "1637:11:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8559,
+                  "src": "1629:19:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 8546,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1629:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1613:36:35"
+            },
+            "returnParameters": {
+              "id": 8549,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1659:0:35"
+            },
+            "scope": 8574,
+            "src": "1583:139:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8572,
+              "nodeType": "Block",
+              "src": "1774:52:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8570,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8564,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1784:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8567,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "1784:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8568,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "finality",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8645,
+                      "src": "1784:24:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint8",
+                        "typeString": "uint8"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8569,
+                      "name": "finality",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8561,
+                      "src": "1811:8:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint8",
+                        "typeString": "uint8"
+                      }
+                    },
+                    "src": "1784:35:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint8",
+                      "typeString": "uint8"
+                    }
+                  },
+                  "id": 8571,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1784:35:35"
+                }
+              ]
+            },
+            "id": 8573,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setFinality",
+            "nameLocation": "1737:11:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8562,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8561,
+                  "mutability": "mutable",
+                  "name": "finality",
+                  "nameLocation": "1755:8:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8573,
+                  "src": "1749:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint8",
+                    "typeString": "uint8"
+                  },
+                  "typeName": {
+                    "id": 8560,
+                    "name": "uint8",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1749:5:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint8",
+                      "typeString": "uint8"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1748:16:35"
+            },
+            "returnParameters": {
+              "id": 8563,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1774:0:35"
+            },
+            "scope": 8574,
+            "src": "1728:98:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          }
+        ],
+        "scope": 8575,
+        "src": "117:1711:35",
+        "usedErrors": []
+      }
+    ],
+    "src": "63:1766:35"
+  },
+  "legacyAST": {
+    "absolutePath": "project:/contracts/bridge/BridgeSetters.sol",
+    "exportedSymbols": {
+      "BridgeSetters": [
+        8574
+      ],
+      "BridgeState": [
+        8698
+      ],
+      "BridgeStorage": [
+        8694
+      ],
+      "BridgeStructs": [
+        8777
+      ]
+    },
+    "id": 8575,
+    "license": "Apache 2",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 8371,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "63:23:35"
+      },
+      {
+        "absolutePath": "project:/contracts/bridge/BridgeState.sol",
+        "file": "./BridgeState.sol",
+        "id": 8372,
+        "nameLocation": "-1:-1:-1",
+        "nodeType": "ImportDirective",
+        "scope": 8575,
+        "sourceUnit": 8699,
+        "src": "88:27:35",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": false,
+        "baseContracts": [
+          {
+            "baseName": {
+              "id": 8373,
+              "name": "BridgeState",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 8698,
+              "src": "143:11:35"
+            },
+            "id": 8374,
+            "nodeType": "InheritanceSpecifier",
+            "src": "143:11:35"
+          }
+        ],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 8574,
+        "linearizedBaseContracts": [
+          8574,
+          8698
+        ],
+        "name": "BridgeSetters",
+        "nameLocation": "126:13:35",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 8387,
+              "nodeType": "Block",
+              "src": "218:73:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8385,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8379,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "228:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8382,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "initializedImplementations",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8674,
+                        "src": "228:33:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                          "typeString": "mapping(address => bool)"
+                        }
+                      },
+                      "id": 8383,
+                      "indexExpression": {
+                        "id": 8381,
+                        "name": "implementatiom",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8376,
+                        "src": "262:14:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "228:49:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8384,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "280:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "228:56:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8386,
+                  "nodeType": "ExpressionStatement",
+                  "src": "228:56:35"
+                }
+              ]
+            },
+            "id": 8388,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setInitialized",
+            "nameLocation": "170:14:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8377,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8376,
+                  "mutability": "mutable",
+                  "name": "implementatiom",
+                  "nameLocation": "193:14:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8388,
+                  "src": "185:22:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8375,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "185:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "184:24:35"
+            },
+            "returnParameters": {
+              "id": 8378,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "218:0:35"
+            },
+            "scope": 8574,
+            "src": "161:130:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8401,
+              "nodeType": "Block",
+              "src": "357:62:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8399,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8393,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "367:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8396,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "consumedGovernanceActions",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8666,
+                        "src": "367:32:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_bytes32_$_t_bool_$",
+                          "typeString": "mapping(bytes32 => bool)"
+                        }
+                      },
+                      "id": 8397,
+                      "indexExpression": {
+                        "id": 8395,
+                        "name": "hash",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8390,
+                        "src": "400:4:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "367:38:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8398,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "408:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "367:45:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8400,
+                  "nodeType": "ExpressionStatement",
+                  "src": "367:45:35"
+                }
+              ]
+            },
+            "id": 8402,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setGovernanceActionConsumed",
+            "nameLocation": "306:27:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8391,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8390,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "342:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8402,
+                  "src": "334:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8389,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "334:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "333:14:35"
+            },
+            "returnParameters": {
+              "id": 8392,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "357:0:35"
+            },
+            "scope": 8574,
+            "src": "297:122:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8415,
+              "nodeType": "Block",
+              "src": "478:55:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8413,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8407,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "488:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8410,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "completedTransfers",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8670,
+                        "src": "488:25:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_bytes32_$_t_bool_$",
+                          "typeString": "mapping(bytes32 => bool)"
+                        }
+                      },
+                      "id": 8411,
+                      "indexExpression": {
+                        "id": 8409,
+                        "name": "hash",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8404,
+                        "src": "514:4:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "488:31:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8412,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "522:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "488:38:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8414,
+                  "nodeType": "ExpressionStatement",
+                  "src": "488:38:35"
+                }
+              ]
+            },
+            "id": 8416,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setTransferCompleted",
+            "nameLocation": "434:20:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8405,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8404,
+                  "mutability": "mutable",
+                  "name": "hash",
+                  "nameLocation": "463:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8416,
+                  "src": "455:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8403,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "455:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "454:14:35"
+            },
+            "returnParameters": {
+              "id": 8406,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "478:0:35"
+            },
+            "scope": 8574,
+            "src": "425:108:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8429,
+              "nodeType": "Block",
+              "src": "584:50:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8427,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8421,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "594:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8424,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "594:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8425,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "chainId",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8641,
+                      "src": "594:23:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8426,
+                      "name": "chainId",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8418,
+                      "src": "620:7:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "src": "594:33:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "id": 8428,
+                  "nodeType": "ExpressionStatement",
+                  "src": "594:33:35"
+                }
+              ]
+            },
+            "id": 8430,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setChainId",
+            "nameLocation": "548:10:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8419,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8418,
+                  "mutability": "mutable",
+                  "name": "chainId",
+                  "nameLocation": "566:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8430,
+                  "src": "559:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8417,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "559:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "558:16:35"
+            },
+            "returnParameters": {
+              "id": 8420,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "584:0:35"
+            },
+            "scope": 8574,
+            "src": "539:95:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8443,
+              "nodeType": "Block",
+              "src": "695:60:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8441,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8435,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "705:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8438,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "705:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8439,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "governanceChainId",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8643,
+                      "src": "705:33:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8440,
+                      "name": "chainId",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8432,
+                      "src": "741:7:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint16",
+                        "typeString": "uint16"
+                      }
+                    },
+                    "src": "705:43:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "id": 8442,
+                  "nodeType": "ExpressionStatement",
+                  "src": "705:43:35"
+                }
+              ]
+            },
+            "id": 8444,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setGovernanceChainId",
+            "nameLocation": "649:20:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8433,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8432,
+                  "mutability": "mutable",
+                  "name": "chainId",
+                  "nameLocation": "677:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8444,
+                  "src": "670:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8431,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "670:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "669:16:35"
+            },
+            "returnParameters": {
+              "id": 8434,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "695:0:35"
+            },
+            "scope": 8574,
+            "src": "640:115:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8457,
+              "nodeType": "Block",
+              "src": "829:72:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8455,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8449,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "839:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8452,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "839:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8453,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "governanceContract",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8647,
+                      "src": "839:34:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8454,
+                      "name": "governanceContract",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8446,
+                      "src": "876:18:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "src": "839:55:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "id": 8456,
+                  "nodeType": "ExpressionStatement",
+                  "src": "839:55:35"
+                }
+              ]
+            },
+            "id": 8458,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setGovernanceContract",
+            "nameLocation": "770:21:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8447,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8446,
+                  "mutability": "mutable",
+                  "name": "governanceContract",
+                  "nameLocation": "800:18:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8458,
+                  "src": "792:26:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8445,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "792:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "791:28:35"
+            },
+            "returnParameters": {
+              "id": 8448,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "829:0:35"
+            },
+            "scope": 8574,
+            "src": "761:140:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8473,
+              "nodeType": "Block",
+              "src": "989:71:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8471,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8465,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "999:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8468,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "bridgeImplementations",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8692,
+                        "src": "999:28:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_uint16_$_t_bytes32_$",
+                          "typeString": "mapping(uint16 => bytes32)"
+                        }
+                      },
+                      "id": 8469,
+                      "indexExpression": {
+                        "id": 8467,
+                        "name": "chainId",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8460,
+                        "src": "1028:7:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint16",
+                          "typeString": "uint16"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "999:37:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8470,
+                      "name": "bridgeContract",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8462,
+                      "src": "1039:14:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes32",
+                        "typeString": "bytes32"
+                      }
+                    },
+                    "src": "999:54:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "id": 8472,
+                  "nodeType": "ExpressionStatement",
+                  "src": "999:54:35"
+                }
+              ]
+            },
+            "id": 8474,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setBridgeImplementation",
+            "nameLocation": "916:23:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8463,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8460,
+                  "mutability": "mutable",
+                  "name": "chainId",
+                  "nameLocation": "947:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8474,
+                  "src": "940:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8459,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "940:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8462,
+                  "mutability": "mutable",
+                  "name": "bridgeContract",
+                  "nameLocation": "964:14:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8474,
+                  "src": "956:22:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8461,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "956:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "939:40:35"
+            },
+            "returnParameters": {
+              "id": 8464,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "989:0:35"
+            },
+            "scope": 8574,
+            "src": "907:153:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8485,
+              "nodeType": "Block",
+              "src": "1121:50:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8483,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "id": 8479,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8697,
+                        "src": "1131:6:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_State_$8693_storage",
+                          "typeString": "struct BridgeStorage.State storage ref"
+                        }
+                      },
+                      "id": 8481,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "tokenImplementation",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8659,
+                      "src": "1131:26:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8482,
+                      "name": "impl",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8476,
+                      "src": "1160:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1131:33:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 8484,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1131:33:35"
+                }
+              ]
+            },
+            "id": 8486,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setTokenImplementation",
+            "nameLocation": "1075:22:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8477,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8476,
+                  "mutability": "mutable",
+                  "name": "impl",
+                  "nameLocation": "1106:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8486,
+                  "src": "1098:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8475,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1098:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1097:14:35"
+            },
+            "returnParameters": {
+              "id": 8478,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1121:0:35"
+            },
+            "scope": 8574,
+            "src": "1066:105:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8499,
+              "nodeType": "Block",
+              "src": "1217:44:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8497,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8491,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1227:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8494,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "1227:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8495,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "WETH",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8649,
+                      "src": "1227:20:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8496,
+                      "name": "weth",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8488,
+                      "src": "1250:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1227:27:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 8498,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1227:27:35"
+                }
+              ]
+            },
+            "id": 8500,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setWETH",
+            "nameLocation": "1186:7:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8489,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8488,
+                  "mutability": "mutable",
+                  "name": "weth",
+                  "nameLocation": "1202:4:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8500,
+                  "src": "1194:12:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8487,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1194:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1193:14:35"
+            },
+            "returnParameters": {
+              "id": 8490,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1217:0:35"
+            },
+            "scope": 8574,
+            "src": "1177:84:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8514,
+              "nodeType": "Block",
+              "src": "1309:46:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8512,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "id": 8505,
+                        "name": "_state",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8697,
+                        "src": "1319:6:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_State_$8693_storage",
+                          "typeString": "struct BridgeStorage.State storage ref"
+                        }
+                      },
+                      "id": 8507,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "wormhole",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8657,
+                      "src": "1319:15:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address_payable",
+                        "typeString": "address payable"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "arguments": [
+                        {
+                          "id": 8510,
+                          "name": "wh",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8502,
+                          "src": "1345:2:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 8509,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "lValueRequested": false,
+                        "nodeType": "ElementaryTypeNameExpression",
+                        "src": "1337:8:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_address_payable_$",
+                          "typeString": "type(address payable)"
+                        },
+                        "typeName": {
+                          "id": 8508,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "1337:8:35",
+                          "stateMutability": "payable",
+                          "typeDescriptions": {}
+                        }
+                      },
+                      "id": 8511,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "1337:11:35",
+                      "tryCall": false,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address_payable",
+                        "typeString": "address payable"
+                      }
+                    },
+                    "src": "1319:29:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address_payable",
+                      "typeString": "address payable"
+                    }
+                  },
+                  "id": 8513,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1319:29:35"
+                }
+              ]
+            },
+            "id": 8515,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setWormhole",
+            "nameLocation": "1276:11:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8503,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8502,
+                  "mutability": "mutable",
+                  "name": "wh",
+                  "nameLocation": "1296:2:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8515,
+                  "src": "1288:10:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8501,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1288:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1287:12:35"
+            },
+            "returnParameters": {
+              "id": 8504,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1309:0:35"
+            },
+            "scope": 8574,
+            "src": "1267:88:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8542,
+              "nodeType": "Block",
+              "src": "1455:122:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8532,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "baseExpression": {
+                          "expression": {
+                            "id": 8524,
+                            "name": "_state",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 8697,
+                            "src": "1465:6:35",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_State_$8693_storage",
+                              "typeString": "struct BridgeStorage.State storage ref"
+                            }
+                          },
+                          "id": 8528,
+                          "isConstant": false,
+                          "isLValue": true,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "memberName": "wrappedAssets",
+                          "nodeType": "MemberAccess",
+                          "referencedDeclaration": 8680,
+                          "src": "1465:20:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_mapping$_t_uint16_$_t_mapping$_t_bytes32_$_t_address_$_$",
+                            "typeString": "mapping(uint16 => mapping(bytes32 => address))"
+                          }
+                        },
+                        "id": 8529,
+                        "indexExpression": {
+                          "id": 8526,
+                          "name": "tokenChainId",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8517,
+                          "src": "1486:12:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint16",
+                            "typeString": "uint16"
+                          }
+                        },
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "nodeType": "IndexAccess",
+                        "src": "1465:34:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_bytes32_$_t_address_$",
+                          "typeString": "mapping(bytes32 => address)"
+                        }
+                      },
+                      "id": 8530,
+                      "indexExpression": {
+                        "id": 8527,
+                        "name": "tokenAddress",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8519,
+                        "src": "1500:12:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes32",
+                          "typeString": "bytes32"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "1465:48:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8531,
+                      "name": "wrapper",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8521,
+                      "src": "1516:7:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1465:58:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 8533,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1465:58:35"
+                },
+                {
+                  "expression": {
+                    "id": 8540,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8534,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1533:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8537,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "isWrappedAsset",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8684,
+                        "src": "1533:21:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                          "typeString": "mapping(address => bool)"
+                        }
+                      },
+                      "id": 8538,
+                      "indexExpression": {
+                        "id": 8536,
+                        "name": "wrapper",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8521,
+                        "src": "1555:7:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "1533:30:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "hexValue": "74727565",
+                      "id": 8539,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "bool",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "1566:4:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                      },
+                      "value": "true"
+                    },
+                    "src": "1533:37:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 8541,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1533:37:35"
+                }
+              ]
+            },
+            "id": 8543,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setWrappedAsset",
+            "nameLocation": "1370:15:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8522,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8517,
+                  "mutability": "mutable",
+                  "name": "tokenChainId",
+                  "nameLocation": "1393:12:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8543,
+                  "src": "1386:19:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint16",
+                    "typeString": "uint16"
+                  },
+                  "typeName": {
+                    "id": 8516,
+                    "name": "uint16",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1386:6:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint16",
+                      "typeString": "uint16"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8519,
+                  "mutability": "mutable",
+                  "name": "tokenAddress",
+                  "nameLocation": "1415:12:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8543,
+                  "src": "1407:20:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 8518,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1407:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8521,
+                  "mutability": "mutable",
+                  "name": "wrapper",
+                  "nameLocation": "1437:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8543,
+                  "src": "1429:15:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8520,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1429:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1385:60:35"
+            },
+            "returnParameters": {
+              "id": 8523,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1455:0:35"
+            },
+            "scope": 8574,
+            "src": "1361:216:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8558,
+              "nodeType": "Block",
+              "src": "1659:63:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8556,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "baseExpression": {
+                        "expression": {
+                          "id": 8550,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1669:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8553,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "outstandingBridged",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8688,
+                        "src": "1669:25:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                          "typeString": "mapping(address => uint256)"
+                        }
+                      },
+                      "id": 8554,
+                      "indexExpression": {
+                        "id": 8552,
+                        "name": "token",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 8545,
+                        "src": "1695:5:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "nodeType": "IndexAccess",
+                      "src": "1669:32:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8555,
+                      "name": "outstanding",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8547,
+                      "src": "1704:11:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "src": "1669:46:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "id": 8557,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1669:46:35"
+                }
+              ]
+            },
+            "id": 8559,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setOutstandingBridged",
+            "nameLocation": "1592:21:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8548,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8545,
+                  "mutability": "mutable",
+                  "name": "token",
+                  "nameLocation": "1622:5:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8559,
+                  "src": "1614:13:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 8544,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1614:7:35",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 8547,
+                  "mutability": "mutable",
+                  "name": "outstanding",
+                  "nameLocation": "1637:11:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8559,
+                  "src": "1629:19:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 8546,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1629:7:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1613:36:35"
+            },
+            "returnParameters": {
+              "id": 8549,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1659:0:35"
+            },
+            "scope": 8574,
+            "src": "1583:139:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 8572,
+              "nodeType": "Block",
+              "src": "1774:52:35",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 8570,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "expression": {
+                        "expression": {
+                          "id": 8564,
+                          "name": "_state",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 8697,
+                          "src": "1784:6:35",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_State_$8693_storage",
+                            "typeString": "struct BridgeStorage.State storage ref"
+                          }
+                        },
+                        "id": 8567,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "provider",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 8662,
+                        "src": "1784:15:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_Provider_$8650_storage",
+                          "typeString": "struct BridgeStorage.Provider storage ref"
+                        }
+                      },
+                      "id": 8568,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "finality",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 8645,
+                      "src": "1784:24:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint8",
+                        "typeString": "uint8"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 8569,
+                      "name": "finality",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 8561,
+                      "src": "1811:8:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint8",
+                        "typeString": "uint8"
+                      }
+                    },
+                    "src": "1784:35:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint8",
+                      "typeString": "uint8"
+                    }
+                  },
+                  "id": 8571,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1784:35:35"
+                }
+              ]
+            },
+            "id": 8573,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "setFinality",
+            "nameLocation": "1737:11:35",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 8562,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 8561,
+                  "mutability": "mutable",
+                  "name": "finality",
+                  "nameLocation": "1755:8:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 8573,
+                  "src": "1749:14:35",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint8",
+                    "typeString": "uint8"
+                  },
+                  "typeName": {
+                    "id": 8560,
+                    "name": "uint8",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1749:5:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint8",
+                      "typeString": "uint8"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1748:16:35"
+            },
+            "returnParameters": {
+              "id": 8563,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1774:0:35"
+            },
+            "scope": 8574,
+            "src": "1728:98:35",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          }
+        ],
+        "scope": 8575,
+        "src": "117:1711:35",
+        "usedErrors": []
+      }
+    ],
+    "src": "63:1766:35"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.4+commit.c7e474f2.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.4.1",
+  "updatedAt": "2022-09-09T01:32:04.600Z",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  }
+}
