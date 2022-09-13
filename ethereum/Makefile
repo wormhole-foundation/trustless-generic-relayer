@@ -22,7 +22,14 @@ forge_dependencies: lib/forge-std
 lib/forge-std:
 	forge install foundry-rs/forge-std@2c7cbfc6fbede6d7c9e6b17afe997e3fdfe22fef --no-git --no-commit
 
-dependencies: node_modules forge_dependencies
+.PHONY: wormhole_dependencies
+wormhole_dependencies: wormhole/ethereum/build
+
+wormhole/ethereum/build:
+	git clone --depth 1 --branch feat/batch_vaas --single-branch https://github.com/certusone/wormhole.git
+	cd wormhole/ethereum && npm ci && npm run build && make .env
+
+dependencies: node_modules forge_dependencies wormhole_dependencies
 
 build: node_modules ${SOURCE_FILES}
 	mkdir -p build
@@ -39,6 +46,7 @@ test-ganache: build .env dependencies
 	@if pgrep ganache-cli; then echo "Error: ganache-cli already running. Stop it before running tests"; exit 1; fi
 	npx ganache-cli -e 10000 --deterministic --time="1970-01-01T00:00:00+00:00" > ganache.log &
 	sleep 5
+	cd wormhole/ethereum && npm run migrate
 	npm test || (pkill ganache-cli && exit 1)
 	pkill ganache-cli || true
 
@@ -51,4 +59,4 @@ test-forge: dependencies
 	forge test
 
 clean:
-	rm -rf ganache.log .env node_modules build
+	rm -rf ganache.log .env node_modules build out lib
