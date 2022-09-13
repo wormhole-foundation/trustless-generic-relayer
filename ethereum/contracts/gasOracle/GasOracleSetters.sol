@@ -8,10 +8,6 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./GasOracleState.sol";
 
 contract GasOracleSetters is Context, GasOracleState {
-    function setInitialized(address implementation) internal {
-        _state.initializedImplementations[implementation] = true;
-    }
-
     function setChainId(uint16 oracleChainId) internal {
         _state.provider.chainId = oracleChainId;
     }

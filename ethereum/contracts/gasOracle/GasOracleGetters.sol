@@ -8,10 +8,6 @@ import "../interfaces/IWormhole.sol";
 import "./GasOracleState.sol";
 
 contract GasOracleGetters is GasOracleState {
-    function isInitialized(address implementation) public view returns (bool) {
-        return _state.initializedImplementations[implementation];
-    }
-
     function wormhole() public view returns (IWormhole) {
         return IWormhole(_state.provider.wormhole);
     }
