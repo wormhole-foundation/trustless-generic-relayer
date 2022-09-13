@@ -10,8 +10,6 @@ import "forge-std/console.sol";
 
 contract TestGasOracle is Test {
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
-    //uint256 constant TEST_SRC_GAS_PRICE = 10;
-    //uint256 constant TEST_SRC_NATIVE_CURRENCY_PRICE = 250;
 
     GasOracle internal gasOracle;
 
@@ -133,9 +131,6 @@ contract TestGasOracle is Test {
         vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID);
         vm.assume(dstGasPrice > 0);
         vm.assume(dstNativeCurrencyPrice > 0);
-        // we will also assume reasonable values for gasPrice and nativeCurrencyPrice
-        vm.assume(dstGasPrice < 2 ** 128);
-        vm.assume(dstNativeCurrencyPrice < 2 ** 128);
 
         initializeGasOracle(
             TEST_ORACLE_CHAIN_ID // chainId
@@ -160,9 +155,6 @@ contract TestGasOracle is Test {
         vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID);
         vm.assume(srcGasPrice > 0);
         vm.assume(srcNativeCurrencyPrice > 0);
-        // we will also assume reasonable values for gasPrice and nativeCurrencyPrice
-        vm.assume(srcGasPrice < 2 ** 128);
-        vm.assume(srcNativeCurrencyPrice < 2 ** 128);
 
         initializeGasOracle(
             TEST_ORACLE_CHAIN_ID // chainId
