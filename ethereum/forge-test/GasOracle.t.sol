@@ -233,4 +233,47 @@ contract TestGasOracle is GasOracle, GasOracleSetup, Test {
         uint256 expected = dstGasPrice * dstNativeCurrencyPrice / srcNativeCurrencyPrice;
         require(getPrice(dstChainId) == expected, "getPrice(updateChainId) != expected");
     }
+
+    function testUpdatePrices(
+        uint16 dstChainId,
+        uint256 dstGasPrice,
+        uint256 dstNativeCurrencyPrice,
+        uint256 srcGasPrice,
+        uint256 srcNativeCurrencyPrice
+    )
+        public
+    {
+        vm.assume(dstChainId > 0);
+        vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID);
+        vm.assume(dstGasPrice > 0);
+        vm.assume(dstNativeCurrencyPrice > 0);
+        vm.assume(srcGasPrice > 0);
+        vm.assume(srcNativeCurrencyPrice > 0);
+        // we will also assume reasonable values for gasPrice and nativeCurrencyPrice
+        vm.assume(dstGasPrice < 2 ** 128);
+        vm.assume(dstNativeCurrencyPrice < 2 ** 128);
+        vm.assume(srcGasPrice < 2 ** 128);
+        vm.assume(srcNativeCurrencyPrice < 2 ** 128);
+
+        initializeGasOracle(
+            _msgSender(),
+            TEST_ORACLE_CHAIN_ID // chainId
+        );
+
+        UpdatePrice[] memory updates = new UpdatePrice[](2);
+        updates[0] = UpdatePrice({
+            chainId: TEST_ORACLE_CHAIN_ID,
+            gasPrice: srcGasPrice,
+            nativeCurrencyPrice: srcNativeCurrencyPrice
+        });
+        updates[1] =
+            UpdatePrice({chainId: dstChainId, gasPrice: dstGasPrice, nativeCurrencyPrice: dstNativeCurrencyPrice});
+
+        // update the prices with reasonable values
+        updatePrices(updates);
+
+        // verify price
+        uint256 expected = dstGasPrice * dstNativeCurrencyPrice / srcNativeCurrencyPrice;
+        require(getPrice(dstChainId) == expected, "getPrice(updateChainId) != expected");
+    }
 }
