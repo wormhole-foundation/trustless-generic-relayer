@@ -1,6 +1,5 @@
 node_modules
 ganache.log
 lib
-!lib/README.md
 cache
 out
