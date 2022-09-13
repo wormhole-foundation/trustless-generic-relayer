@@ -7,7 +7,7 @@ import "../interfaces/IWormhole.sol";
 
 import "./GasOracleState.sol";
 
-abstract contract GasOracleGetters is GasOracleState {
+contract GasOracleGetters is GasOracleState {
     function isInitialized(address implementation) public view returns (bool) {
         return _state.initializedImplementations[implementation];
     }
@@ -20,12 +20,12 @@ abstract contract GasOracleGetters is GasOracleState {
         return _state.provider.chainId;
     }
 
-    function gasPrice(uint16 targetChainId) public view returns (uint256) {
-        return _state.gasPrices[targetChainId];
+    function gasPrice(uint16 targetChainId) public view returns (uint128) {
+        return _state.data[targetChainId].gasPrice;
     }
 
-    function nativeCurrencyPrice(uint16 targetChainId) public view returns (uint256) {
-        return _state.nativeCurrencyPrices[targetChainId];
+    function nativeCurrencyPrice(uint16 targetChainId) public view returns (uint128) {
+        return _state.data[targetChainId].nativeCurrencyPrice;
     }
 
     function owner() public view returns (address) {

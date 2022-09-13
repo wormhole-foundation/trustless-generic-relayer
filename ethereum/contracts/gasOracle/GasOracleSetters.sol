@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 
 import "./GasOracleState.sol";
 
-abstract contract GasOracleSetters is Context, GasOracleState {
+contract GasOracleSetters is Context, GasOracleState {
     function setInitialized(address implementation) internal {
         _state.initializedImplementations[implementation] = true;
     }
@@ -24,8 +24,8 @@ abstract contract GasOracleSetters is Context, GasOracleState {
         _state.owner = owner;
     }
 
-    function setPriceInfo(uint16 updateChainId, uint256 updateGasPrice, uint256 updateNativeCurrencyPrice) internal {
-        _state.gasPrices[updateChainId] = updateGasPrice;
-        _state.nativeCurrencyPrices[updateChainId] = updateNativeCurrencyPrice;
+    function setPriceInfo(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) internal {
+        _state.data[updateChainId].gasPrice = updateGasPrice;
+        _state.data[updateChainId].nativeCurrencyPrice = updateNativeCurrencyPrice;
     }
 }

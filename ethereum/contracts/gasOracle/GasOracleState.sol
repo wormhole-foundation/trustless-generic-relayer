@@ -3,21 +3,25 @@
 
 pragma solidity ^0.8.0;
 
-abstract contract GasOracleStorage {
+contract GasOracleStorage {
     struct Provider {
         uint16 chainId;
         address payable wormhole;
+    }
+
+    struct PriceData {
+        uint128 gasPrice;
+        uint128 nativeCurrencyPrice;
     }
 
     struct State {
         Provider provider;
         address owner;
         mapping(address => bool) initializedImplementations;
-        mapping(uint16 => uint256) gasPrices;
-        mapping(uint16 => uint256) nativeCurrencyPrices;
+        mapping(uint16 => PriceData) data;
     }
 }
 
-abstract contract GasOracleState {
+contract GasOracleState {
     GasOracleStorage.State _state;
 }

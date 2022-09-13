@@ -5,13 +5,26 @@ pragma solidity ^0.8.0;
 
 import "./GasOracleGetters.sol";
 import "./GasOracleSetters.sol";
-import "./GasOracleGovernance.sol";
 
-abstract contract GasOracle is GasOracleGovernance {
+contract GasOracle is GasOracleGetters, GasOracleSetters {
     struct UpdatePrice {
         uint16 chainId;
-        uint256 gasPrice;
-        uint256 nativeCurrencyPrice;
+        uint128 gasPrice;
+        uint128 nativeCurrencyPrice;
+    }
+
+    constructor(address wormhole, uint16 srcChainId) {
+        setupInitialState(_msgSender(), wormhole, srcChainId);
+    }
+
+    function setupInitialState(address owner, address wormhole, uint16 srcChainId) internal {
+        require(owner != address(0), "owner == address(0)");
+        setOwner(owner);
+        require(srcChainId > 0, "srcChainId == 0");
+        setChainId(srcChainId);
+        // might use this later to consume price data via VAAs?
+        require(wormhole != address(0), "wormhole == address(0)");
+        setWormhole(wormhole);
     }
 
     function getPrice(uint16 targetChainId) public view returns (uint256 quote) {
@@ -21,10 +34,10 @@ abstract contract GasOracle is GasOracleGovernance {
         uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
         require(dstNativeCurrencyPrice > 0, "dstNativeCurrencyPrice == 0");
 
-        quote = gasPrice(targetChainId) * dstNativeCurrencyPrice / srcNativeCurrencyPrice;
+        quote = (gasPrice(targetChainId) * dstNativeCurrencyPrice) / srcNativeCurrencyPrice;
     }
 
-    function updatePrice(uint16 updateChainId, uint256 updateGasPrice, uint256 updateNativeCurrencyPrice)
+    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
         public
         onlyOwner
     {
@@ -42,5 +55,10 @@ abstract contract GasOracle is GasOracleGovernance {
                 i += 1;
             }
         }
+    }
+
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "owner() != _msgSender()");
+        _;
     }
 }
