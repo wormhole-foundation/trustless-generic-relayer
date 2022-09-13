@@ -1,4 +1,6 @@
-node_modules/*
+node_modules
 ganache.log
-lib/*
+lib
 !lib/README.md
+cache
+out

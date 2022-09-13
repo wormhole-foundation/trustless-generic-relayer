@@ -6,38 +6,29 @@ pragma solidity ^0.8.0;
 import "../interfaces/IWormhole.sol";
 
 import "./GasOracleState.sol";
-import "./GasOracleStructs.sol";
 
 abstract contract GasOracleGetters is GasOracleState {
-    function governanceActionIsConsumed(bytes32 hash) public view returns (bool) {
-        return _state.consumedGovernanceActions[hash];
-    }
-
-    function isInitialized(address impl) public view returns (bool) {
-        return _state.initializedImplementations[impl];
+    function isInitialized(address implementation) public view returns (bool) {
+        return _state.initializedImplementations[implementation];
     }
 
     function wormhole() public view returns (IWormhole) {
-        return IWormhole(_state.wormhole);
+        return IWormhole(_state.provider.wormhole);
     }
 
     function chainId() public view returns (uint16) {
         return _state.provider.chainId;
     }
 
-    function governanceChainId() public view returns (uint16) {
-        return _state.provider.governanceChainId;
+    function gasPrice(uint16 targetChainId) public view returns (uint256) {
+        return _state.gasPrices[targetChainId];
     }
 
-    function governanceContract() public view returns (bytes32){
-        return _state.provider.governanceContract;
+    function nativeCurrencyPrice(uint16 targetChainId) public view returns (uint256) {
+        return _state.nativeCurrencyPrices[targetChainId];
     }
 
-    function priceInfo(uint16 chain) public view returns (GasOracleStructs.PriceInfo memory) {
-        return _state.priceInfos[chain];
-    }
-
-    function approvedUpdater() public view returns (address) {
-        return _state.approvedUpdater;
+    function owner() public view returns (address) {
+        return _state.owner;
     }
 }

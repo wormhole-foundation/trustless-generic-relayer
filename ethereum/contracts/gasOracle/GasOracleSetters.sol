@@ -3,47 +3,29 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/Context.sol";
+
 import "./GasOracleState.sol";
-import "./GasOracleStructs.sol";
 
-abstract contract GasOracleSetters is GasOracleState {
-    function setInitialized(address implementatiom) internal {
-        _state.initializedImplementations[implementatiom] = true;
+abstract contract GasOracleSetters is Context, GasOracleState {
+    function setInitialized(address implementation) internal {
+        _state.initializedImplementations[implementation] = true;
     }
 
-    function setGovernanceActionConsumed(bytes32 hash) internal {
-        _state.consumedGovernanceActions[hash] = true;
+    function setChainId(uint16 oracleChainId) internal {
+        _state.provider.chainId = oracleChainId;
     }
 
-    function setChainId(uint16 chainId) internal {
-        _state.provider.chainId = chainId;
+    function setWormhole(address wormhole) internal {
+        _state.provider.wormhole = payable(wormhole);
     }
 
-    function setGovernanceChainId(uint16 chainId) internal {
-        _state.provider.governanceChainId = chainId;
+    function setOwner(address owner) internal {
+        _state.owner = owner;
     }
 
-    function setGovernanceContract(bytes32 governanceContract) internal {
-        _state.provider.governanceContract = governanceContract;
-    }
-
-    function setWormhole(address wh) internal {
-        _state.wormhole = payable(wh);
-    }
-
-    function setApprovedUpdater(address updater) internal {
-        _state.approvedUpdater = updater;
-    }
-
-    function setPriceInfos(GasOracleStructs.ChainPriceInfo[] memory prices) internal {
-        uint16 i;
-
-        for (i = 0; i < prices.length; i++) { 
-            setPriceInfo(prices[i]);
-        }
-    }
-
-    function setPriceInfo(GasOracleStructs.ChainPriceInfo memory price) internal {
-        _state.priceInfos[price.chain] = price.priceInfo;
+    function setPriceInfo(uint16 updateChainId, uint256 updateGasPrice, uint256 updateNativeCurrencyPrice) internal {
+        _state.gasPrices[updateChainId] = updateGasPrice;
+        _state.nativeCurrencyPrices[updateChainId] = updateNativeCurrencyPrice;
     }
 }
