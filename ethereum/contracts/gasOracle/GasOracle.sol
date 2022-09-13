@@ -14,14 +14,11 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
     }
 
     constructor(address wormhole, uint16 srcChainId) {
-        setupInitialState(_msgSender(), wormhole, srcChainId);
-    }
+        setOwner(_msgSender());
 
-    function setupInitialState(address owner, address wormhole, uint16 srcChainId) internal {
-        require(owner != address(0), "owner == address(0)");
-        setOwner(owner);
         require(srcChainId > 0, "srcChainId == 0");
         setChainId(srcChainId);
+
         // might use this later to consume price data via VAAs?
         require(wormhole != address(0), "wormhole == address(0)");
         setWormhole(wormhole);
