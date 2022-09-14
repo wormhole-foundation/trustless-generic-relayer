@@ -13,15 +13,14 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         uint128 nativeCurrencyPrice;
     }
 
-    constructor(address wormhole, uint16 srcChainId) {
+    constructor(address wormholeAddress) {
         setOwner(_msgSender());
 
-        require(srcChainId > 0, "srcChainId == 0");
-        setChainId(srcChainId);
-
         // might use this later to consume price data via VAAs?
-        require(wormhole != address(0), "wormhole == address(0)");
-        setWormhole(wormhole);
+        require(wormholeAddress != address(0), "wormholeAddress == address(0)");
+        setWormhole(wormholeAddress);
+
+        setChainId(wormhole().chainId());
     }
 
     function getPrice(uint16 targetChainId) public view returns (uint256 quote) {

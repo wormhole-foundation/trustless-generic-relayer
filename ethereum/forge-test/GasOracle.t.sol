@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "../contracts/gasOracle/GasOracle.sol";
-import "../contracts/gasOracle/GasOracleState.sol";
+import {Implementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import "forge-std/Test.sol";
 
 import "forge-std/console.sol";
@@ -11,47 +11,27 @@ import "forge-std/console.sol";
 contract TestGasOracle is Test {
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
 
+    Implementation internal wormhole;
     GasOracle internal gasOracle;
 
-    function initializeGasOracle(uint16 oracleChainId) internal {
-        gasOracle = new GasOracle(
-            0xC89Ce4735882C9F0f0FE26686c53074E09B0D550, // wormhole
-            oracleChainId // chainId
-        );
-    }
+    function initializeGasOracle() internal {
+        wormhole = new Implementation();
 
-    function testSetupInitialState(address wormhole, uint16 srcChainId) public {
-        vm.assume(wormhole != address(0));
-        vm.assume(srcChainId > 0);
+        // chainId, governanceChainId
+        vm.store(address(wormhole), bytes32(0), 0x0000000000000000000000000000000000000000000000000000000000010002);
 
-        gasOracle = new GasOracle(
-            wormhole, // wormhole
-            srcChainId // srcChainId
-        );
+        gasOracle = new GasOracle(address(wormhole));
 
         require(gasOracle.owner() == address(this), "owner() != expected");
-        require(gasOracle.chainId() == srcChainId, "chainId() != expected");
-
-        // TODO: check slots?
-    }
-
-    function testCannotInitializeWithChainIdZero(address oracleOwner) public {
-        vm.assume(oracleOwner != address(0));
-
-        // you shall not pass
-        vm.expectRevert("srcChainId == 0");
-        initializeGasOracle(
-            0 // srcChainId
-        );
+        require(gasOracle.chainId() == wormhole.chainId(), "chainId() != expected");
+        require(address(gasOracle.wormhole()) == address(wormhole), "wormhole() != expected");
     }
 
     function testCannotUpdatePriceWithChainIdZero(uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) public {
         vm.assume(updateGasPrice > 0);
         vm.assume(updateNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         // you shall not pass
         vm.expectRevert("updateChainId == 0");
@@ -66,9 +46,7 @@ contract TestGasOracle is Test {
         vm.assume(updateChainId > 0);
         vm.assume(updateNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         // you shall not pass
         vm.expectRevert("updateGasPrice == 0");
@@ -83,9 +61,7 @@ contract TestGasOracle is Test {
         vm.assume(updateChainId > 0);
         vm.assume(updateGasPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         // you shall not pass
         vm.expectRevert("updateNativeCurrencyPrice == 0");
@@ -110,9 +86,7 @@ contract TestGasOracle is Test {
         vm.assume(updateGasPrice > 0);
         vm.assume(updateNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         // you shall not pass
         vm.prank(oracleOwner);
@@ -132,9 +106,7 @@ contract TestGasOracle is Test {
         vm.assume(dstGasPrice > 0);
         vm.assume(dstNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         // update the price with reasonable values
         gasOracle.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
@@ -156,17 +128,11 @@ contract TestGasOracle is Test {
         vm.assume(srcGasPrice > 0);
         vm.assume(srcNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
-        console.log("address(this)", address(this));
-        console.log("msg.sender", msg.sender);
-        console.log("msg.sender", msg.sender);
-        console.log("gasOracle.owner()", gasOracle.owner());
+        initializeGasOracle();
 
         // update the price with reasonable values
         //vm.prank(gasOracle.owner());
-        gasOracle.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
+        gasOracle.updatePrice(gasOracle.chainId(), srcGasPrice, srcNativeCurrencyPrice);
 
         // you shall not pass
         vm.expectRevert("dstNativeCurrencyPrice == 0");
@@ -189,13 +155,11 @@ contract TestGasOracle is Test {
         vm.assume(srcGasPrice > 0);
         vm.assume(srcNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         // update the prices with reasonable values
         gasOracle.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
-        gasOracle.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
+        gasOracle.updatePrice(gasOracle.chainId(), srcGasPrice, srcNativeCurrencyPrice);
 
         // verify price
         uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice) / srcNativeCurrencyPrice;
@@ -212,19 +176,17 @@ contract TestGasOracle is Test {
         public
     {
         vm.assume(dstChainId > 0);
-        vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID);
+        vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID); // wormhole.chainId()
         vm.assume(dstGasPrice > 0);
         vm.assume(dstNativeCurrencyPrice > 0);
         vm.assume(srcGasPrice > 0);
         vm.assume(srcNativeCurrencyPrice > 0);
 
-        initializeGasOracle(
-            TEST_ORACLE_CHAIN_ID // chainId
-        );
+        initializeGasOracle();
 
         GasOracle.UpdatePrice[] memory updates = new GasOracle.UpdatePrice[](2);
         updates[0] = GasOracle.UpdatePrice({
-            chainId: TEST_ORACLE_CHAIN_ID,
+            chainId: gasOracle.chainId(),
             gasPrice: srcGasPrice,
             nativeCurrencyPrice: srcNativeCurrencyPrice
         });

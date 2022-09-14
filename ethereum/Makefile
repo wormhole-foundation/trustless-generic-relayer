@@ -1,6 +1,6 @@
 SOURCE_FILES:=$(shell find contracts -name "*.sol")
 
-.PHONY: dependencies test clean all
+.PHONY: dependencies forge_dependencies wormhole_dependencies est test-forge clean all
 
 all: build
 
@@ -31,7 +31,8 @@ wormhole/ethereum/build:
 
 dependencies: node_modules forge_dependencies wormhole_dependencies
 
-build: node_modules ${SOURCE_FILES}
+##build: node_modules ${SOURCE_FILES}
+build: dependencies
 	mkdir -p build
 	npm run build
 	touch -m build
@@ -39,24 +40,14 @@ build: node_modules ${SOURCE_FILES}
 .env: .env.test
 	cp $< $@
 
-test: test-forge test-ganache
+.PHONY: test
+test: test-forge
+	npm run integration-test
 
-.PHONY: test-ganache
-test-ganache: build .env dependencies
-	@if pgrep ganache-cli; then echo "Error: ganache-cli already running. Stop it before running tests"; exit 1; fi
-	npx ganache-cli -e 10000 --deterministic --time="1970-01-01T00:00:00+00:00" > ganache.log &
-	sleep 5
-	cd wormhole/ethereum && npm run migrate
-	npm test || (pkill ganache-cli && exit 1)
-	pkill ganache-cli || true
-
-.PHONY: test-upgrade
-test-upgrade: build .env node_modules
-	./simulate_upgrades
-
-.PHONY:
+.PHONY: test-forge
 test-forge: dependencies
-	forge test
+	forge test --contracts contracts/gasOracle
 
+.PHONY: clean
 clean:
-	rm -rf ganache.log .env node_modules build out lib
+	rm -rf anvil.log .env node_modules build lib wormhole
