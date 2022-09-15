@@ -52,7 +52,15 @@ async function main() {
         const txs = await Promise.all(
           oracles.map((oracle) => oracle.updatePrices(updates).then((tx: ethers.ContractTransaction) => tx.wait()))
         );
-        console.log("retrieveCount", retrieveCount, "txs.length", txs.length);
+
+        const balances = await Promise.all(
+          oracles.map(async (oracle) => {
+            const address = await oracle.signer.getAddress();
+            const balance = await oracle.provider.getBalance(address);
+            return ethers.utils.formatUnits(balance);
+          })
+        );
+        console.log("retrieveCount", retrieveCount, "txs.length", txs.length, "balances", balances);
 
         updatesTracker.clear();
       }
