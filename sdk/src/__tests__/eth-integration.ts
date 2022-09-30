@@ -22,6 +22,7 @@ import {
   CHAIN_ID_ETH,
   getSignedBatchVAAWithRetry,
   tryNativeToUint8Array,
+  tryNativeToHexString
 } from "@certusone/wormhole-sdk";
 import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
 
@@ -214,17 +215,17 @@ describe("ETH <> BSC Generic Relayer Integration Test", () => {
         const storedPayload = await bscRelayerIntegrator.getPayload(targetVm3.hash);
         if (storedPayload == targetVm3.payload) {
           isBatchDelivered = true;
-
-          // clear the payload from the mock integration contract
-          await bscRelayerIntegrator.clearPayload(targetVm3.hash);
-          const emptyStoredPayload = await bscRelayerIntegrator.getPayload(targetVm3.hash);
-          expect(emptyStoredPayload).to.equal("0x");
         }
       }
 
       // confirm that the remaining payloads are stored in the contract
-      for (const indexedObservation of parsedBatch.indexedObservations.slice(1)) {
+      for (const indexedObservation of parsedBatch.indexedObservations) {
         const vm3 = indexedObservation.vm3;
+
+        // skip delivery instructions VM
+        if (vm3.emitterAddress == "0x"+tryNativeToHexString(ethCoreRelayer.address, CHAIN_ID_ETH)) {
+          continue;
+        }
 
         // query the contract to see if the batch was delivered
         const storedPayload = await bscRelayerIntegrator.getPayload(vm3.hash);
