@@ -23,14 +23,20 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         setChainId(wormhole().chainId());
     }
 
-    function getPrice(uint16 targetChainId) public view returns (uint256 quote) {
+    // relevant for chains that have dynamic execution pricing (e.g. Ethereum)
+    function computeGasCost(uint16 targetChainId, uint256 gasLimit) public view returns (uint256 quote) {
+        quote = computeTransactionCost(targetChainId, gasPrice(targetChainId) * gasLimit);
+    }
+
+    // relevant for chains that have deterministic execution costs (e.g. Solana)
+    function computeTransactionCost(uint16 targetChainId, uint256 transactionFee) public view returns (uint256 quote) {
         uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
         require(srcNativeCurrencyPrice > 0, "srcNativeCurrencyPrice == 0");
 
         uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
         require(dstNativeCurrencyPrice > 0, "dstNativeCurrencyPrice == 0");
 
-        quote = (gasPrice(targetChainId) * dstNativeCurrencyPrice) / srcNativeCurrencyPrice;
+        quote = (dstNativeCurrencyPrice * transactionFee) / srcNativeCurrencyPrice;
     }
 
     function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)

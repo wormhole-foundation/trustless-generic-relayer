@@ -1,6 +1,6 @@
 SOURCE_FILES:=$(shell find contracts -name "*.sol")
 
-.PHONY: dependencies forge_dependencies wormhole_dependencies est test-forge clean all
+.PHONY: dependencies forge_dependencies wormhole_dependencies unit-test integration-test clean all
 
 all: build
 
@@ -31,22 +31,22 @@ wormhole/ethereum/build:
 
 dependencies: node_modules forge_dependencies wormhole_dependencies
 
-##build: node_modules ${SOURCE_FILES}
 build: dependencies
-	mkdir -p build
 	npm run build
-	touch -m build
 
 .env: .env.test
 	cp $< $@
 
 .PHONY: test
-test: test-forge
-	npm run integration-test
+test: unit-test integration-test
 
-.PHONY: test-forge
-test-forge: dependencies
-	forge test --contracts contracts/gasOracle
+.PHONY: unit-test
+unit-test: dependencies build
+	forge test
+
+.PHONY: integration-test
+integration-test: dependencies build
+	npm run integration-test
 
 .PHONY: clean
 clean:

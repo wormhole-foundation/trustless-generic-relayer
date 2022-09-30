@@ -1,6 +1,6 @@
 #/bin/bash
 
-pgrep anvil
+pgrep anvil > /dev/null
 if [ $? -eq 0 ]; then
     echo "anvil already running"
     exit 1;
@@ -19,19 +19,20 @@ RPC="http://localhost:8545"
 ## first key from mnemonic above
 PRIVATE_KEY="0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
 
-## deploy to anvil
+echo "deploy dependencies"
 forge script forge-scripts/deploy_dependencies.sol \
     --rpc-url $RPC \
     --private-key $PRIVATE_KEY \
-    --broadcast --slow
+    --broadcast --slow > deploy.out 2>&1
 
-## now deploy contracts
+echo "deploy contracts"
 forge script forge-scripts/deploy_contracts.sol \
     --rpc-url $RPC \
     --private-key $PRIVATE_KEY \
-    --broadcast --slow
+    --broadcast --slow >> deploy.out 2>&1
 
 ## run tests here
+npx ts-mocha -t 1000000 ts-test/*.ts
 
 # nuke
 pkill anvil

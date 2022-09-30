@@ -1,9 +1,9 @@
-// contracts/Messages.sol
+// contracts/Structs.sol
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
 
-interface ICoreRelayer {
+contract CoreRelayerStructs {
     struct VAAId {
         // VAA emitter address
         bytes32 emitterAddress;
@@ -17,7 +17,7 @@ interface ICoreRelayer {
         // Index of the delivery VM in a batch. Does not have to match the
         // index in the corresponding indexedObservation when converted into a partial batch.
         uint8 deliveryIndex;
-        uint256 targetCallGasOverride;
+        uint32 targetCallGasOverride;
     }
 
     struct DeliveryParameters {
@@ -43,6 +43,29 @@ interface ICoreRelayer {
         bytes relayParameters;
     }
 
+    // TODO: WIP
+    struct RedeliveryInstructions {
+        uint8 payloadID; // payloadID = 3;
+        // Hash of the batch to re-deliver
+        bytes32 batchHash;
+        // Point to the original delivery instruction
+        bytes32 emitterAddress;
+        uint64 sequence;
+        // Current deliverycount
+        uint16 deliveryCount;
+        // New Relayer-Specific Parameters
+        bytes relayParameters;
+    }
+
+    struct DeliveryStatus {
+        uint8 payloadID; // payloadID = 2;
+        bytes32 batchHash;
+        bytes32 emitterAddress;
+        uint64 sequence;
+        uint16 deliveryCount;
+        bool deliverySuccess;
+    }
+
     struct RelayParameters {
         // version = 1
         uint8 version;
@@ -54,14 +77,12 @@ interface ICoreRelayer {
         uint256 nativePayment;
     }
 
-    struct RedeliveryParameters {
-        // Hash of the batch VAA to deliver again
-        bytes32 batchHash;
+    // TODO: WIP
+    struct RewardPayout {
+        uint8 payloadID; // payloadID = 100; prevent collisions with new blueprint payloads
+        uint16 fromChain;
+        uint16 chain;
+        uint256 amount;
+        bytes32 receiver;
     }
-
-    function estimateCost(uint16 chainId, uint256 gasLimit) external view returns (uint256 gasEstimate);
-
-    function send(DeliveryParameters memory deliveryParams) external payable returns (uint64 sequence);
-
-    function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64);
 }

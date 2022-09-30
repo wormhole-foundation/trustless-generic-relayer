@@ -4,5 +4,10 @@
 pragma solidity ^0.8.0;
 
 interface IGasOracle {
-    function getPrice(uint16 targetChainId) external view returns (uint256 quote);
+    function computeGasCost(uint16 targetChainId, uint256 gasLimit) external view returns (uint256 quote);
+
+    function computeTransactionCost(uint16 targetChainId, uint256 transactionFee)
+        external
+        view
+        returns (uint256 quote);
 }

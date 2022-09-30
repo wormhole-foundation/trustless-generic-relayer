@@ -1,5 +1,5 @@
 {
-  "name": "generic-relayer",
+  "name": "generic-relayer-sdk",
   "version": "1.0.0",
   "description": "",
   "main": "networks.js",
@@ -14,19 +14,21 @@
     "ts-mocha": "^10.0.0"
   },
   "scripts": {
-    "build": "forge build -o build",
-    "integration-test": "bash shell-scripts/run_integration_tests.sh",
-    "flatten": "mkdir -p node_modules/@poanet/solidity-flattener/contracts && cp -r contracts/* node_modules/@poanet/solidity-flattener/contracts/ && poa-solidity-flattener"
+    "clean": "rm -rf node_modules src/ethers-contracts",
+    "build": "bash scripts/make_ethers_types.sh",
+    "test": "ts-mocha src/__tests__/*.ts --timeout 60000"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@certusone/wormhole-sdk": "^0.3.4",
+    "@certusone/wormhole-sdk": "^0.6.5",
     "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
+    "@typechain/ethers-v5": "^10.1.0",
     "dotenv": "^16.0.2",
     "elliptic": "^6.5.4",
     "jsonfile": "^6.1.0",
     "solc": "^0.8.17",
+    "ts-node": "^10.9.1",
     "typescript": "^4.8.3"
   }
 }
