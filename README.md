@@ -1,1 +1,63 @@
-# generic-relayer
+# Generic Relayers
+
+[TOC]
+
+## Objective
+
+Develop a common standard for cross-chain relaying system that any application can interface with on-chain to enable better composability.
+
+## Background
+
+In the current design of Wormhole, user applications have 2 options to relay messages across chains - (1) users manually redeem messages and (2) applications build and mantain a specialized relayer network.
+
+Both of these paradigms present shortcomings for users and integrators respectively. For users, there is an added friction in the UX in the form of an additional interaction and requirement of owning assets on both the source and destination chain to pay for gas. For integrators, specialized relayers represent another piece of infrastructure that represents additional liveness and potential legal responsiblity.
+
+A decentralized network of generic relayers can address the shortcomings of both of the two current relaying methods by handling the cross-chain message redemption and submission on behalf of users and be a separate decentralized service that integrators can leverage.
+
+## Goals
+
+- Allow developers to send and receive cross-chain messages through on-chain entrypoints to Wormhole.
+- Develop relayers that are capable of redeeming and submitting full or subset of Batch VAAs.
+
+## Non-Goals
+
+- Design the economic incentives on how relayers should be incentivized in systems. We support a multitude of solutions to compete for the best solutions.
+- Provide modularity that allows developers to specify additional off-chain computation on VAAs prior to submission on-chain.
+
+## Overview
+
+Generic relayers consist of three components:
+
+1. `CoreRelayer` contract lives on all chains that integrators interact with to request for a generic relayer to deliver a cross-chain message.
+2. `GasOracle` contract lives on all chains that provides an estimate to the gas costs associated with a particular cross-chain message. This is a critical function to ensure that users/applications are appropriately covering the costs that relayers face when submitting a transaction on the destination chain.
+3. Off-chain Relayer that listens for VAAs that it is assigned to, redeem the VAA from the Guardian Network, and submit the VAA on the destination chain.
+
+## Detailed Design
+
+The interface to the Generic Relayer can be found [here](https://github.com/certusone/generic-relayer/blob/relayer/ethereum/contracts/interfaces/ICoreRelayer.sol)
+
+## Testing
+
+### Local Validator Tests
+
+Run `make build`
+
+Run both forge unit tests and the local validator tests using `make test`
+
+Run only the local validator tests using `make integration-test`
+
+### Unit Tests
+
+Run `make build`
+
+Run `forge test`
+
+### Tilt Integration Tests
+
+Run `make build` in `ethereum/`
+
+Run `npm run build` in `sdk/`
+
+Bring up tilt from the `scratch/batch_vaa_integration` branch found [here](https://github.com/wormhole-foundation/wormhole/tree/scratch/batch_vaa_integration)
+
+Run `bash testing/run_tilt_tests.sh` to start the off-chain relayer, and run the integration tests
