@@ -12,10 +12,10 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     /**
-     * @dev `estimateCost` computes the estimated cost of delivering a batch VAA to a target chain.
+     * @dev `estimateEvmCost` computes the estimated cost of delivering a batch VAA to a target chain.
      * it fetches the gas price in native currency for one unit of gas on the target chain
      */
-    function estimateCost(uint16 chainId, uint256 gasLimit) public view returns (uint256 gasEstimate) {
+    function estimateEvmCost(uint16 chainId, uint256 gasLimit) public view returns (uint256 gasEstimate) {
         return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead()) + wormhole().messageFee());
     }
 
@@ -28,6 +28,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
+
     function send(DeliveryParameters memory deliveryParams) public payable returns (uint64 sequence) {
         // decode the relay parameters
         RelayParameters memory relayParams = decodeRelayParameters(deliveryParams.relayParameters);
@@ -36,7 +37,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // Estimate the gas costs of the delivery, and confirm the user sent the right amount of gas.
         // The user needs to make sure to send a little extra value to cover the wormhole messageFee on this chain.
-        uint256 deliveryCostEstimate = estimateCost(deliveryParams.targetChain, relayParams.deliveryGasLimit);
+        uint256 deliveryCostEstimate = estimateEvmCost(deliveryParams.targetChain, relayParams.deliveryGasLimit);
 
         require(
             relayParams.nativePayment == deliveryCostEstimate && msg.value == deliveryCostEstimate,
@@ -98,13 +99,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         RelayParameters memory relayParams,
         uint16 targetChain,
         uint32 targetGasLimit
-    )
-        internal
-    {
+    ) internal {
         require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
 
         // Estimate the gas costs of the delivery, and confirm the user sent the right amount of gas.
-        uint256 deliveryCostEstimate = estimateCost(targetChain, targetGasLimit);
+        uint256 deliveryCostEstimate = estimateEvmCost(targetChain, targetGasLimit);
 
         require(
             relayParams.nativePayment == deliveryCostEstimate && msg.value == deliveryCostEstimate,
@@ -134,8 +133,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole.VM memory deliveryVM = batchVM.indexedObservations[targetParams.deliveryIndex].vm3;
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
-        // create the VAAId for the delivery VAA
-        VAAId memory deliveryId = VAAId({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
+        // create the AllowedEmitterSequence for the delivery VAA
+        AllowedEmitterSequence memory deliveryId =
+            AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
         DeliveryInstructions memory deliveryInstructions = decodeDeliveryInstructions(deliveryVM.payload);
@@ -167,8 +167,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole.VM memory deliveryVM = batchVM.indexedObservations[targetParams.deliveryIndex].vm3;
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
-        // create the VAAId for the delivery VAA
-        VAAId memory deliveryId = VAAId({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
+        // create the AllowedEmitterSequence for the delivery VAA
+        AllowedEmitterSequence memory deliveryId =
+            AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
         DeliveryInstructions memory deliveryInstructions = decodeDeliveryInstructions(deliveryVM.payload);
@@ -203,13 +204,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole wormhole,
         IWormhole.VM2 memory batchVM,
         DeliveryInstructions memory deliveryInstructions,
-        VAAId memory deliveryId,
+        AllowedEmitterSequence memory deliveryId,
         RelayParameters memory relayParams,
         uint16 attempt
-    )
-        internal
-        returns (uint64 sequence)
-    {
+    ) internal returns (uint64 sequence) {
         require(msg.value == wormhole.messageFee(), "insufficient msg.value to pay wormhole messageFee");
 
         // Compute the hash(batchHash, deliveryId) and check to see if the batch
@@ -252,11 +250,10 @@ contract CoreRelayer is CoreRelayerGovernance {
             gas: relayParams.deliveryGasLimit
         }(
             abi.encodeWithSignature(
-                "wormholeReceiver((uint8,uint32,uint32,uint16,bytes32,uint64,uint8,bytes,uint32,(bytes32,bytes32,uint8,uint8)[],bytes32)[],uint16,bytes32,bytes)",
+                "wormholeReceiver((uint8,uint32,uint32,uint16,bytes32,uint64,uint8,bytes,uint32,(bytes32,bytes32,uint8,uint8)[],bytes32)[],uint16,bytes32)",
                 targetVMs,
                 deliveryInstructions.fromChain,
-                deliveryInstructions.fromAddress,
-                deliveryInstructions.payload
+                deliveryInstructions.fromAddress
             )
         );
 
@@ -337,12 +334,8 @@ contract CoreRelayer is CoreRelayerGovernance {
     function prepareBatchForDelivery(
         IWormhole.IndexedObservation[] memory indexedObservations,
         uint8 maximumBatchSize,
-        VAAId memory deliveryId
-    )
-        internal
-        pure
-        returns (IWormhole.VM[] memory batch)
-    {
+        AllowedEmitterSequence memory deliveryId
+    ) internal pure returns (IWormhole.VM[] memory batch) {
         // array that will hold the resulting VAAs
         batch = new IWormhole.VM[](maximumBatchSize);
 
@@ -369,12 +362,8 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function preparePartialBatchForDelivery(
         IWormhole.IndexedObservation[] memory indexedObservations,
-        VAAId[] memory deliveryList
-    )
-        internal
-        pure
-        returns (IWormhole.VM[] memory partialBatch)
-    {
+        AllowedEmitterSequence[] memory deliveryList
+    ) internal pure returns (IWormhole.VM[] memory partialBatch) {
         // cache deliveryList length
         uint256 deliveryListLen = deliveryList.length;
 

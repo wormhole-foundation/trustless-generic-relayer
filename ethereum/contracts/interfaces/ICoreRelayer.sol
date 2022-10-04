@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 
 interface ICoreRelayer {
-    struct VAAId {
+    struct AllowedEmitterSequence {
         // VAA emitter address
         bytes32 emitterAddress;
         // VAA sequence
@@ -23,10 +23,8 @@ interface ICoreRelayer {
     struct DeliveryParameters {
         uint16 targetChain;
         bytes32 targetAddress;
-        bytes payload;
-        VAAId[] deliveryList;
+        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
-        bytes chainPayload;
         uint32 nonce;
         uint8 consistencyLevel;
     }
@@ -37,9 +35,7 @@ interface ICoreRelayer {
         uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
-        bytes payload;
-        bytes chainPayload;
-        VAAId[] deliveryList;
+        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
     }
 
@@ -59,7 +55,7 @@ interface ICoreRelayer {
         bytes32 batchHash;
     }
 
-    function estimateCost(uint16 chainId, uint256 gasLimit) external view returns (uint256 gasEstimate);
+    function estimateEvmCost(uint16 chainId, uint256 gasLimit) external view returns (uint256 gasEstimate);
 
     function send(DeliveryParameters memory deliveryParams) external payable returns (uint64 sequence);
 

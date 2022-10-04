@@ -4,10 +4,10 @@
 pragma solidity ^0.8.0;
 
 contract CoreRelayerStructs {
-    struct VAAId {
-        // VAA emitter address
+    struct AllowedEmitterSequence {
+        // wormhole emitter address
         bytes32 emitterAddress;
-        // VAA sequence
+        // wormhole message sequence
         uint64 sequence;
     }
 
@@ -23,10 +23,8 @@ contract CoreRelayerStructs {
     struct DeliveryParameters {
         uint16 targetChain;
         bytes32 targetAddress;
-        bytes payload;
-        VAAId[] deliveryList;
+        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
-        bytes chainPayload;
         uint32 nonce;
         uint8 consistencyLevel;
     }
@@ -37,9 +35,7 @@ contract CoreRelayerStructs {
         uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
-        bytes payload;
-        bytes chainPayload;
-        VAAId[] deliveryList;
+        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
     }
 

@@ -104,7 +104,7 @@ describe("Core Relayer Integration Test", () => {
 
     it("Should create a batch VAA with a DeliveryInstructions VAA", async () => {
       // estimate the cost of submitting the batch on the target chain
-      fullBatchTest.targetChainGasEstimate = await coreRelayer.estimateCost(TARGET_CHAIN_ID, TARGET_GAS_LIMIT);
+      fullBatchTest.targetChainGasEstimate = await coreRelayer.estimateEvmCost(TARGET_CHAIN_ID, TARGET_GAS_LIMIT);
 
       // relayer args
       fullBatchTest.relayerArgs = {
@@ -160,8 +160,6 @@ describe("Core Relayer Integration Test", () => {
         "0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH)
       );
       expect(deliveryInstructions.targetChain).to.equal(TARGET_CHAIN_ID);
-      expect(deliveryInstructions.payload).to.equal("0x");
-      expect(deliveryInstructions.chainPayload).to.equal("0x");
       expect(deliveryInstructions.deliveryList.length).to.equal(0);
 
       // deserialize the deliveryParameters and confirm the values
@@ -244,9 +242,9 @@ describe("Core Relayer Integration Test", () => {
       expect(queriedRelayerFees.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
     });
 
-    it("Should create a batch VAA with a DeliveryInstructions VAA (with a VAAId deliveryList)", async () => {
+    it("Should create a batch VAA with a DeliveryInstructions VAA (with a AllowedEmitterSequence deliveryList)", async () => {
       // estimate the gas of submitting the partial batch on the target chain
-      partialBatchTest.targetChainGasEstimate = await coreRelayer.estimateCost(TARGET_CHAIN_ID, TARGET_GAS_LIMIT);
+      partialBatchTest.targetChainGasEstimate = await coreRelayer.estimateEvmCost(TARGET_CHAIN_ID, TARGET_GAS_LIMIT);
 
       // randomly select four indices to put in the delivery list (not including the delivery VAA)
       let deliveryListIndices: number[] = [];
@@ -309,8 +307,6 @@ describe("Core Relayer Integration Test", () => {
         "0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH)
       );
       expect(deliveryInstructions.targetChain).to.equal(TARGET_CHAIN_ID);
-      expect(deliveryInstructions.payload).to.equal("0x");
-      expect(deliveryInstructions.chainPayload).to.equal("0x");
       expect(deliveryInstructions.deliveryList.length).to.equal(4);
 
       // deserialize the deliveryParameters and confirm the values
@@ -330,7 +326,7 @@ describe("Core Relayer Integration Test", () => {
       const deliveryVAAIndex: number = batchVAAPayloads.length;
 
       // The delivery VAA is the last message in the batch. Relayers will not know this,
-      // and will have to iterate through the batch to find the VAAId.
+      // and will have to iterate through the batch to find the AllowedEmitterSequence.
       const deliveryInstructionsPayload = await coreRelayer.decodeDeliveryInstructions(
         parsedBatchVM.indexedObservations[deliveryVAAIndex].vm3.payload
       );

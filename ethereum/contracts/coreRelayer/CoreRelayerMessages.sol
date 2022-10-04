@@ -11,7 +11,11 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryList(VAAId[] memory deliveryList) internal pure returns (bytes memory encoded) {
+    function encodeDeliveryList(AllowedEmitterSequence[] memory deliveryList)
+        internal
+        pure
+        returns (bytes memory encoded)
+    {
         uint256 len = deliveryList.length;
         for (uint8 i = 0; i < len;) {
             encoded = abi.encodePacked(encoded, deliveryList[i].emitterAddress, deliveryList[i].sequence);
@@ -32,10 +36,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             chainId(),
             instructions.targetAddress,
             instructions.targetChain,
-            uint16(instructions.payload.length),
-            instructions.payload,
-            uint16(instructions.chainPayload.length),
-            instructions.chainPayload,
             uint16(instructions.deliveryList.length),
             encodeDeliveryList(instructions.deliveryList),
             uint16(instructions.relayParameters.length),
@@ -104,28 +104,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instructions.targetChain = encoded.toUint16(index);
         index += 2;
 
-        // length of payload
-        uint16 payloadLen = encoded.toUint16(index);
-        index += 2;
-
-        // payload
-        instructions.payload = encoded.slice(index, payloadLen);
-        index += payloadLen;
-
-        // length of chain payload
-        uint16 chainPayloadLen = encoded.toUint16(index);
-        index += 2;
-
-        // chain payload
-        instructions.chainPayload = encoded.slice(index, chainPayloadLen);
-        index += chainPayloadLen;
-
         // length of the deliveryList
         uint16 deliveryListLen = encoded.toUint16(index);
         index += 2;
 
         // list of VAAs to deliver
-        instructions.deliveryList = new VAAId[](deliveryListLen);
+        instructions.deliveryList = new AllowedEmitterSequence[](deliveryListLen);
         for (uint16 i = 0; i < deliveryListLen;) {
             instructions.deliveryList[i].emitterAddress = encoded.toBytes32(index);
             index += 32;

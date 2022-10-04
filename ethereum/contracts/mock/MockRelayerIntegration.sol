@@ -32,7 +32,7 @@ contract MockRelayerIntegration {
     }
 
     function estimateRelayCosts(uint16 targetChainId, uint256 targetGasLimit) public view returns (uint256) {
-        return relayer.estimateCost(targetChainId, targetGasLimit);
+        return relayer.estimateEvmCost(targetChainId, targetGasLimit);
     }
 
     struct RelayerArgs {
@@ -48,11 +48,7 @@ contract MockRelayerIntegration {
         bytes[] calldata payload,
         uint8[] calldata consistencyLevel,
         RelayerArgs memory relayerArgs
-    )
-        public
-        payable
-        returns (uint64[] memory messageSequences)
-    {
+    ) public payable returns (uint64[] memory messageSequences) {
         // cache the payload count to save on gas
         uint256 numPayloads = payload.length;
 
@@ -68,25 +64,32 @@ contract MockRelayerIntegration {
 
         // Create an array to store the wormhole message sequences. Add
         // a slot for the relay message sequence.
-        messageSequences = new uint64[](numPayloads+1);
+        messageSequences = new uint64[](numPayloads + 1);
 
         // create the deliveryList
         uint256 deliveryListLength = relayerArgs.deliveryListIndices.length;
-        ICoreRelayer.VAAId[] memory deliveryList = new ICoreRelayer.VAAId[](deliveryListLength);
+        ICoreRelayer.AllowedEmitterSequence[] memory deliveryList =
+            new ICoreRelayer.AllowedEmitterSequence[](deliveryListLength);
 
         // send each wormhole message and save the message sequence
-        for (uint256 i = 0; i < numPayloads; i++) {
+        for (uint256 i = 0; i < numPayloads;) {
             messageSequences[i] =
                 wormhole.publishMessage{value: wormholeFee}(relayerArgs.nonce, payload[i], consistencyLevel[i]);
 
             // add to delivery list based on the index (if indices are specified)
-            for (uint256 j = 0; j < deliveryListLength; j++) {
+            for (uint256 j = 0; j < deliveryListLength;) {
                 if (i == relayerArgs.deliveryListIndices[j]) {
-                    deliveryList[j] = ICoreRelayer.VAAId({
+                    deliveryList[j] = ICoreRelayer.AllowedEmitterSequence({
                         emitterAddress: bytes32(uint256(uint160(address(this)))),
                         sequence: messageSequences[i]
                     });
                 }
+                unchecked {
+                    j += 1;
+                }
+            }
+            unchecked {
+                i += 1;
             }
         }
 
@@ -98,10 +101,8 @@ contract MockRelayerIntegration {
         ICoreRelayer.DeliveryParameters memory deliveryParams = ICoreRelayer.DeliveryParameters({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
-            payload: new bytes(0),
             deliveryList: deliveryList,
             relayParameters: relayParameters,
-            chainPayload: new bytes(0),
             nonce: relayerArgs.nonce,
             consistencyLevel: relayerArgs.consistencyLevel
         });
@@ -112,14 +113,7 @@ contract MockRelayerIntegration {
         return messageSequences;
     }
 
-    function wormholeReceiver(
-        IWormhole.VM[] memory vmList,
-        uint16 sourceChain,
-        bytes32 sourceAddress,
-        bytes memory payload
-    )
-        public
-    {
+    function wormholeReceiver(IWormhole.VM[] memory vmList, uint16 sourceChain, bytes32 sourceAddress) public {
         // make sure the caller is a trusted relayer contract
         require(msg.sender == address(relayer), "caller not trusted");
 
