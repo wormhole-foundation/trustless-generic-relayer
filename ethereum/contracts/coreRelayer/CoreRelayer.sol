@@ -130,7 +130,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole.VM2 memory batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
 
         // cache the deliveryVM
-        IWormhole.VM memory deliveryVM = batchVM.indexedObservations[targetParams.deliveryIndex].vm3;
+        IWormhole.VM memory deliveryVM = parseWormholeObservation(batchVM.observations[targetParams.deliveryIndex]);
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
         // create the AllowedEmitterSequence for the delivery VAA
@@ -164,7 +164,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole.VM2 memory batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
 
         // cache the deliveryVM
-        IWormhole.VM memory deliveryVM = batchVM.indexedObservations[targetParams.deliveryIndex].vm3;
+        IWormhole.VM memory deliveryVM = parseWormholeObservation(batchVM.observations[targetParams.deliveryIndex]);
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
         // create the AllowedEmitterSequence for the delivery VAA
@@ -222,21 +222,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 attemptedDeliveryCount = attemptedDeliveryCount(deliveryHash);
         require(attempt == attemptedDeliveryCount, "wrong delivery attempt index");
 
-        // Check to see if a deliveryList is specified. If not, confirm that all VAAs made it to this contract.
-        // If a deliveryList is specified, forward the list of VAAs to the receiving contract.
-        IWormhole.VM[] memory targetVMs;
-        {
-            // bypass stack-too-deep
-            uint256 deliveryListLength = deliveryInstructions.deliveryList.length;
-            if (deliveryListLength > 0) {
-                targetVMs =
-                    preparePartialBatchForDelivery(batchVM.indexedObservations, deliveryInstructions.deliveryList);
-            } else {
-                targetVMs =
-                    prepareBatchForDelivery(batchVM.indexedObservations, relayParams.maximumBatchSize, deliveryId);
-            }
-        }
-
         // verify the batchVM before calling the receiver
         (bool valid, string memory reason) = wormhole.verifyBatchVM(batchVM, true);
         require(valid, reason);
@@ -248,14 +233,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // process the delivery by calling the receiveWormholeMessages endpoint on the target contract
         (bool success,) = address(uint160(uint256(deliveryInstructions.targetAddress))).call{
             gas: relayParams.deliveryGasLimit
-        }(
-            abi.encodeWithSignature(
-                "receiveWormholeMessages((uint8,uint32,uint32,uint16,bytes32,uint64,uint8,bytes,uint32,(bytes32,bytes32,uint8,uint8)[],bytes32)[])",
-                targetVMs,
-                deliveryInstructions.fromChain,
-                deliveryInstructions.fromAddress
-            )
-        );
+        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", batchVM.observations));
 
         // unlock the contract
         setContractLock(false);
@@ -403,5 +381,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         return false;
+    }
+
+    function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
+        return wormhole().parseVM(observation);
     }
 }

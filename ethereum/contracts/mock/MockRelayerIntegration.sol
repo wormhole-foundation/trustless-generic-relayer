@@ -119,17 +119,16 @@ contract MockRelayerIntegration {
         relayerMessageSequence = relayer.send{value: gasEstimate}(deliveryParams);
     }
 
-    function receiveWormholeMessages(IWormhole.VM[] memory vmList) public {
-        // TODO: fix signature to only take bytes
-
-        // loop through the array of VMs and store each payload
-        uint256 vmCount = vmList.length;
-        for (uint256 i = 0; i < vmCount;) {
-            (bool valid, string memory reason) = wormhole.verifyVM(vmList[i]);
+    function receiveWormholeMessages(bytes[] memory wormholeObservations) public {
+        // loop through the array of wormhole observations from the batch and store each payload
+        uint256 numObservations = wormholeObservations.length;
+        for (uint256 i = 0; i < numObservations;) {
+            (IWormhole.VM memory parsed, bool valid, string memory reason) =
+                wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
 
-            // save the payload from each VAA
-            verifiedPayloads[vmList[i].hash] = vmList[i].payload;
+            // save the payload from each wormhole message
+            verifiedPayloads[parsed.hash] = parsed.payload;
 
             unchecked {
                 i += 1;
