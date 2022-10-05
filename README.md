@@ -1,10 +1,8 @@
 # Generic Relayers
 
-[TOC]
-
 ## Objective
 
-Develop a common standard for cross-chain relaying system that any application can interface with on-chain to enable better composability.
+Develop a common standard for a cross-chain relaying system that any application can interface with on-chain to enable better composability.
 
 ## Background
 
@@ -14,10 +12,13 @@ Both of these paradigms present shortcomings for users and integrators respectiv
 
 A decentralized network of generic relayers can address the shortcomings of both of the two current relaying methods by handling the cross-chain message redemption and submission on behalf of users and be a separate decentralized service that integrators can leverage.
 
+Fundamentally, the relayer service should require no additional trust assumptions from the integrating contract's perspective. This service should merely serve as a third delivery mechanism option without changing any composing protocol's messaging. See the best practices for [protocol design](https://book.wormhole.com/dapps/architecture/3_protocolDesign.html).
+
 ## Goals
 
 - Allow developers to send and receive cross-chain messages through on-chain entrypoints to Wormhole.
 - Develop relayers that are capable of redeeming and submitting full or subset of Batch VAAs.
+- Provide a composable, trustless relaying service in line with the Wormhole ecosystem.
 
 ## Non-Goals
 
