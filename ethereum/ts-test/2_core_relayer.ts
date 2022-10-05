@@ -137,12 +137,20 @@ describe("Core Relayer Integration Test", () => {
 
       // validate the individual messages
       const batchLen = parsedBatchVM.indexedObservations.length;
-      for (let i = 0; i < batchLen - 1; i++) {
+      for (let i = 0; i < batchLen - 2; ++i) {
         const parsedVM = await parsedBatchVM.indexedObservations[i].vm3;
         expect(parsedVM.nonce).to.equal(batchNonce);
         expect(parsedVM.consistencyLevel).to.equal(batchVAAConsistencyLevels[i]);
         expect(parsedVM.payload).to.equal(batchVAAPayloads[i]);
       }
+
+      // validate the mock integration instructions
+      const integratorMessage = parsedBatchVM.indexedObservations[batchLen - 2].vm3;
+      expect(integratorMessage.nonce).to.equal(batchNonce);
+      expect(integratorMessage.consistencyLevel).to.equal(1);
+      const integratorMessagePayload = Buffer.from(ethers.utils.arrayify(integratorMessage.payload));
+      expect(integratorMessagePayload.readUInt16BE(0)).to.equal(2);
+      expect(integratorMessagePayload.readUInt8(2)).to.equal(batchLen - 2);
 
       // validate the delivery instructions VAA
       const deliveryVM = parsedBatchVM.indexedObservations[batchLen - 1].vm3;
@@ -166,7 +174,7 @@ describe("Core Relayer Integration Test", () => {
       const relayParameters = await coreRelayer.decodeRelayParameters(deliveryInstructions.relayParameters);
       expect(relayParameters.version).to.equal(1);
       expect(relayParameters.deliveryGasLimit).to.equal(TARGET_GAS_LIMIT);
-      expect(relayParameters.maximumBatchSize).to.equal(batchVAAPayloads.length);
+      expect(relayParameters.maximumBatchSize).to.equal(batchVAAPayloads.length + 1);
       expect(relayParameters.nativePayment.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
     });
 
@@ -174,7 +182,7 @@ describe("Core Relayer Integration Test", () => {
       // create the TargetDeliveryParameters
       const targetDeliveryParams: TargetDeliveryParameters = {
         encodedVM: fullBatchTest.signedBatchVM,
-        deliveryIndex: batchVAAPayloads.length,
+        deliveryIndex: batchVAAPayloads.length + 1,
         targetCallGasOverride: ethers.BigNumber.from(TARGET_GAS_LIMIT),
       };
 
@@ -185,8 +193,9 @@ describe("Core Relayer Integration Test", () => {
 
       // confirm that the batch VAA payloads were stored in a map in the mock contract
       const parsedBatchVM = await mockContract.parseBatchVM(fullBatchTest.signedBatchVM);
+
       const batchLen = parsedBatchVM.indexedObservations.length;
-      for (let i = 0; i < batchLen - 1; i++) {
+      for (let i = 0; i < batchLen - 1; ++i) {
         const parsedVM = parsedBatchVM.indexedObservations[i].vm3;
 
         // query the contract for the saved payload
@@ -240,197 +249,6 @@ describe("Core Relayer Integration Test", () => {
       // query the contract to check the balance of the relayer fees
       const queriedRelayerFees = await coreRelayer.relayerRewards(wallet.address, TARGET_CHAIN_ID);
       expect(queriedRelayerFees.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
-    });
-
-    it("Should create a batch VAA with a DeliveryInstructions VAA (with a AllowedEmitterSequence deliveryList)", async () => {
-      // estimate the gas of submitting the partial batch on the target chain
-      partialBatchTest.targetChainGasEstimate = await coreRelayer.estimateEvmCost(TARGET_CHAIN_ID, TARGET_GAS_LIMIT);
-
-      // randomly select four indices to put in the delivery list (not including the delivery VAA)
-      let deliveryListIndices: number[] = [];
-      for (let i = 0; i < batchVAAPayloads.length; i++) {
-        deliveryListIndices.push(i);
-      }
-      deliveryListIndices = deliveryListIndices.sort(() => 0.5 - Math.random()).slice(4);
-
-      // relayer args
-      partialBatchTest.relayerArgs = {
-        nonce: batchNonce,
-        targetChainId: TARGET_CHAIN_ID,
-        targetAddress: TARGET_CONTRACT_ADDRESS,
-        targetGasLimit: TARGET_GAS_LIMIT,
-        consistencyLevel: deliveryVAAConsistencyLevel,
-        deliveryListIndices: deliveryListIndices,
-      };
-
-      // call the mock integration contract to create a batch
-      const sendReceipt: ethers.ContractReceipt = await mockContract
-        .sendBatchToTargetChain(batchVAAPayloads, batchVAAConsistencyLevels, partialBatchTest.relayerArgs, {
-          value: partialBatchTest.targetChainGasEstimate,
-        })
-        .then((tx: ethers.ContractTransaction) => tx.wait());
-
-      // fetch the signedBatchVAA
-      partialBatchTest.signedBatchVM = await getSignedBatchVaaFromReceiptOnEth(
-        sendReceipt,
-        SOURCE_CHAIN_ID as ChainId,
-        0 // guardianSetIndex
-      );
-    });
-
-    it("Should deserialize and validate the partial batch DeliveryInstructions VAA values", async () => {
-      // parse the batchVM and verify the values
-      const parsedBatchVM = await mockContract.parseBatchVM(partialBatchTest.signedBatchVM);
-
-      // validate the individual messages
-      const batchLen = parsedBatchVM.indexedObservations.length;
-      for (let i = 0; i < batchLen - 1; i++) {
-        const parsedVM = await parsedBatchVM.indexedObservations[i].vm3;
-        expect(parsedVM.nonce).to.equal(batchNonce);
-        expect(parsedVM.consistencyLevel).to.equal(batchVAAConsistencyLevels[i]);
-        expect(parsedVM.payload).to.equal(batchVAAPayloads[i]);
-      }
-
-      // validate the delivery instructions VAA
-      const deliveryVM = parsedBatchVM.indexedObservations[batchLen - 1].vm3;
-      expect(deliveryVM.nonce).to.equal(batchNonce);
-      expect(deliveryVM.consistencyLevel).to.equal(partialBatchTest.relayerArgs.consistencyLevel);
-
-      // deserialize the delivery instruction payload and validate the values
-      const deliveryInstructions = await coreRelayer.decodeDeliveryInstructions(deliveryVM.payload);
-      expect(deliveryInstructions.payloadID).to.equal(1);
-      expect(deliveryInstructions.fromAddress).to.equal(
-        "0x" + tryNativeToHexString(SOURCE_CONTRACT_ADDRESS, CHAIN_ID_ETH)
-      );
-      expect(deliveryInstructions.fromChain).to.equal(SOURCE_CHAIN_ID);
-      expect(deliveryInstructions.targetAddress).to.equal(
-        "0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH)
-      );
-      expect(deliveryInstructions.targetChain).to.equal(TARGET_CHAIN_ID);
-      expect(deliveryInstructions.deliveryList.length).to.equal(4);
-
-      // deserialize the deliveryParameters and confirm the values
-      const relayParameters = await coreRelayer.decodeRelayParameters(deliveryInstructions.relayParameters);
-      expect(relayParameters.version).to.equal(1);
-      expect(relayParameters.deliveryGasLimit).to.equal(TARGET_GAS_LIMIT);
-      expect(relayParameters.maximumBatchSize).to.equal(batchVAAPayloads.length);
-      expect(relayParameters.nativePayment.toString()).to.equal(partialBatchTest.targetChainGasEstimate.toString());
-    });
-
-    it("Should create a partial batch based on the deliveryList in the DeliveryInstructions VAA", async () => {
-      // parse the batchVM and deserialize the DeliveryInstructions
-      const parsedBatchVM = await mockContract.parseBatchVM(partialBatchTest.signedBatchVM);
-
-      // Delivery VAA starting index (before pruning the batch). It should be the
-      // last VAA in the batch.
-      const deliveryVAAIndex: number = batchVAAPayloads.length;
-
-      // The delivery VAA is the last message in the batch. Relayers will not know this,
-      // and will have to iterate through the batch to find the AllowedEmitterSequence.
-      const deliveryInstructionsPayload = await coreRelayer.decodeDeliveryInstructions(
-        parsedBatchVM.indexedObservations[deliveryVAAIndex].vm3.payload
-      );
-
-      // Loop through the deliveryList in the DeliveryInstructions and find the indices to deliver. Store
-      // the delivery index to make sure that it is not removed from the batch.
-      let indicesToKeep: number[] = [deliveryVAAIndex];
-      for (const deliveryId of deliveryInstructionsPayload.deliveryList) {
-        for (const indexedObservations of parsedBatchVM.indexedObservations) {
-          let vm3 = indexedObservations.vm3;
-          if (
-            vm3.emitterAddress == deliveryId.emitterAddress &&
-            vm3.sequence.toString() == deliveryId.sequence.toString()
-          ) {
-            indicesToKeep.push(indexedObservations.index);
-          }
-        }
-      }
-
-      // prune the batch
-      for (const indexedObservations of parsedBatchVM.indexedObservations) {
-        const index = indexedObservations.index;
-        if (!indicesToKeep.includes(index)) {
-          // prune the batch
-          partialBatchTest.signedBatchVM = removeObservationFromBatch(index, partialBatchTest.signedBatchVM);
-        }
-      }
-
-      // confirm that the indices that we care about are still in the VAA
-      const prunedBatchVM = await mockContract.parseBatchVM(partialBatchTest.signedBatchVM);
-      for (const indexedObservations of prunedBatchVM.indexedObservations) {
-        expect(indicesToKeep.includes(indexedObservations.index)).to.be.true;
-      }
-    });
-
-    it("Should deliver the partial batch VAA and call the wormholeReceiver endpoint on the mock contract", async () => {
-      // The delivery VAA index has changed since the batch was pruned, find the new delivery VAA index.
-      // It should still be the last VAA in the batch.
-      const prunedBatchVM = await mockContract.parseBatchVM(partialBatchTest.signedBatchVM);
-      const deliveryVAAIndex = prunedBatchVM.indexedObservations.length - 1;
-      expect(prunedBatchVM.indexedObservations[deliveryVAAIndex].vm3.emitterAddress).to.equal(RELAYER_EMITTER_ADDRESS);
-
-      // create the TargetDeliveryParameters
-      const targetDeliveryParams: TargetDeliveryParameters = {
-        encodedVM: partialBatchTest.signedBatchVM,
-        deliveryIndex: deliveryVAAIndex,
-        targetCallGasOverride: ethers.BigNumber.from(TARGET_GAS_LIMIT),
-      };
-
-      // call the deliver method on the relayer contract
-      const deliveryReceipt: ethers.ContractReceipt = await coreRelayer
-        .deliver(targetDeliveryParams)
-        .then((tx: ethers.ContractTransaction) => tx.wait());
-
-      // confirm that the batch VM payloads were stored in a map in the mock contract
-      const batchLen = prunedBatchVM.indexedObservations.length;
-      for (let i = 0; i < batchLen - 1; i++) {
-        const parsedVM = prunedBatchVM.indexedObservations[i].vm3;
-
-        // query the contract for the saved payload
-        const verifiedPayload = await mockContract.getPayload(parsedVM.hash);
-        expect(verifiedPayload).to.equal(parsedVM.payload);
-
-        // clear the payload from storage for future tests
-        await mockContract.clearPayload(parsedVM.hash).then((tx: ethers.ContractTransaction) => tx.wait());
-
-        // confirm that the payload was cleared
-        const emptyPayload = await mockContract.getPayload(parsedVM.hash);
-        expect(emptyPayload).to.equal("0x");
-      }
-
-      // fetch and save the delivery status VAA
-      partialBatchTest.deliveryStatusVM = await getSignedVaaFromReceiptOnEth(
-        deliveryReceipt,
-        TARGET_CHAIN_ID,
-        0 // guardianSetIndex
-      );
-    });
-
-    it("Should correctly emit a DeliveryStatus message upon partial batch delivery", async () => {
-      // parse the VM payload
-      const parsedDeliveryStatus = await mockContract.parseVM(partialBatchTest.deliveryStatusVM);
-      const deliveryStatusPayload = parsedDeliveryStatus.payload;
-
-      // parse the batch VAA (need to use the batch hash)
-      const parsedBatchVM = await mockContract.parseBatchVM(partialBatchTest.signedBatchVM);
-
-      // grab the deliveryVM based, which is the last VM in the batch
-      const deliveryVMIndex = parsedBatchVM.indexedObservations.length - 1;
-      const deliveryVM = parsedBatchVM.indexedObservations[deliveryVMIndex].vm3;
-
-      // expected values in the DeliveryStatus payload
-      const expectedDeliveryAttempts = 1;
-      const expectedSuccessBoolean = 1;
-
-      const success = verifyDeliveryStatusPayload(
-        deliveryStatusPayload,
-        parsedBatchVM.hash,
-        RELAYER_EMITTER_ADDRESS,
-        deliveryVM.sequence,
-        expectedDeliveryAttempts,
-        expectedSuccessBoolean
-      );
-      expect(success).to.be.true;
     });
   });
 });

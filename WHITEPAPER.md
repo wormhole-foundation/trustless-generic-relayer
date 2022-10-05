@@ -126,14 +126,14 @@ A relaying system that handles payment on the source chain could have minimal Re
 struct MinimalRelayerParamsExample {
   // All payloads should be versioned
 	Version uint8
-  // Limit the gas amount forwarded to wormholeReceiver()
+  // Limit the gas amount forwarded to receiveWormholeMessages()
 	DeliveryGasAmount uint32
 }
 
 struct RelayerParamsExample {
   // All payloads should be versioned
 	Version uint8
-  // Limit the gas amount forwarded to wormholeReceiver()
+  // Limit the gas amount forwarded to receiveWormholeMessages()
 	DeliveryGasAmount uint32
   // Limit the max batch size that was paid for -> fail delivery if batch is too big
 	MaxVAAsInBatch bytes32
@@ -168,7 +168,7 @@ struct RelayerParamsExample {
 - Check if the emitter of the `DeliveryInstructions` VAA is a known and trusted relaying contract
 - Check if the `DeliveryInstructions.ToChain` is the right chain
 - If a whitelist is specified, check if all specified VAAs are in the delivered VAAv2, if no whitelist is specified check that the full batch was delivered
-- Call `wormholeReceiver` on the `DeliveryInstructions.ToAddress`
+- Call `receiveWormholeMessages` on the `DeliveryInstructions.ToAddress`
   - If the length of the VAA whitelist is > 0, just forward the whitelist of VAAs, otherwise the full batch
   - If `targetCallGasOverwrite` is higher than what might be specified in `DeliveryInstructions.RelayerParams` take the overwrite value
 - Emit `DeliveryStatus` depending on success or failure of the `receive` call
@@ -185,7 +185,7 @@ struct RelayerParamsExample {
 
 ### Receiver Contract Endpoints
 
-`wormholeReceiver(VAAv4[] vaas, uint16 sourceChain, bytes32 sourceAddress, bytes payload)`
+`receiveWormholeMessages(VAAv4[] vaas, uint16 sourceChain, bytes32 sourceAddress, bytes payload)`
 
 - verify `msg.sender == relayer contract`
 - verify `sourceAddress` and `sourceChain`
