@@ -231,9 +231,17 @@ contract CoreRelayer is CoreRelayerGovernance {
         setContractLock(true);
 
         // process the delivery by calling the receiveWormholeMessages endpoint on the target contract
+        bytes[] memory observations = new bytes[](batchVM.observations.length - 1);
+        uint256 numObservations = observations.length;
+        for (uint256 i = 0; i < numObservations;) {
+            observations[i] = batchVM.observations[i];
+            unchecked {
+                i += 1;
+            }
+        }
         (bool success,) = address(uint160(uint256(deliveryInstructions.targetAddress))).call{
             gas: relayParams.deliveryGasLimit
-        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", batchVM.observations));
+        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", observations));
 
         // unlock the contract
         setContractLock(false);

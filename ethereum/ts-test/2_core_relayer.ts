@@ -133,20 +133,20 @@ describe("Core Relayer Integration Test", () => {
 
     it("Should deserialize and validate the full batch DeliveryInstructions VAA values", async () => {
       // parse the batchVM and verify the values
-      const parsedBatchVM = await mockContract.parseBatchVM(fullBatchTest.signedBatchVM);
+      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
 
       // validate the individual messages
       const observations = parsedBatchVM.observations;
       const batchLen = parsedBatchVM.observations.length;
       for (let i = 0; i < batchLen - 2; ++i) {
-        const parsedVM = await mockContract.parseVM(observations[i]);
+        const parsedVM = await mockContract.parseWormholeObservation(observations[i]);
         expect(parsedVM.nonce).to.equal(batchNonce);
         expect(parsedVM.consistencyLevel).to.equal(batchVAAConsistencyLevels[i]);
         expect(parsedVM.payload).to.equal(batchVAAPayloads[i]);
       }
 
       // validate the mock integration instructions
-      const integratorMessage = await mockContract.parseVM(observations[batchLen - 2]);
+      const integratorMessage = await mockContract.parseWormholeObservation(observations[batchLen - 2]);
       expect(integratorMessage.nonce).to.equal(batchNonce);
       expect(integratorMessage.consistencyLevel).to.equal(1);
       const integratorMessagePayload = Buffer.from(ethers.utils.arrayify(integratorMessage.payload));
@@ -154,7 +154,7 @@ describe("Core Relayer Integration Test", () => {
       expect(integratorMessagePayload.readUInt8(2)).to.equal(batchLen - 2);
 
       // validate the delivery instructions VAA
-      const deliveryVM = await mockContract.parseVM(observations[batchLen - 1]);
+      const deliveryVM = await mockContract.parseWormholeObservation(observations[batchLen - 1]);
       expect(deliveryVM.nonce).to.equal(batchNonce);
       expect(deliveryVM.consistencyLevel).to.equal(fullBatchTest.relayerArgs.consistencyLevel);
 
@@ -193,12 +193,12 @@ describe("Core Relayer Integration Test", () => {
         .then((tx: ethers.ContractTransaction) => tx.wait());
 
       // confirm that the batch VAA payloads were stored in a map in the mock contract
-      const parsedBatchVM = await mockContract.parseBatchVM(fullBatchTest.signedBatchVM);
+      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
 
       const observations = parsedBatchVM.observations;
       const batchLen = observations.length;
       for (let i = 0; i < batchLen - 1; ++i) {
-        const parsedVM = await mockContract.parseVM(observations[i]);
+        const parsedVM = await mockContract.parseWormholeObservation(observations[i]);
 
         // query the contract for the saved payload
         const verifiedPayload = await mockContract.getPayload(parsedVM.hash);
@@ -222,14 +222,14 @@ describe("Core Relayer Integration Test", () => {
 
     it("Should correctly emit a DeliveryStatus message upon full batch delivery", async () => {
       // parse the delivery status VAA payload
-      const parsedDeliveryStatus = await mockContract.parseVM(fullBatchTest.deliveryStatusVM);
+      const parsedDeliveryStatus = await mockContract.parseWormholeObservation(fullBatchTest.deliveryStatusVM);
       const deliveryStatusPayload = parsedDeliveryStatus.payload;
 
       // parse the batch VAA (need to use the batch hash)
-      const parsedBatchVM = await mockContract.parseBatchVM(fullBatchTest.signedBatchVM);
+      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
 
       // grab the deliveryVM index, which is the last VM in the batch
-      const deliveryVM = await mockContract.parseVM(parsedBatchVM.observations.at(-1)!);
+      const deliveryVM = await mockContract.parseWormholeObservation(parsedBatchVM.observations.at(-1)!);
 
       // expected values in the DeliveryStatus payload
       const expectedDeliveryAttempts = 1;

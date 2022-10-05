@@ -119,13 +119,57 @@ contract MockRelayerIntegration {
         relayerMessageSequence = relayer.send{value: gasEstimate}(deliveryParams);
     }
 
+    struct EmitterSequence {
+        bytes32 emitter;
+        uint64 sequence;
+    }
+
+    function parseVerifyingMessage(bytes memory verifyingObservation, uint256 numObservations)
+        public
+        returns (EmitterSequence[] memory emitterSequences)
+    {
+        (IWormhole.VM memory parsed, bool valid, string memory reason) = wormhole.parseAndVerifyVM(verifyingObservation);
+        require(valid, reason);
+
+        bytes memory payload = parsed.payload;
+        require(payload.toUint16(0) == parsed.emitterChainId, "source chain != emitterChainId");
+        require(uint256(payload.toUint8(2)) == numObservations, "incorrect number of observations");
+
+        verifiedPayloads[parsed.hash] = payload;
+
+        // TODO: instead of returning VM, return a struct that has info to verify observations
+        emitterSequences = new EmitterSequence[](numObservations);
+        uint256 index = 3;
+        for (uint256 i = 0; i < numObservations;) {
+            emitterSequences[i].emitter = payload.toBytes32(index);
+            unchecked {
+                index += 32;
+            }
+            emitterSequences[i].sequence = payload.toUint64(index);
+            unchecked {
+                index += 8;
+            }
+            unchecked {
+                i += 1;
+            }
+        }
+        require(payload.length == index, "payload.length != index");
+    }
+
     function receiveWormholeMessages(bytes[] memory wormholeObservations) public {
         // loop through the array of wormhole observations from the batch and store each payload
-        uint256 numObservations = wormholeObservations.length;
+        uint256 numObservations = wormholeObservations.length - 1;
+
+        EmitterSequence[] memory emitterSequences =
+            parseVerifyingMessage(wormholeObservations[numObservations], numObservations);
+
         for (uint256 i = 0; i < numObservations;) {
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
+
+            require(emitterSequences[i].emitter == parsed.emitterAddress, "verifying emitter != emitterAddress");
+            require(emitterSequences[i].sequence == parsed.sequence, "verifying sequence != sequence");
 
             // save the payload from each wormhole message
             verifiedPayloads[parsed.hash] = parsed.payload;
@@ -155,11 +199,11 @@ contract MockRelayerIntegration {
         delete verifiedPayloads[hash];
     }
 
-    function parseBatchVM(bytes memory encoded) public view returns (IWormhole.VM2 memory) {
+    function parseWormholeBatch(bytes memory encoded) public view returns (IWormhole.VM2 memory) {
         return wormhole.parseBatchVM(encoded);
     }
 
-    function parseVM(bytes memory encoded) public view returns (IWormhole.VM memory) {
+    function parseWormholeObservation(bytes memory encoded) public view returns (IWormhole.VM memory) {
         return wormhole.parseVM(encoded);
     }
 
