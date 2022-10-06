@@ -59,8 +59,8 @@ interface IWormhole {
         bytes32[] hashes;
         // Computed batch hash - hash(hash(Observation1), hash(Observation2), ...)
         bytes32 hash;
-        // Array of IndexedObservations
-        IndexedObservation[] indexedObservations;
+        // Array of observations with prepended version 3
+        bytes[] observations;
     }
 
     event LogMessagePublished(

@@ -1,4 +1,4 @@
-import {ethers} from "ethers";
+import { ethers } from "ethers";
 
 export interface RelayerArgs {
   nonce: number;
@@ -6,7 +6,6 @@ export interface RelayerArgs {
   targetAddress: string;
   targetGasLimit: number;
   consistencyLevel: number;
-  deliveryListIndices: number[];
 }
 
 export interface TargetDeliveryParameters {

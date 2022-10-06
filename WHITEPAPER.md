@@ -61,20 +61,10 @@ struct DeliveryInstructions {
 	// Chain ID of the receiver
 	ToChain uint16
 
-	// Length of user Payload
-	PayloadLen uint16
-	// Payload
-	Payload bytes
-
-	// Length of chain-specific payload
-	ChainPayloadLen uint16
-	// chain-specific delivery payload (accounts, storage slots...)
-	ChainPayload bytes
-
 	// Length of VAA whitelist
 	WhitelistLen uint16
 	// VAA whitelist
-	Whitelist []VAAId
+	Whitelist []AllowedEmitterSequence
 
 	// Length of Relayer Parameters
 	RelayerParamsLen uint16
@@ -82,7 +72,7 @@ struct DeliveryInstructions {
 	RelayerParams bytes
 }
 
-struct VAAId {
+struct AllowedEmitterSequence {
 	// VAA emitter
 	EmitterAddress bytes32
   // VAA sequence
@@ -96,7 +86,7 @@ struct DeliveryStatus {
 	// Hash of the relayed batch
 	BatchHash bytes32
 	// Delivery
-	Delivery VAAId
+	Delivery AllowedEmitterSequence
 
 	// Delivery try
 	DeliveryCount uint16
@@ -112,7 +102,7 @@ struct ReDeliveryInstructions {
 	// Hash of the batch to re-deliver
 	BatchHash bytes32
 	// Point to the original delivery instruction
-  OriginalDelivery VAAId
+  OriginalDelivery AllowedEmitterSequence
 
 	// Current deliverycount
 	DeliveryCount uint16
@@ -136,14 +126,14 @@ A relaying system that handles payment on the source chain could have minimal Re
 struct MinimalRelayerParamsExample {
   // All payloads should be versioned
 	Version uint8
-  // Limit the gas amount forwarded to wormholeReceiver()
+  // Limit the gas amount forwarded to receiveWormholeMessages()
 	DeliveryGasAmount uint32
 }
 
 struct RelayerParamsExample {
   // All payloads should be versioned
 	Version uint8
-  // Limit the gas amount forwarded to wormholeReceiver()
+  // Limit the gas amount forwarded to receiveWormholeMessages()
 	DeliveryGasAmount uint32
   // Limit the max batch size that was paid for -> fail delivery if batch is too big
 	MaxVAAsInBatch bytes32
@@ -156,7 +146,7 @@ struct RelayerParamsExample {
 
 ### Relaying Contract Endpoints
 
-`send(uint16 targetChain, bytes32 targetAddress, bytes payload, VAAWhitelist VAAId[], bytes relayerParams, bytes[] chainPayload, uint32 nonce, uint8 consistencyLevel) payable`
+`send(uint16 targetChain, bytes32 targetAddress, bytes payload, VAAWhitelist AllowedEmitterSequence[], bytes relayerParams, bytes[] chainPayload, uint32 nonce, uint8 consistencyLevel) payable`
 
 - Optionally: handle payment
 - Emit `DeliveryInstructions` VAA with specified `targetChain, targetAddress, payload, relayerParams, nonce, VAAWhitelist` and `msg.sender`, the entry-point’s `chainId`
@@ -166,19 +156,19 @@ struct RelayerParamsExample {
 - Optionally: handle payment
 - Emit `RedeliveryInstructions` VAA with the batch hash & delivery reference and new `relayerParams`
 
-`estimateCost(uint16 targetChainId, bytes[] relayerParams) view`
+`estimateEvmCost(uint16 targetChainId, bytes[] relayerParams) view`
 
 - provide a quote for given relayerParams
 - Gas Price, Limit should be encoded in `relayerParams`
 
-`deliver(VAAv2 batchVAA, VAAId delivery, uint targetCallGasOverwrite)`
+`deliver(VAAv2 batchVAA, AllowedEmitterSequence delivery, uint targetCallGasOverwrite)`
 
-- Check the delivery hash (`hash(batchHash, VAAId)`) against already successfully delivered ones and revert if it was successfully delivered before
+- Check the delivery hash (`hash(batchHash, AllowedEmitterSequence)`) against already successfully delivered ones and revert if it was successfully delivered before
 - Parse and verify VAAv2 at Wormhole contract with caching enabled
 - Check if the emitter of the `DeliveryInstructions` VAA is a known and trusted relaying contract
 - Check if the `DeliveryInstructions.ToChain` is the right chain
 - If a whitelist is specified, check if all specified VAAs are in the delivered VAAv2, if no whitelist is specified check that the full batch was delivered
-- Call `wormholeReceiver` on the `DeliveryInstructions.ToAddress`
+- Call `receiveWormholeMessages` on the `DeliveryInstructions.ToAddress`
   - If the length of the VAA whitelist is > 0, just forward the whitelist of VAAs, otherwise the full batch
   - If `targetCallGasOverwrite` is higher than what might be specified in `DeliveryInstructions.RelayerParams` take the overwrite value
 - Emit `DeliveryStatus` depending on success or failure of the `receive` call
@@ -195,7 +185,7 @@ struct RelayerParamsExample {
 
 ### Receiver Contract Endpoints
 
-`wormholeReceiver(VAAv4[] vaas, uint16 sourceChain, bytes32 sourceAddress, bytes payload)`
+`receiveWormholeMessages(VAAv4[] vaas, uint16 sourceChain, bytes32 sourceAddress, bytes payload)`
 
 - verify `msg.sender == relayer contract`
 - verify `sourceAddress` and `sourceChain`

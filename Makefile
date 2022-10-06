@@ -6,6 +6,7 @@ all: build
 build: sdk/node_modules
 	cd ethereum && make build
 	cd sdk && npm run build
+	cd offchain-relayer && bash regenerate-abi.sh
 
 sdk/node_modules:
 	cd sdk && npm ci

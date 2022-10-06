@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -exuo pipefail
 
+cat relayer.tilt.yaml > .relayer.yaml
 
 # function for updating or inserting a KEY: value pair in a file.
 function upsert_env_file {
