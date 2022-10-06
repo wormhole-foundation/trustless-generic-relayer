@@ -37,28 +37,18 @@ Generic relayers consist of three components:
 
 The interface to the Generic Relayer can be found [here](https://github.com/certusone/generic-relayer/blob/relayer/ethereum/contracts/interfaces/ICoreRelayer.sol)
 
-## Testing
+## Local Node Tests
 
-### Local Validator Tests
+In the [ethereum](ethereum) directory, run `make build` then `make test` to perform both Forge and local validator tests.
 
-Run `make build`
+To run the Forge tests only, run `forge test`.
 
-Run both forge unit tests and the local validator tests using `make test`
+To run the local node (anvil) tests, run `make integration-test`.
 
-Run only the local validator tests using `make integration-test`
+## Tilt Integration Tests
 
-### Unit Tests
-
-Run `make build`
-
-Run `forge test`
-
-### Tilt Integration Tests
-
-Run `make build` in `ethereum/`
-
-Run `npm run build` in `sdk/`
+To deploy everything to Tilt, run `make tilt-deploy`.
 
 Bring up tilt from the `scratch/batch_vaa_integration` branch found [here](https://github.com/wormhole-foundation/wormhole/tree/scratch/batch_vaa_integration)
 
-Run `bash testing/run_tilt_tests.sh` to start the off-chain relayer, and run the integration tests
+Run `make tilt-test` to start the off-chain relayer, and run the integration tests
