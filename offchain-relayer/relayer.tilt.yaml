@@ -1,0 +1,23 @@
+evmRPC: ws://localhost:8545
+evmContract: 0xdeadbeef
+evmWormholeChainID: 2
+evmNetworkID: 1
+
+evm2RPC: ws://localhost:8546
+evm2Contract: 0xdeadbeef
+evm2WormholeChainID: 4
+evm2NetworkID: 56
+
+nodeName: generic-relayer
+
+senderKeyHex: 4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d
+
+spyRPC: localhost:7072
+
+guardianRPC: localhost:7070
+
+unsafeDevMode: true
+
+logLevel: debug
+
+statusAddr: :6066

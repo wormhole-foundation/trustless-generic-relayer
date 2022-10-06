@@ -18,7 +18,6 @@ tilt-test: tilt-deploy
 .PHONY: tilt-deploy
 tilt-deploy: build
 	cd ethereum && bash shell-scripts/deploy_to_tilt.sh
-	cd offchain-relayer && bash get-addresses.sh
 
 ## NOTE: run tilt-deploy before running this command,
 ## but if you ran tilt-test already, no need (since the 
