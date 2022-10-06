@@ -125,7 +125,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         internalParams.batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
 
         // cache the deliveryVM
-        IWormhole.VM memory deliveryVM = parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
+        IWormhole.VM memory deliveryVM =
+            parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
         // create the AllowedEmitterSequence for the delivery VAA
@@ -166,11 +167,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         internalParams.batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
 
         // cache the deliveryVM
-        IWormhole.VM memory deliveryVM = parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
+        IWormhole.VM memory deliveryVM =
+            parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
         // create the AllowedEmitterSequence for the delivery VAA
-        internalParams.deliveryId = AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
+        internalParams.deliveryId =
+            AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
         internalParams.deliveryInstructions = decodeDeliveryInstructions(deliveryVM.payload);
@@ -184,7 +187,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         // parse the RedeliveryInstructions
         RedeliveryInstructions memory redeliveryInstructions = parseRedeliveryInstructions(redeliveryVm.payload);
         require(redeliveryInstructions.batchHash == internalParams.batchVM.hash, "invalid batch");
-        require(redeliveryInstructions.emitterAddress == internalParams.deliveryId.emitterAddress, "invalid delivery emitter");
+        require(
+            redeliveryInstructions.emitterAddress == internalParams.deliveryId.emitterAddress,
+            "invalid delivery emitter"
+        );
         require(redeliveryInstructions.sequence == internalParams.deliveryId.sequence, "invalid delivery sequence");
 
         // override the DeliveryInstruction's relayParams
@@ -205,15 +211,21 @@ contract CoreRelayer is CoreRelayerGovernance {
         return _deliver(wormhole, internalParams);
     }
 
-    function _deliver(
-        IWormhole wormhole,
-        InternalDeliveryParams memory internalParams
-    ) internal returns (uint64 sequence) {
+    function _deliver(IWormhole wormhole, InternalDeliveryParams memory internalParams)
+        internal
+        returns (uint64 sequence)
+    {
         require(msg.value == wormhole.messageFee(), "insufficient msg.value to pay wormhole messageFee");
 
         // Compute the hash(batchHash, deliveryId) and check to see if the batch
         // was successfully delivered already. Revert if it was.
-        bytes32 deliveryHash = keccak256(abi.encodePacked(internalParams.batchVM.hash, internalParams.deliveryId.emitterAddress, internalParams.deliveryId.sequence));
+        bytes32 deliveryHash = keccak256(
+            abi.encodePacked(
+                internalParams.batchVM.hash,
+                internalParams.deliveryId.emitterAddress,
+                internalParams.deliveryId.sequence
+            )
+        );
         require(!isDeliveryCompleted(deliveryHash), "batch already delivered");
 
         // confirm this is the correct destination chain
@@ -227,21 +239,25 @@ contract CoreRelayer is CoreRelayerGovernance {
         (bool valid, string memory reason) = wormhole.verifyBatchVM(internalParams.batchVM, true);
         require(valid, reason);
 
-        // lock the contract to prevent reentrancy
-        require(!isContractLocked(), "reentrant call");
-        setContractLock(true);
-
         // remove the deliveryVM from the array of observations in the batch
         uint256 numObservations = internalParams.batchVM.observations.length;
         bytes[] memory targetObservations = new bytes[](numObservations - 1);
+        uint256 lastIndex = 0;
         for (uint256 i = 0; i < numObservations;) {
             if (i != internalParams.deliveryIndex) {
-                targetObservations[i] = internalParams.batchVM.observations[i];
+                targetObservations[lastIndex] = internalParams.batchVM.observations[i];
+                unchecked {
+                    lastIndex += 1;
+                }
             }
             unchecked {
                 i += 1;
             }
         }
+
+        // lock the contract to prevent reentrancy
+        require(!isContractLocked(), "reentrant call");
+        setContractLock(true);
 
         // call the receiveWormholeMessages endpoint on the target contract
         (bool success,) = address(uint160(uint256(internalParams.deliveryInstructions.targetAddress))).call{
@@ -263,7 +279,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         // increment the relayer rewards
-        incrementRelayerRewards(msg.sender, internalParams.deliveryInstructions.fromChain, internalParams.relayParams.nativePayment);
+        incrementRelayerRewards(
+            msg.sender, internalParams.deliveryInstructions.fromChain, internalParams.relayParams.nativePayment
+        );
 
         // clear the cache to reduce gas overhead
         wormhole.clearBatchCache(internalParams.batchVM.hashes);

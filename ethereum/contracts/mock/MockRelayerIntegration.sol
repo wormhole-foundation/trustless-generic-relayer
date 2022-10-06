@@ -98,14 +98,13 @@ contract MockRelayerIntegration {
         require(msg.value >= gasEstimate + wormholeFee * (numMessageSequences + 1));
 
         // encode the relay parameters
-        bytes memory relayParameters =
-            abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, gasEstimate);
+        bytes memory relayParameters = abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, gasEstimate);
 
         // create the relayer params to call the relayer with
         ICoreRelayer.DeliveryParameters memory deliveryParams = ICoreRelayer.DeliveryParameters({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
-            relayParameters: relayParameters,
+            relayParameters: relayParameters, // REVIEW: rename to encodedRelayParameters?
             nonce: relayerArgs.nonce,
             consistencyLevel: relayerArgs.consistencyLevel
         });
