@@ -10,19 +10,19 @@ import {
   ZERO_ADDRESS_BYTES,
   TARGET_GAS_LIMIT,
 } from "./helpers/consts";
-import {RelayerArgs } from "./helpers/structs";
+import { RelayerArgs } from "./helpers/structs";
 import {
   makeCoreRelayerFromForgeBroadcast,
   makeGasOracleFromForgeBroadcast,
   makeMockRelayerIntegrationFromForgeBroadcast,
-  resolvePath
+  resolvePath,
 } from "./helpers/utils";
 import {
   CHAIN_ID_BSC,
   CHAIN_ID_ETH,
   getSignedBatchVAAWithRetry,
   tryNativeToUint8Array,
-  tryNativeToHexString
+  tryNativeToHexString,
 } from "@certusone/wormhole-sdk";
 import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
 
@@ -113,24 +113,6 @@ describe("ETH <> BSC Generic Relayer Integration Test", () => {
         .registerChain(CHAIN_ID_BSC, tryNativeToUint8Array(bscCoreRelayer.address, CHAIN_ID_BSC))
         .then((tx) => tx.wait());
     }
-
-    // Query the mock relayer integration contracts to see if trusted mock relayer
-    // integration contracts have been registered.
-    const trustedSenderOnBsc = await bscRelayerIntegrator.trustedSender(CHAIN_ID_ETH);
-    const trustedSenderOnEth = await ethRelayerIntegrator.trustedSender(CHAIN_ID_BSC);
-
-    // register the trusted mock relayer integration contracts
-    if (trustedSenderOnBsc == ZERO_ADDRESS_BYTES) {
-      await bscRelayerIntegrator
-        .registerTrustedSender(CHAIN_ID_ETH, tryNativeToUint8Array(ethRelayerIntegrator.address, CHAIN_ID_ETH))
-        .then((tx) => tx.wait());
-    }
-
-    if (trustedSenderOnEth == ZERO_ADDRESS_BYTES) {
-      await ethRelayerIntegrator
-        .registerTrustedSender(CHAIN_ID_BSC, tryNativeToUint8Array(bscRelayerIntegrator.address, CHAIN_ID_BSC))
-        .then((tx) => tx.wait());
-    }
   });
 
   describe("Send from Ethereum and Deliver to BSC", () => {
@@ -178,7 +160,6 @@ describe("ETH <> BSC Generic Relayer Integration Test", () => {
         targetAddress: bscRelayerIntegrator.address,
         targetGasLimit: TARGET_GAS_LIMIT,
         consistencyLevel: batchVaaConsistencyLevels[0],
-        deliveryListIndices: [] as number[], // no indices specified for full batch delivery
       };
 
       // call the mock integration contract and send the batch VAA
@@ -204,12 +185,12 @@ describe("ETH <> BSC Generic Relayer Integration Test", () => {
 
     it("Wait for off-chain relayer to deliver the batch VAA to BSC", async () => {
       // parse the batch VAA
-      const parsedBatch = await ethRelayerIntegrator.parseBatchVM(batchVaaFromEth);
+      const parsedBatch = await ethRelayerIntegrator.parseWormholeBatch(batchVaaFromEth);
 
       // Check to see if the batch VAA was delivered by querying the contract
       // for the first payload sent in the batch.
       let isBatchDelivered: boolean = false;
-      const targetVm3 = parsedBatch.indexedObservations[0].vm3;
+      const targetVm3 = await ethRelayerIntegrator.parseWormholeObservation(parsedBatch.observations[0]);
       while (!isBatchDelivered) {
         // query the contract to see if the batch was delivered
         const storedPayload = await bscRelayerIntegrator.getPayload(targetVm3.hash);
@@ -219,11 +200,11 @@ describe("ETH <> BSC Generic Relayer Integration Test", () => {
       }
 
       // confirm that the remaining payloads are stored in the contract
-      for (const indexedObservation of parsedBatch.indexedObservations) {
-        const vm3 = indexedObservation.vm3;
+      for (const observation of parsedBatch.observations) {
+        const vm3 = await bscRelayerIntegrator.parseWormholeObservation(observation);
 
         // skip delivery instructions VM
-        if (vm3.emitterAddress == "0x"+tryNativeToHexString(ethCoreRelayer.address, CHAIN_ID_ETH)) {
+        if (vm3.emitterAddress == "0x" + tryNativeToHexString(ethCoreRelayer.address, CHAIN_ID_ETH)) {
           continue;
         }
 

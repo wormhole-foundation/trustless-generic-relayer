@@ -1,6 +1,6 @@
-import {ethers} from "ethers";
-import {ChainId, tryNativeToHexString} from "@certusone/wormhole-sdk";
-import {WORMHOLE_MESSAGE_EVENT_ABI, GUARDIAN_PRIVATE_KEY} from "./consts";
+import { ethers } from "ethers";
+import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk";
+import { WORMHOLE_MESSAGE_EVENT_ABI, GUARDIAN_PRIVATE_KEY } from "./consts";
 const elliptic = require("elliptic");
 
 export async function parseWormholeEventsFromReceipt(
@@ -84,7 +84,7 @@ export async function getSignedBatchVaaFromReceiptOnEth(
   // sign the batchHash
   const ec = new elliptic.ec("secp256k1");
   const key = ec.keyFromPrivate(GUARDIAN_PRIVATE_KEY);
-  const signature = key.sign(batchHash.substring(2), {canonical: true});
+  const signature = key.sign(batchHash.substring(2), { canonical: true });
 
   // create the signature
   const packSig = [
@@ -153,7 +153,7 @@ export async function getSignedVaaFromReceiptOnEth(
   // sign the batchHash
   const ec = new elliptic.ec("secp256k1");
   const key = ec.keyFromPrivate(GUARDIAN_PRIVATE_KEY);
-  const signature = key.sign(hash.substring(2), {canonical: true});
+  const signature = key.sign(hash.substring(2), { canonical: true });
 
   // create the signature
   const packSig = [
@@ -275,10 +275,10 @@ export function verifyDeliveryStatusPayload(
     console.log("Invalid batch hash");
     return false;
   } else if (emitterAddress != relayerAddress) {
-    console.log("Invalid emitter address in delivery VAAId");
+    console.log("Invalid emitter address in delivery AllowedEmitterSequenceedEmitterSequence");
     return false;
   } else if (sequence != deliverySequence) {
-    console.log("Invalid emitter address in delivery VAAId");
+    console.log("Invalid emitter address in delivery AllowedEmitterSequenceedEmitterSequence");
     return false;
   } else if (deliveryCount != deliveryAttempts) {
     console.log("Invalid number of delivery attempts");

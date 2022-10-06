@@ -6,7 +6,6 @@ export interface RelayerArgs {
   targetAddress: string;
   targetGasLimit: number;
   consistencyLevel: number;
-  deliveryListIndices: number[];
 }
 
 export interface TargetDeliveryParameters {

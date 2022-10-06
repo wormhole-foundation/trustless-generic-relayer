@@ -1,10 +1,10 @@
 evmRPC: ws://localhost:8545
-evmContract: 0x2f3efA6bbDC5fAf4dC1a600765c7B7829e47bE10
+evmContract: 0xdeadbeef
 evmWormholeChainID: 2
 evmNetworkID: 1
 
 evm2RPC: ws://localhost:8546
-evm2Contract: 0x2f3efA6bbDC5fAf4dC1a600765c7B7829e47bE10
+evm2Contract: 0xdeadbeef
 evm2WormholeChainID: 4
 evm2NetworkID: 56
 

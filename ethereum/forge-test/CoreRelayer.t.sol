@@ -34,7 +34,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
     struct VMParams {
         uint32 nonce;
         uint8 consistencyLevel;
-        uint8 deliveryListCount;
+        uint8 batchCount;
         address VMEmitterAddress;
         address targetAddress;
     }
@@ -83,9 +83,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         address wormhole_,
         uint16 chainId_,
         uint32 evmGasOverhead_
-    )
-        public
-    {
+    ) public {
         vm.assume(chainId_ > 0);
         vm.assume(gasOracle_ != address(0));
         vm.assume(wormhole_ != address(0));
@@ -125,7 +123,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
 
         // compute the expected output
         uint256 expectedGasEstimate = (
@@ -196,34 +194,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         assertEq(TARGET_CHAIN_ID, payload.toUint16(index));
         index += 2;
 
-        // payload length
-        assertEq(deliveryParams.payload.length, payload.toUint16(index));
-        index += 2;
-
-        // payload
-        assertEq(deliveryParams.payload, payload.slice(index, deliveryParams.payload.length));
-        index += deliveryParams.payload.length;
-
-        // chainPayload length
-        assertEq(deliveryParams.chainPayload.length, payload.toUint16(index));
-        index += 2;
-
-        // chainPayload
-        assertEq(deliveryParams.chainPayload, payload.slice(index, deliveryParams.chainPayload.length));
-        index += deliveryParams.chainPayload.length;
-
-        // deliveryList length
-        assertEq(deliveryParams.deliveryList.length, payload.toUint16(index));
-        index += 2;
-
-        for (uint16 i = 0; i < deliveryParams.deliveryList.length; i++) {
-            assertEq(deliveryParams.deliveryList[i].emitterAddress, payload.toBytes32(index));
-            index += 32;
-
-            assertEq(deliveryParams.deliveryList[i].sequence, payload.toUint64(index));
-            index += 8;
-        }
-
         // relayParameters length
         assertEq(deliveryParams.relayParameters.length, payload.toUint16(index));
         index += 2;
@@ -237,14 +207,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
     // This test confirms that the `send` method generates the correct delivery Instructions payload
     // to be delivered on the target chain.
-    function testSend(
-        GasParameters memory gasParams,
-        VMParams memory batchParams,
-        bytes memory relayPayload,
-        bytes memory chainPayload
-    )
-        public
-    {
+    function testSend(GasParameters memory gasParams, VMParams memory batchParams) public {
         uint128 halfMaxUint128 = 2 ** (128 / 2) - 1;
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
@@ -255,8 +218,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         vm.assume(batchParams.targetAddress != address(0));
         vm.assume(batchParams.nonce > 0);
         vm.assume(batchParams.consistencyLevel > 0);
-        vm.assume(relayPayload.length < MAX_UINT16_VALUE);
-        vm.assume(chainPayload.length < MAX_UINT16_VALUE);
         vm.assume(batchParams.VMEmitterAddress != address(0));
 
         // initialize all contracts
@@ -267,24 +228,16 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        VAAId[] memory deliveryList = new VAAId[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] =
-                VAAId({emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))), sequence: uint64(i)});
-        }
-
         // format the relayParameters
         bytes memory relayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -292,10 +245,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryParameters memory deliveryParams = DeliveryParameters({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            payload: relayPayload,
-            deliveryList: deliveryList,
             relayParameters: relayParameters,
-            chainPayload: chainPayload,
             nonce: batchParams.nonce,
             consistencyLevel: batchParams.consistencyLevel
         });
@@ -323,12 +273,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
     // This tests confirms that the DeliveryInstructions are deserialized correctly
     // when calling `deliver` on the target chain.
-    function testDeliveryInstructionDeserialization(
-        GasParameters memory gasParams,
-        VMParams memory batchParams,
-        bytes memory chainPayload,
-        bytes memory relayPayload
-    )
+    function testDeliveryInstructionDeserialization(GasParameters memory gasParams, VMParams memory batchParams)
         public
     {
         uint128 halfMaxUint128 = 2 ** (128 / 2) - 1;
@@ -341,8 +286,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         vm.assume(batchParams.targetAddress != address(0));
         vm.assume(batchParams.nonce > 0);
         vm.assume(batchParams.consistencyLevel > 0);
-        vm.assume(relayPayload.length < MAX_UINT16_VALUE);
-        vm.assume(chainPayload.length < MAX_UINT16_VALUE);
         vm.assume(batchParams.VMEmitterAddress != address(0));
 
         // initialize all contracts
@@ -353,24 +296,16 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        VAAId[] memory deliveryList = new VAAId[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] =
-                VAAId({emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))), sequence: uint64(i)});
-        }
-
         // format the relayParameters
         bytes memory relayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -378,10 +313,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryParameters memory deliveryParams = DeliveryParameters({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            payload: relayPayload,
-            deliveryList: deliveryList,
             relayParameters: relayParameters,
-            chainPayload: chainPayload,
             nonce: batchParams.nonce,
             consistencyLevel: batchParams.consistencyLevel
         });
@@ -398,15 +330,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         assertEq(SOURCE_CHAIN_ID, instructions.fromChain);
         assertEq(deliveryParams.targetAddress, instructions.targetAddress);
         assertEq(TARGET_CHAIN_ID, instructions.targetChain);
-        assertEq(deliveryParams.payload, instructions.payload);
-        assertEq(deliveryParams.chainPayload, instructions.chainPayload);
         assertEq(deliveryParams.relayParameters, instructions.relayParameters);
-
-        // check the values in the delivery list
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            assertEq(deliveryParams.deliveryList[i].emitterAddress, instructions.deliveryList[i].emitterAddress);
-            assertEq(deliveryParams.deliveryList[i].sequence, instructions.deliveryList[i].sequence);
-        }
     }
 
     // This tests confirms that the DeliveryInstructions are deserialized correctly
@@ -429,24 +353,16 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        VAAId[] memory deliveryList = new VAAId[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] =
-                VAAId({emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))), sequence: uint64(i)});
-        }
-
         // format the relayParameters
         bytes memory encodedRelayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -456,7 +372,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // confirm the values were parsed correctly
         assertEq(uint8(1), decodedRelayParams.version);
         assertEq(gasParams.targetGasLimit, decodedRelayParams.deliveryGasLimit);
-        assertEq(uint8(batchParams.deliveryListCount), decodedRelayParams.maximumBatchSize);
         assertEq(gasEstimate, decodedRelayParams.nativePayment);
     }
 
@@ -480,24 +395,16 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        VAAId[] memory deliveryList = new VAAId[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] =
-                VAAId({emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))), sequence: uint64(i)});
-        }
-
         // format the relayParameters (add random bytes to the relayerParams)
         bytes memory encodedRelayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
             gasEstimate,
             gasEstimate
         );

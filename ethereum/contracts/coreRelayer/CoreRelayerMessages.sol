@@ -11,16 +11,6 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryList(VAAId[] memory deliveryList) internal pure returns (bytes memory encoded) {
-        uint256 len = deliveryList.length;
-        for (uint8 i = 0; i < len;) {
-            encoded = abi.encodePacked(encoded, deliveryList[i].emitterAddress, deliveryList[i].sequence);
-            unchecked {
-                i += 1;
-            }
-        }
-    }
-
     function encodeDeliveryInstructions(DeliveryParameters memory instructions)
         internal
         view
@@ -32,12 +22,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             chainId(),
             instructions.targetAddress,
             instructions.targetChain,
-            uint16(instructions.payload.length),
-            instructions.payload,
-            uint16(instructions.chainPayload.length),
-            instructions.chainPayload,
-            uint16(instructions.deliveryList.length),
-            encodeDeliveryList(instructions.deliveryList),
             uint16(instructions.relayParameters.length),
             instructions.relayParameters
         );
@@ -104,40 +88,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instructions.targetChain = encoded.toUint16(index);
         index += 2;
 
-        // length of payload
-        uint16 payloadLen = encoded.toUint16(index);
-        index += 2;
-
-        // payload
-        instructions.payload = encoded.slice(index, payloadLen);
-        index += payloadLen;
-
-        // length of chain payload
-        uint16 chainPayloadLen = encoded.toUint16(index);
-        index += 2;
-
-        // chain payload
-        instructions.chainPayload = encoded.slice(index, chainPayloadLen);
-        index += chainPayloadLen;
-
-        // length of the deliveryList
-        uint16 deliveryListLen = encoded.toUint16(index);
-        index += 2;
-
-        // list of VAAs to deliver
-        instructions.deliveryList = new VAAId[](deliveryListLen);
-        for (uint16 i = 0; i < deliveryListLen;) {
-            instructions.deliveryList[i].emitterAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instructions.deliveryList[i].sequence = encoded.toUint64(index);
-            index += 8;
-
-            unchecked {
-                i += 1;
-            }
-        }
-
         // length of relayParameters
         uint16 relayParametersLen = encoded.toUint16(index);
         index += 2;
@@ -161,10 +111,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         // gas limit
         relayParams.deliveryGasLimit = encoded.toUint32(index);
         index += 4;
-
-        // maximum batch size
-        relayParams.maximumBatchSize = encoded.toUint8(index);
-        index += 1;
 
         // payment made on the source chain
         relayParams.nativePayment = encoded.toUint256(index);

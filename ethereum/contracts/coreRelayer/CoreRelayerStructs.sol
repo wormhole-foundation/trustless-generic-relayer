@@ -3,11 +3,13 @@
 
 pragma solidity ^0.8.0;
 
+import "../interfaces/IWormhole.sol";
+
 contract CoreRelayerStructs {
-    struct VAAId {
-        // VAA emitter address
+    struct AllowedEmitterSequence {
+        // wormhole emitter address
         bytes32 emitterAddress;
-        // VAA sequence
+        // wormhole message sequence
         uint64 sequence;
     }
 
@@ -23,10 +25,7 @@ contract CoreRelayerStructs {
     struct DeliveryParameters {
         uint16 targetChain;
         bytes32 targetAddress;
-        bytes payload;
-        VAAId[] deliveryList;
         bytes relayParameters;
-        bytes chainPayload;
         uint32 nonce;
         uint8 consistencyLevel;
     }
@@ -37,10 +36,16 @@ contract CoreRelayerStructs {
         uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
-        bytes payload;
-        bytes chainPayload;
-        VAAId[] deliveryList;
         bytes relayParameters;
+    }
+
+    struct InternalDeliveryParams {
+        IWormhole.VM2 batchVM;
+        DeliveryInstructions deliveryInstructions;
+        AllowedEmitterSequence deliveryId;
+        RelayParameters relayParams;
+        uint8 deliveryIndex;
+        uint16 deliveryAttempts;
     }
 
     // TODO: WIP
@@ -51,7 +56,7 @@ contract CoreRelayerStructs {
         // Point to the original delivery instruction
         bytes32 emitterAddress;
         uint64 sequence;
-        // Current deliverycount
+        // Current number of delivery attempts
         uint16 deliveryCount;
         // New Relayer-Specific Parameters
         bytes relayParameters;
@@ -71,8 +76,6 @@ contract CoreRelayerStructs {
         uint8 version;
         // gasLimit to call the receiving contract with
         uint32 deliveryGasLimit;
-        // maximum batch size
-        uint8 maximumBatchSize;
         // the payment made on the source chain, which is later paid to the relayer
         uint256 nativePayment;
     }
