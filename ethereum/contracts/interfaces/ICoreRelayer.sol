@@ -23,7 +23,6 @@ interface ICoreRelayer {
     struct DeliveryParameters {
         uint16 targetChain;
         bytes32 targetAddress;
-        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
         uint32 nonce;
         uint8 consistencyLevel;
@@ -35,7 +34,6 @@ interface ICoreRelayer {
         uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
-        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
     }
 

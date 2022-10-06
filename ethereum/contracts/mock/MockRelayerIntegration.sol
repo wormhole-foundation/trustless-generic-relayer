@@ -19,9 +19,6 @@ contract MockRelayerIntegration {
     // deployer of this contract
     address immutable owner;
 
-    // trusted mock integration contracts
-    mapping(uint16 => bytes32) trustedSenders;
-
     // map that stores payloads from received VAAs
     mapping(bytes32 => bytes) verifiedPayloads;
 
@@ -41,7 +38,6 @@ contract MockRelayerIntegration {
         address targetAddress;
         uint32 targetGasLimit;
         uint8 consistencyLevel;
-        uint8[] deliveryListIndices;
     }
 
     function doStuff(uint32 batchNonce, bytes[] calldata payload, uint8[] calldata consistencyLevel)
@@ -76,8 +72,8 @@ contract MockRelayerIntegration {
             }
         }
 
-        // encode app-relevant info regarding the input payloads.
-        // all we care about is source chain id and number of input payloads
+        // Encode app-relevant info regarding the input payloads.
+        // All we care about is source chain id and number of input payloads.
         sequences[messageIdx] = wormhole.publishMessage{value: wormholeFee}(
             batchNonce,
             verifyingPayload,
@@ -109,7 +105,6 @@ contract MockRelayerIntegration {
         ICoreRelayer.DeliveryParameters memory deliveryParams = ICoreRelayer.DeliveryParameters({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
-            deliveryList: new ICoreRelayer.AllowedEmitterSequence[](0),
             relayParameters: relayParameters,
             nonce: relayerArgs.nonce,
             consistencyLevel: relayerArgs.consistencyLevel
@@ -178,17 +173,6 @@ contract MockRelayerIntegration {
                 i += 1;
             }
         }
-    }
-
-    // setters
-    function registerTrustedSender(uint16 chainId, bytes32 senderAddress) public {
-        require(msg.sender == owner, "caller must be the owner");
-        trustedSenders[chainId] = senderAddress;
-    }
-
-    // getters
-    function trustedSender(uint16 chainId) public view returns (bytes32) {
-        return trustedSenders[chainId];
     }
 
     function getPayload(bytes32 hash) public view returns (bytes memory) {

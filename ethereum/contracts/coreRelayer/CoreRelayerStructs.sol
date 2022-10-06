@@ -3,6 +3,8 @@
 
 pragma solidity ^0.8.0;
 
+import "../interfaces/IWormhole.sol";
+
 contract CoreRelayerStructs {
     struct AllowedEmitterSequence {
         // wormhole emitter address
@@ -23,7 +25,6 @@ contract CoreRelayerStructs {
     struct DeliveryParameters {
         uint16 targetChain;
         bytes32 targetAddress;
-        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
         uint32 nonce;
         uint8 consistencyLevel;
@@ -35,8 +36,16 @@ contract CoreRelayerStructs {
         uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
-        AllowedEmitterSequence[] deliveryList;
         bytes relayParameters;
+    }
+
+    struct InternalDeliveryParams {
+        IWormhole.VM2 batchVM;
+        DeliveryInstructions deliveryInstructions;
+        AllowedEmitterSequence deliveryId;
+        RelayParameters relayParams;
+        uint8 deliveryIndex;
+        uint16 deliveryAttempts;
     }
 
     // TODO: WIP

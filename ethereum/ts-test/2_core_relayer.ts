@@ -1,7 +1,7 @@
-import { expect } from "chai";
-import { ethers } from "ethers";
-import { TargetDeliveryParameters, TestResults } from "./helpers/structs";
-import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk";
+import {expect} from "chai";
+import {ethers} from "ethers";
+import {TargetDeliveryParameters, TestResults} from "./helpers/structs";
+import {ChainId, tryNativeToHexString} from "@certusone/wormhole-sdk";
 import {
   CHAIN_ID_ETH,
   CORE_RELAYER_ADDRESS,
@@ -9,11 +9,10 @@ import {
   RELAYER_DEPLOYER_PRIVATE_KEY,
   MOCK_RELAYER_INTEGRATION_ADDRESS,
 } from "./helpers/consts";
-import { makeContract } from "./helpers/io";
+import {makeContract} from "./helpers/io";
 import {
   getSignedBatchVaaFromReceiptOnEth,
   getSignedVaaFromReceiptOnEth,
-  removeObservationFromBatch,
   verifyDeliveryStatusPayload,
 } from "./helpers/utils";
 
@@ -72,20 +71,6 @@ describe("Core Relayer Integration Test", () => {
       expect(actualRegisteredRelayer).to.equal(expectedRegisteredRelayer);
     });
 
-    it("Register trusted senders in the mock integration contract", async () => {
-      // create hex address for the mock contract
-      const targetMockContractAddressBytes = "0x" + tryNativeToHexString(mockContract.address, TARGET_CHAIN_ID);
-
-      // register the trusted sender with the mock integration contract
-      await mockContract
-        .registerTrustedSender(TARGET_CHAIN_ID, targetMockContractAddressBytes)
-        .then((tx: ethers.ContractTransaction) => tx.wait());
-
-      // query the mock integration contract to confirm the trusted sender registration worked
-      const trustedSender = await mockContract.trustedSender(TARGET_CHAIN_ID);
-      expect(trustedSender).to.equal(targetMockContractAddressBytes);
-    });
-
     it("Should update EVM deliver gas overhead", async () => {
       // the new evmGasOverhead value
       const newEvmGasOverhead = 500000;
@@ -113,7 +98,6 @@ describe("Core Relayer Integration Test", () => {
         targetAddress: TARGET_CONTRACT_ADDRESS,
         targetGasLimit: TARGET_GAS_LIMIT,
         consistencyLevel: deliveryVAAConsistencyLevel,
-        deliveryListIndices: [] as number[],
       };
 
       // call the mock integration contract to create a batch
@@ -169,7 +153,6 @@ describe("Core Relayer Integration Test", () => {
         "0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH)
       );
       expect(deliveryInstructions.targetChain).to.equal(TARGET_CHAIN_ID);
-      expect(deliveryInstructions.deliveryList.length).to.equal(0);
 
       // deserialize the deliveryParameters and confirm the values
       const relayParameters = await coreRelayer.decodeRelayParameters(deliveryInstructions.relayParameters);

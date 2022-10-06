@@ -11,20 +11,6 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryList(AllowedEmitterSequence[] memory deliveryList)
-        internal
-        pure
-        returns (bytes memory encoded)
-    {
-        uint256 len = deliveryList.length;
-        for (uint8 i = 0; i < len;) {
-            encoded = abi.encodePacked(encoded, deliveryList[i].emitterAddress, deliveryList[i].sequence);
-            unchecked {
-                i += 1;
-            }
-        }
-    }
-
     function encodeDeliveryInstructions(DeliveryParameters memory instructions)
         internal
         view
@@ -36,8 +22,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             chainId(),
             instructions.targetAddress,
             instructions.targetChain,
-            uint16(instructions.deliveryList.length),
-            encodeDeliveryList(instructions.deliveryList),
             uint16(instructions.relayParameters.length),
             instructions.relayParameters
         );
@@ -103,24 +87,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         // target chain of the delivery instructions
         instructions.targetChain = encoded.toUint16(index);
         index += 2;
-
-        // length of the deliveryList
-        uint16 deliveryListLen = encoded.toUint16(index);
-        index += 2;
-
-        // list of VAAs to deliver
-        instructions.deliveryList = new AllowedEmitterSequence[](deliveryListLen);
-        for (uint16 i = 0; i < deliveryListLen;) {
-            instructions.deliveryList[i].emitterAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instructions.deliveryList[i].sequence = encoded.toUint64(index);
-            index += 8;
-
-            unchecked {
-                i += 1;
-            }
-        }
 
         // length of relayParameters
         uint16 relayParametersLen = encoded.toUint16(index);

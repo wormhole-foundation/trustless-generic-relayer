@@ -34,7 +34,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
     struct VMParams {
         uint32 nonce;
         uint8 consistencyLevel;
-        uint8 deliveryListCount;
+        uint8 batchCount;
         address VMEmitterAddress;
         address targetAddress;
     }
@@ -194,18 +194,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         assertEq(TARGET_CHAIN_ID, payload.toUint16(index));
         index += 2;
 
-        // deliveryList length
-        assertEq(deliveryParams.deliveryList.length, payload.toUint16(index));
-        index += 2;
-
-        for (uint16 i = 0; i < deliveryParams.deliveryList.length; i++) {
-            assertEq(deliveryParams.deliveryList[i].emitterAddress, payload.toBytes32(index));
-            index += 32;
-
-            assertEq(deliveryParams.deliveryList[i].sequence, payload.toUint64(index));
-            index += 8;
-        }
-
         // relayParameters length
         assertEq(deliveryParams.relayParameters.length, payload.toUint16(index));
         index += 2;
@@ -246,20 +234,11 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        AllowedEmitterSequence[] memory deliveryList = new AllowedEmitterSequence[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] = AllowedEmitterSequence({
-                emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))),
-                sequence: uint64(i)
-            });
-        }
-
         // format the relayParameters
         bytes memory relayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
+            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -267,7 +246,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryParameters memory deliveryParams = DeliveryParameters({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            deliveryList: deliveryList,
             relayParameters: relayParameters,
             nonce: batchParams.nonce,
             consistencyLevel: batchParams.consistencyLevel
@@ -325,20 +303,11 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        AllowedEmitterSequence[] memory deliveryList = new AllowedEmitterSequence[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] = AllowedEmitterSequence({
-                emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))),
-                sequence: uint64(i)
-            });
-        }
-
         // format the relayParameters
         bytes memory relayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
+            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -346,7 +315,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryParameters memory deliveryParams = DeliveryParameters({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            deliveryList: deliveryList,
             relayParameters: relayParameters,
             nonce: batchParams.nonce,
             consistencyLevel: batchParams.consistencyLevel
@@ -365,12 +333,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         assertEq(deliveryParams.targetAddress, instructions.targetAddress);
         assertEq(TARGET_CHAIN_ID, instructions.targetChain);
         assertEq(deliveryParams.relayParameters, instructions.relayParameters);
-
-        // check the values in the delivery list
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            assertEq(deliveryParams.deliveryList[i].emitterAddress, instructions.deliveryList[i].emitterAddress);
-            assertEq(deliveryParams.deliveryList[i].sequence, instructions.deliveryList[i].sequence);
-        }
     }
 
     // This tests confirms that the DeliveryInstructions are deserialized correctly
@@ -399,20 +361,11 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        AllowedEmitterSequence[] memory deliveryList = new AllowedEmitterSequence[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] = AllowedEmitterSequence({
-                emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))),
-                sequence: uint64(i)
-            });
-        }
-
         // format the relayParameters
         bytes memory encodedRelayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
+            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -422,7 +375,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // confirm the values were parsed correctly
         assertEq(uint8(1), decodedRelayParams.version);
         assertEq(gasParams.targetGasLimit, decodedRelayParams.deliveryGasLimit);
-        assertEq(uint8(batchParams.deliveryListCount), decodedRelayParams.maximumBatchSize);
+        assertEq(uint8(batchParams.batchCount), decodedRelayParams.maximumBatchSize);
         assertEq(gasEstimate, decodedRelayParams.nativePayment);
     }
 
@@ -452,20 +405,11 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // generate a random list of VAAIds for the batch
-        AllowedEmitterSequence[] memory deliveryList = new AllowedEmitterSequence[](batchParams.deliveryListCount);
-        for (uint8 i = 0; i < batchParams.deliveryListCount; i++) {
-            deliveryList[i] = AllowedEmitterSequence({
-                emitterAddress: bytes32(uint256(uint160(batchParams.VMEmitterAddress))),
-                sequence: uint64(i)
-            });
-        }
-
         // format the relayParameters (add random bytes to the relayerParams)
         bytes memory encodedRelayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.deliveryListCount), // no other VAAs for this test
+            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate,
             gasEstimate
         );
