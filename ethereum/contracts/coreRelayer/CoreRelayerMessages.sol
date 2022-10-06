@@ -112,10 +112,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         relayParams.deliveryGasLimit = encoded.toUint32(index);
         index += 4;
 
-        // maximum batch size
-        relayParams.maximumBatchSize = encoded.toUint8(index);
-        index += 1;
-
         // payment made on the source chain
         relayParams.nativePayment = encoded.toUint256(index);
         index += 32;

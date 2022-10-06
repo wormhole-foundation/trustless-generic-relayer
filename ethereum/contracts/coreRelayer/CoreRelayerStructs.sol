@@ -56,7 +56,7 @@ contract CoreRelayerStructs {
         // Point to the original delivery instruction
         bytes32 emitterAddress;
         uint64 sequence;
-        // Current deliverycount
+        // Current number of delivery attempts
         uint16 deliveryCount;
         // New Relayer-Specific Parameters
         bytes relayParameters;
@@ -76,8 +76,6 @@ contract CoreRelayerStructs {
         uint8 version;
         // gasLimit to call the receiving contract with
         uint32 deliveryGasLimit;
-        // maximum batch size
-        uint8 maximumBatchSize;
         // the payment made on the source chain, which is later paid to the relayer
         uint256 nativePayment;
     }

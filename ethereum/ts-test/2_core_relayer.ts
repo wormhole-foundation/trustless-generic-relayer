@@ -158,7 +158,6 @@ describe("Core Relayer Integration Test", () => {
       const relayParameters = await coreRelayer.decodeRelayParameters(deliveryInstructions.relayParameters);
       expect(relayParameters.version).to.equal(1);
       expect(relayParameters.deliveryGasLimit).to.equal(TARGET_GAS_LIMIT);
-      expect(relayParameters.maximumBatchSize).to.equal(batchVAAPayloads.length + 1);
       expect(relayParameters.nativePayment.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
     });
 

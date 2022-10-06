@@ -238,7 +238,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         bytes memory relayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -307,7 +306,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         bytes memory relayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -365,7 +363,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         bytes memory encodedRelayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate
         );
 
@@ -375,7 +372,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // confirm the values were parsed correctly
         assertEq(uint8(1), decodedRelayParams.version);
         assertEq(gasParams.targetGasLimit, decodedRelayParams.deliveryGasLimit);
-        assertEq(uint8(batchParams.batchCount), decodedRelayParams.maximumBatchSize);
         assertEq(gasEstimate, decodedRelayParams.nativePayment);
     }
 
@@ -409,7 +405,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         bytes memory encodedRelayParameters = abi.encodePacked(
             uint8(1), // version
             gasParams.targetGasLimit,
-            uint8(batchParams.batchCount), // no other VAAs for this test
             gasEstimate,
             gasEstimate
         );

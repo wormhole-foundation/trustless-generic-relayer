@@ -99,7 +99,7 @@ contract MockRelayerIntegration {
 
         // encode the relay parameters
         bytes memory relayParameters =
-            abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, uint8(numMessageSequences), gasEstimate);
+            abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, gasEstimate);
 
         // create the relayer params to call the relayer with
         ICoreRelayer.DeliveryParameters memory deliveryParams = ICoreRelayer.DeliveryParameters({

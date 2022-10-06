@@ -32,16 +32,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         // decode the relay parameters
         RelayParameters memory relayParams = decodeRelayParameters(deliveryParams.relayParameters);
 
-        require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
-
-        // Estimate the gas costs of the delivery, and confirm the user sent the right amount of gas.
-        // The user needs to make sure to send a little extra value to cover the wormhole messageFee on this chain.
-        uint256 deliveryCostEstimate = estimateEvmCost(deliveryParams.targetChain, relayParams.deliveryGasLimit);
-
-        require(
-            relayParams.nativePayment == deliveryCostEstimate && msg.value == deliveryCostEstimate,
-            "insufficient fee specified in msg.value"
-        );
+        // estimate relay cost and check to see if the user sent enough eth to cover the relay
+        collectRelayerParameterPayment(relayParams, deliveryParams.targetChain, relayParams.deliveryGasLimit);
 
         // sanity check a few of the values before composing the DeliveryInstructions
         require(deliveryParams.targetAddress != bytes32(0), "invalid targetAddress");
@@ -76,6 +68,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         incrementRedeliveryAttempt(deliveryHash);
 
         RelayParameters memory relayParams = decodeRelayParameters(newRelayerParams);
+
+        // estimate relay cost and check to see if the user sent enough eth to cover the relay
         collectRelayerParameterPayment(relayParams, vm.emitterChainId, relayParams.deliveryGasLimit);
 
         RedeliveryInstructions memory redeliveryInstructions = RedeliveryInstructions({
@@ -237,13 +231,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(!isContractLocked(), "reentrant call");
         setContractLock(true);
 
-        // REVIEW: need to find the delivery VAA, won't always be the last in the batch
-        // process the delivery by calling the receiveWormholeMessages endpoint on the target contract
-        bytes[] memory observations = new bytes[](internalParams.batchVM.observations.length - 1);
+        // remove the deliveryVM from the array of observations in the batch
         uint256 numObservations = internalParams.batchVM.observations.length;
+        bytes[] memory targetObservations = new bytes[](numObservations - 1);
         for (uint256 i = 0; i < numObservations;) {
             if (i != internalParams.deliveryIndex) {
-                observations[i] = internalParams.batchVM.observations[i];
+                targetObservations[i] = internalParams.batchVM.observations[i];
             }
             unchecked {
                 i += 1;
@@ -253,7 +246,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // call the receiveWormholeMessages endpoint on the target contract
         (bool success,) = address(uint160(uint256(internalParams.deliveryInstructions.targetAddress))).call{
             gas: internalParams.relayParams.deliveryGasLimit
-        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", observations));
+        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", targetObservations));
 
         // unlock the contract
         setContractLock(false);
@@ -289,7 +282,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     // TODO: WIP
-    function rewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce)
+    function collectRewards(uint16 rewardChain, bytes32 receiver, uint32 nonce)
         public
         payable
         returns (uint64 sequence)
@@ -316,7 +309,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     // TODO: WIP
-    function finaliseRewardPayout(bytes memory encodedVm) public {
+    function payRewards(bytes memory encodedVm) public {
         (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVm);
 
         require(valid, reason);
