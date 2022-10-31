@@ -13,7 +13,9 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     /**
      * @dev `estimateEvmCost` computes the estimated cost of delivering a batch VAA to a target chain.
-     * it fetches the gas price in native currency for one unit of gas on the target chain
+     * it computes the estimated gas usage on the target chain
+     * it queries the gasOracle contract for the estimated cost in native currency for relaying the batch
+     * to the target chain
      */
     function estimateEvmCost(uint16 chainId, uint256 gasLimit) public view returns (uint256 gasEstimate) {
         return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead()) + wormhole().messageFee());
@@ -50,9 +52,9 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     // TODO: WIP
-    function resend(bytes memory encodedVm, bytes memory newRelayerParams) public payable returns (uint64 sequence) {
+    function resend(bytes memory deliveryStatusVm, bytes memory newRelayerParams) public payable returns (uint64 sequence) {
         IWormhole wormhole = wormhole();
-        (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole.parseAndVerifyVM(encodedVm);
+        (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole.parseAndVerifyVM(deliveryStatusVm);
 
         require(valid, reason);
         require(verifyRelayerVM(vm), "invalid emitter");
@@ -64,7 +66,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         bytes32 deliveryHash = keccak256(abi.encodePacked(status.batchHash, status.emitterAddress, status.sequence));
         uint256 redeliveryAttempt = redeliveryAttemptCount(deliveryHash);
         require(status.deliveryCount - 1 == redeliveryAttempt, "old delivery status receipt presented");
-        require(status.deliveryCount == type(uint16).max, "too many retries");
+        require(status.deliveryCount <= type(uint16).max, "too many retries");
         incrementRedeliveryAttempt(deliveryHash);
 
         RelayParameters memory relayParams = decodeRelayParameters(newRelayerParams);
@@ -73,7 +75,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         collectRelayerParameterPayment(relayParams, vm.emitterChainId, relayParams.deliveryGasLimit);
 
         RedeliveryInstructions memory redeliveryInstructions = RedeliveryInstructions({
-            payloadID: 3,
+            payloadID: uint8(3),
             batchHash: status.batchHash,
             emitterAddress: status.emitterAddress,
             sequence: status.sequence,
@@ -81,7 +83,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             relayParameters: newRelayerParams
         });
 
-        // emit delivery status message
+        // emit delivery status message and set nonce to zero to opt out of batching
         sequence = wormhole.publishMessage{value: msg.value}(
             0, encodeRedeliveryInstructions(redeliveryInstructions), consistencyLevel()
         );
@@ -95,7 +97,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     ) internal {
         require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
 
-        // Estimate the gas costs of the delivery, and confirm the user sent the right amount of gas.
+        // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
         uint256 deliveryCostEstimate = estimateEvmCost(targetChain, targetGasLimit);
 
         require(
@@ -119,12 +121,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole wormhole = wormhole();
 
         // build InternalDelivery struct to reduce local variable count
-        InternalDeliveryParams memory internalParams;
+        InternalDeliveryParameters memory internalParams;
 
         // parse the batch VAA
         internalParams.batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
 
-        // cache the deliveryVM
+        // validate the deliveryIndex and cache the delivery VAA
         IWormhole.VM memory deliveryVM =
             parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
@@ -144,7 +146,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             internalParams.relayParams.deliveryGasLimit = targetParams.targetCallGasOverride;
         }
 
-        // set the remaining values in the InternalDeliveryParams struct
+        // set the remaining values in the InternalDeliveryParameters struct
         internalParams.deliveryIndex = targetParams.deliveryIndex;
         internalParams.deliveryAttempts = 0;
 
@@ -160,13 +162,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
 
-        // build InternalDeliveryParams struct to reduce local variable count
-        InternalDeliveryParams memory internalParams;
+        // build InternalDeliveryParameters struct to reduce local variable count
+        InternalDeliveryParameters memory internalParams;
 
         // parse the batch
         internalParams.batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
 
-        // cache the deliveryVM
+        // validate the deliveryIndex and cache the delivery VAA
         IWormhole.VM memory deliveryVM =
             parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
@@ -187,13 +189,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         // parse the RedeliveryInstructions
         RedeliveryInstructions memory redeliveryInstructions = parseRedeliveryInstructions(redeliveryVm.payload);
         require(redeliveryInstructions.batchHash == internalParams.batchVM.hash, "invalid batch");
+
+        // check that the redelivery instructions are for the original deliveryVM
         require(
             redeliveryInstructions.emitterAddress == internalParams.deliveryId.emitterAddress,
             "invalid delivery emitter"
         );
         require(redeliveryInstructions.sequence == internalParams.deliveryId.sequence, "invalid delivery sequence");
 
-        // override the DeliveryInstruction's relayParams
+        // override the DeliveryInstruction's relayParams with redelivery relayParams
         internalParams.deliveryInstructions.relayParameters = redeliveryInstructions.relayParameters;
 
         // parse the new relayParams
@@ -204,14 +208,14 @@ contract CoreRelayer is CoreRelayerGovernance {
             internalParams.relayParams.deliveryGasLimit = targetParams.targetCallGasOverride;
         }
 
-        // set the remaining values in the InternalDeliveryParams struct
+        // set the remaining values in the InternalDeliveryParameters struct
         internalParams.deliveryIndex = targetParams.deliveryIndex;
         internalParams.deliveryAttempts = redeliveryInstructions.deliveryCount;
 
         return _deliver(wormhole, internalParams);
     }
 
-    function _deliver(IWormhole wormhole, InternalDeliveryParams memory internalParams)
+    function _deliver(IWormhole wormhole, InternalDeliveryParameters memory internalParams)
         internal
         returns (uint64 sequence)
     {
@@ -288,7 +292,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // emit delivery status message
         DeliveryStatus memory status = DeliveryStatus({
-            payloadID: 2,
+            payloadID: uint8(2),
             batchHash: internalParams.batchVM.hash,
             emitterAddress: internalParams.deliveryId.emitterAddress,
             sequence: internalParams.deliveryId.sequence,
@@ -300,7 +304,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     // TODO: WIP
-    function collectRewards(uint16 rewardChain, bytes32 receiver, uint32 nonce)
+    function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce)
         public
         payable
         returns (uint64 sequence)
@@ -315,7 +319,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             nonce,
             encodeRewardPayout(
                 RewardPayout({
-                    payloadID: 100,
+                    payloadID: uint8(100),
                     fromChain: chainId(),
                     chain: rewardChain,
                     amount: amount,
@@ -327,7 +331,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     // TODO: WIP
-    function payRewards(bytes memory encodedVm) public {
+    function collectRewards(bytes memory encodedVm) public {
         (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVm);
 
         require(valid, reason);
@@ -341,11 +345,8 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
-        if (registeredRelayer(vm.emitterChainId) == vm.emitterAddress) {
-            return true;
-        }
+        return registeredRelayer(vm.emitterChainId) == vm.emitterAddress;
 
-        return false;
     }
 
     function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {

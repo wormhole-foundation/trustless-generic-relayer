@@ -16,8 +16,7 @@ contract CoreRelayerStructs {
     struct TargetDeliveryParameters {
         // encoded batchVM to be delivered on the target chain
         bytes encodedVM;
-        // Index of the delivery VM in a batch. Does not have to match the
-        // index in the corresponding indexedObservation when converted into a partial batch.
+        // Index of the delivery VM in a batch
         uint8 deliveryIndex;
         uint32 targetCallGasOverride;
     }
@@ -39,7 +38,7 @@ contract CoreRelayerStructs {
         bytes relayParameters;
     }
 
-    struct InternalDeliveryParams {
+    struct InternalDeliveryParameters {
         IWormhole.VM2 batchVM;
         DeliveryInstructions deliveryInstructions;
         AllowedEmitterSequence deliveryId;
