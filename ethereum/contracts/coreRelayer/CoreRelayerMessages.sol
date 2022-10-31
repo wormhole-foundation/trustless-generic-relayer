@@ -56,7 +56,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     // TODO: WIP
     function encodeRewardPayout(RewardPayout memory rp) internal pure returns (bytes memory) {
         require(rp.payloadID == 100, "invalid RewardPayout");
-        return abi.encodePacked(rp.payloadID, rp.fromChain, rp.chain, rp.amount, rp.receiver);
+        return abi.encodePacked(uint8(100), rp.fromChain, rp.chain, rp.amount, rp.receiver);
     }
 
     /// @dev `decodedDeliveryInstructions` parses encoded delivery instructions into the DeliveryInstructions struct

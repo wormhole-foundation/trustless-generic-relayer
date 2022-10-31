@@ -75,7 +75,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         collectRelayerParameterPayment(relayParams, vm.emitterChainId, relayParams.deliveryGasLimit);
 
         RedeliveryInstructions memory redeliveryInstructions = RedeliveryInstructions({
-            payloadID: uint8(3),
+            payloadID: 3,
             batchHash: status.batchHash,
             emitterAddress: status.emitterAddress,
             sequence: status.sequence,
@@ -292,7 +292,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // emit delivery status message
         DeliveryStatus memory status = DeliveryStatus({
-            payloadID: uint8(2),
+            payloadID: 2,
             batchHash: internalParams.batchVM.hash,
             emitterAddress: internalParams.deliveryId.emitterAddress,
             sequence: internalParams.deliveryId.sequence,
@@ -319,7 +319,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             nonce,
             encodeRewardPayout(
                 RewardPayout({
-                    payloadID: uint8(100),
+                    payloadID: 100,
                     fromChain: chainId(),
                     chain: rewardChain,
                     amount: amount,
