@@ -30,25 +30,43 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function send(DeliveryParameters memory deliveryParams) public payable returns (uint64 sequence) {
-        // decode the relay parameters
-        RelayParameters memory relayParams = decodeRelayParameters(deliveryParams.relayParameters);
+    function send(DeliveryInstructionsContainer memory deliveryInstructions, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+        uint256 feeAmount = 0;
+        for(uint256 i = 0; i < deliveryInstructions.instructions.length; i++) {
 
-        // estimate relay cost and check to see if the user sent enough eth to cover the relay
-        collectRelayerParameterPayment(relayParams, deliveryParams.targetChain, relayParams.deliveryGasLimit);
+            // decode the relay parameters
+            RelayParameters memory relayParams = decodeRelayParameters(deliveryInstructions.instructions[i].relayParameters);
 
-        // sanity check a few of the values before composing the DeliveryInstructions
-        require(deliveryParams.targetAddress != bytes32(0), "invalid targetAddress");
-        require(deliveryParams.nonce > 0, "nonce must be > 0");
+            // estimate relay cost and check to see if the user sent enough eth to cover the relay
+            //collectRelayerParameterPayment(relayParams, deliveryParams[i].targetChain, relayParams.deliveryGasLimit);
+
+            require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
+
+            // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
+            uint256 deliveryCostEstimate = estimateEvmCost(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
+            feeAmount = feeAmount + deliveryCostEstimate;
+
+            require(
+                relayParams.nativePayment <= deliveryCostEstimate && msg.value >= feeAmount,
+                "insufficient fee specified in msg.value"
+            );
+
+            // sanity check a few of the values before composing the DeliveryInstructions
+            require(deliveryInstructions.instructions[i].targetAddress != bytes32(0), "invalid targetAddress");
+            require(nonce > 0, "nonce must be > 0");
+
+
+        }
 
         // encode the DeliveryInstructions
-        bytes memory deliveryInstructions = encodeDeliveryInstructions(deliveryParams);
+        bytes memory container = encodeDeliveryInstructionsContainer(deliveryInstructions);
 
         // emit delivery message
         IWormhole wormhole = wormhole();
         sequence = wormhole.publishMessage{value: wormhole.messageFee()}(
-            deliveryParams.nonce, deliveryInstructions, deliveryParams.consistencyLevel
+            nonce, container, consistencyLevel
         );
+
     }
 
     // TODO: WIP
@@ -85,7 +103,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // emit delivery status message and set nonce to zero to opt out of batching
         sequence = wormhole.publishMessage{value: msg.value}(
-            0, encodeRedeliveryInstructions(redeliveryInstructions), consistencyLevel()
+            0, encodeRedeliveryInstructions(redeliveryInstructions), consistencyLevel() //TODO user configurable?
         );
     }
 
@@ -136,7 +154,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
-        internalParams.deliveryInstructions = decodeDeliveryInstructions(deliveryVM.payload);
+        internalParams.deliveryInstructions = decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
 
         // parse the relayParams
         internalParams.relayParams = decodeRelayParameters(internalParams.deliveryInstructions.relayParameters);
@@ -149,6 +167,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // set the remaining values in the InternalDeliveryParameters struct
         internalParams.deliveryIndex = targetParams.deliveryIndex;
         internalParams.deliveryAttempts = 0;
+        internalParams.fromChain = deliveryVM.emitterChainId;
 
         return _deliver(wormhole, internalParams);
     }
@@ -178,7 +197,9 @@ contract CoreRelayer is CoreRelayerGovernance {
             AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
-        internalParams.deliveryInstructions = decodeDeliveryInstructions(deliveryVM.payload);
+        internalParams.deliveryInstructions = decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
+
+        internalParams.fromChain = deliveryVM.emitterChainId;
 
         // parse and verify the encoded redelivery message
         (IWormhole.VM memory redeliveryVm, bool valid, string memory reason) =
@@ -284,7 +305,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // increment the relayer rewards
         incrementRelayerRewards(
-            msg.sender, internalParams.deliveryInstructions.fromChain, internalParams.relayParams.nativePayment
+            msg.sender, internalParams.fromChain, internalParams.relayParams.nativePayment
         );
 
         // clear the cache to reduce gas overhead

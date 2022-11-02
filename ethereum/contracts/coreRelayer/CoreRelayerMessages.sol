@@ -11,20 +11,25 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryInstructions(DeliveryParameters memory instructions)
+    function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
         internal
-        view
+        pure
         returns (bytes memory encoded)
     {
+        encoded = abi.encodePacked(uint8(1), //version payload number
+        uint8(container.instructions.length)); //number of items in the array
+
+        //Append all the messages to the array.
+        for(uint256 i = 0; i < container.instructions.length; i++){
+
         encoded = abi.encodePacked(
-            uint8(1), // payloadID = 1
-            bytes32(uint256(uint160(msg.sender))),
-            chainId(),
-            instructions.targetAddress,
-            instructions.targetChain,
-            uint16(instructions.relayParameters.length),
-            instructions.relayParameters
+            encoded,
+            container.instructions[i].targetAddress,
+            container.instructions[i].targetChain,
+            uint16(container.instructions[i].relayParameters.length),
+            container.instructions[i].relayParameters
         );
+        }
     }
 
     function encodeDeliveryStatus(DeliveryStatus memory ds) internal pure returns (bytes memory) {
@@ -60,43 +65,46 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /// @dev `decodedDeliveryInstructions` parses encoded delivery instructions into the DeliveryInstructions struct
-    function decodeDeliveryInstructions(bytes memory encoded)
+    function decodeDeliveryInstructionsContainer(bytes memory encoded)
         public
         pure
-        returns (DeliveryInstructions memory instructions)
+        returns (DeliveryInstructionsContainer memory)
     {
         uint256 index = 0;
 
-        // version
-        instructions.payloadID = encoded.toUint8(index);
+        uint8 payloadId = encoded.toUint8(index);
+            require(payloadId== 1, "invalid payloadId");
         index += 1;
-        require(instructions.payloadID == 1, "invalid version");
+        uint8 arrayLen = encoded.toUint8(index);
+        index += 1;
 
-        // caller of the source chain relayer contract
-        instructions.fromAddress = encoded.toBytes32(index);
-        index += 32;
+        DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](arrayLen);
 
-        // source chain of the delivery instructions
-        instructions.fromChain = encoded.toUint16(index);
-        index += 2;
+        for(uint8 i = 0; i < arrayLen; i++){
+            DeliveryInstructions memory instructions;
 
-        // target contract address
-        instructions.targetAddress = encoded.toBytes32(index);
-        index += 32;
+            // target contract address
+            instructions.targetAddress = encoded.toBytes32(index);
+            index += 32;
 
-        // target chain of the delivery instructions
-        instructions.targetChain = encoded.toUint16(index);
-        index += 2;
+            // target chain of the delivery instructions
+            instructions.targetChain = encoded.toUint16(index);
+            index += 2;
 
-        // length of relayParameters
-        uint16 relayParametersLen = encoded.toUint16(index);
-        index += 2;
+            // length of relayParameters
+            uint16 relayParametersLen = encoded.toUint16(index);
+            index += 2;
 
-        // relayParameters
-        instructions.relayParameters = encoded.slice(index, relayParametersLen);
-        index += relayParametersLen;
+            // relayParameters
+            instructions.relayParameters = encoded.slice(index, relayParametersLen);
+            index += relayParametersLen;
+
+            instructionArray[i] = instructions;
+        }
 
         require(index == encoded.length, "invalid delivery instructions payload");
+
+        return DeliveryInstructionsContainer(payloadId, instructionArray);
     }
 
     /// @dev `decodeRelayParameters` parses encoded relay parameters into the RelayParameters struct

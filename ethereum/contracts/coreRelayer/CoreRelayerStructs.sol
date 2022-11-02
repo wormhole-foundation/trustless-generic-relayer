@@ -18,21 +18,16 @@ contract CoreRelayerStructs {
         bytes encodedVM;
         // Index of the delivery VM in a batch
         uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint32 targetCallGasOverride;
     }
 
-    struct DeliveryParameters {
-        uint16 targetChain;
-        bytes32 targetAddress;
-        bytes relayParameters;
-        uint32 nonce;
-        uint8 consistencyLevel;
+    struct DeliveryInstructionsContainer {
+        uint8 payloadID; //1
+        DeliveryInstructions[] instructions;
     }
 
     struct DeliveryInstructions {
-        uint8 payloadID; // payloadID = 1;
-        bytes32 fromAddress;
-        uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
         bytes relayParameters;
@@ -45,6 +40,7 @@ contract CoreRelayerStructs {
         RelayParameters relayParams;
         uint8 deliveryIndex;
         uint16 deliveryAttempts;
+        uint16 fromChain;
     }
 
     // TODO: WIP

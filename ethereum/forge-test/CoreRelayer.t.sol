@@ -170,37 +170,33 @@ contract TestCoreRelayer is CoreRelayer, Test {
         require(index == log.data.length, "failed to parse wormhole message");
     }
 
-    function verifyRelayerMessagePayload(bytes memory payload, DeliveryParameters memory deliveryParams) public {
+    function verifyRelayerMessagePayload(bytes memory payload, DeliveryInstructionsContainer memory container) public {
         // confirm emitted payload
         uint256 index = 0;
 
-        // DeliveryInstructions payload
-        assertEq(uint8(1), payload.toUint8(index));
-        index += 1;
+        assertEq(container.payloadID, payload.toUint8(index));
+        index+=1;
+        assertEq(container.instructions.length, payload.toUint8(index));
+        index+=1;
 
-        // `send` caller
-        assertEq(bytes32(uint256(uint160(address(this)))), payload.toBytes32(index));
-        index += 32;
+        for(uint256 i = 0; i < container.instructions.length; i++) {
+            // target address
+            assertEq(container.instructions[i].targetAddress, payload.toBytes32(index));
+            index += 32;
 
-        // source chainId
-        assertEq(SOURCE_CHAIN_ID, payload.toUint16(index));
-        index += 2;
+            // target chain
+            assertEq(TARGET_CHAIN_ID, payload.toUint16(index));
+            index += 2;
 
-        // target address
-        assertEq(deliveryParams.targetAddress, payload.toBytes32(index));
-        index += 32;
+            // relayParameters length
+            assertEq(container.instructions[i].relayParameters.length, payload.toUint16(index));
+            index += 2;
 
-        // target chain
-        assertEq(TARGET_CHAIN_ID, payload.toUint16(index));
-        index += 2;
+            // relayParameters
+            assertEq(container.instructions[i].relayParameters, payload.slice(index, container.instructions[i].relayParameters.length));
+            index += container.instructions[i].relayParameters.length;
 
-        // relayParameters length
-        assertEq(deliveryParams.relayParameters.length, payload.toUint16(index));
-        index += 2;
-
-        // relayParameters
-        assertEq(deliveryParams.relayParameters, payload.slice(index, deliveryParams.relayParameters.length));
-        index += deliveryParams.relayParameters.length;
+        }
 
         require(index == payload.length, "failed to parse DeliveryInstructions payload");
     }
@@ -242,19 +238,21 @@ contract TestCoreRelayer is CoreRelayer, Test {
         );
 
         // create delivery parameters struct
-        DeliveryParameters memory deliveryParams = DeliveryParameters({
+        DeliveryInstructions memory deliveryParams = DeliveryInstructions({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            relayParameters: relayParameters,
-            nonce: batchParams.nonce,
-            consistencyLevel: batchParams.consistencyLevel
+            relayParameters: relayParameters
         });
+
+        DeliveryInstructions[] memory array = new DeliveryInstructions[](1);
+        array[0] = deliveryParams;
+        DeliveryInstructionsContainer memory container =  DeliveryInstructionsContainer(1, array);
 
         // start listening to events
         vm.recordLogs();
 
         // call the send function on the relayer contract
-        uint64 sequence = this.send{value: gasEstimate + wormholeFee}(deliveryParams);
+        uint64 sequence = this.send{value: gasEstimate + wormholeFee}(container, batchParams.nonce, batchParams.consistencyLevel);
 
         // record the wormhole message emitted by the relayer contract
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -268,7 +266,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         assertEq(deliveryVM.nonce, batchParams.nonce);
 
         // verify the payload in separate function to avoid stack-too-deep error
-        verifyRelayerMessagePayload(deliveryVM.payload, deliveryParams);
+        verifyRelayerMessagePayload(deliveryVM.payload, container);
     }
 
     // This tests confirms that the DeliveryInstructions are deserialized correctly
@@ -310,27 +308,27 @@ contract TestCoreRelayer is CoreRelayer, Test {
         );
 
         // create delivery parameters struct
-        DeliveryParameters memory deliveryParams = DeliveryParameters({
+        DeliveryInstructions memory deliveryParams = DeliveryInstructions({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            relayParameters: relayParameters,
-            nonce: batchParams.nonce,
-            consistencyLevel: batchParams.consistencyLevel
+            relayParameters: relayParameters
         });
 
         // serialize the payload by calling `encodeDeliveryInstructions`
-        bytes memory encodedDeliveryInstructions = encodeDeliveryInstructions(deliveryParams);
+        DeliveryInstructions[] memory array = new DeliveryInstructions[](1);
+        array[0] = deliveryParams;
+        DeliveryInstructionsContainer memory container =  DeliveryInstructionsContainer(1, array);
+        bytes memory encodedDeliveryInstructions = encodeDeliveryInstructionsContainer(container);
 
         // deserialize the payload by parsing into the DliveryInstructions struct
-        DeliveryInstructions memory instructions = decodeDeliveryInstructions(encodedDeliveryInstructions);
+        DeliveryInstructionsContainer memory instructions = decodeDeliveryInstructionsContainer(encodedDeliveryInstructions);
 
         // confirm that the values were parsed correctly
         assertEq(uint8(1), instructions.payloadID);
-        assertEq(bytes32(uint256(uint160(msg.sender))), instructions.fromAddress);
-        assertEq(SOURCE_CHAIN_ID, instructions.fromChain);
-        assertEq(deliveryParams.targetAddress, instructions.targetAddress);
-        assertEq(TARGET_CHAIN_ID, instructions.targetChain);
-        assertEq(deliveryParams.relayParameters, instructions.relayParameters);
+        //assertEq(SOURCE_CHAIN_ID, instructions.fromChain);
+        assertEq(deliveryParams.targetAddress, instructions.instructions[0].targetAddress);
+        assertEq(TARGET_CHAIN_ID, instructions.instructions[0].targetChain);
+        assertEq(deliveryParams.relayParameters, instructions.instructions[0].relayParameters);
     }
 
     // This tests confirms that the DeliveryInstructions are deserialized correctly
