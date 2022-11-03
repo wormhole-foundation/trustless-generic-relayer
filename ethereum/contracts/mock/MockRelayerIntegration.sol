@@ -100,17 +100,20 @@ contract MockRelayerIntegration {
         // encode the relay parameters
         bytes memory relayParameters = abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, gasEstimate);
 
-        // create the relayer params to call the relayer with
-        ICoreRelayer.DeliveryParameters memory deliveryParams = ICoreRelayer.DeliveryParameters({
+        ICoreRelayer.DeliveryInstructions[] memory ixs = new ICoreRelayer.DeliveryInstructions[](1);
+        ixs[0] = ICoreRelayer.DeliveryInstructions({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
-            relayParameters: relayParameters, // REVIEW: rename to encodedRelayParameters?
-            nonce: relayerArgs.nonce,
-            consistencyLevel: relayerArgs.consistencyLevel
+            relayParameters: relayParameters // REVIEW: rename to encodedRelayParameters?
         });
 
+        // create the relayer params to call the relayer with
+        ICoreRelayer.DeliveryInstructionsContainer memory deliveryParams =
+            ICoreRelayer.DeliveryInstructionsContainer({payloadID: 1, instructions: ixs});
+
         // call the relayer contract and save the sequence.
-        relayerMessageSequence = relayer.send{value: gasEstimate}(deliveryParams);
+        relayerMessageSequence =
+            relayer.send{value: gasEstimate}(deliveryParams, relayerArgs.nonce, relayerArgs.consistencyLevel);
     }
 
     struct EmitterSequence {

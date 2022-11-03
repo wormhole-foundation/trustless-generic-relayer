@@ -64,7 +64,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         return abi.encodePacked(uint8(100), rp.fromChain, rp.chain, rp.amount, rp.receiver);
     }
 
-    /// @dev `decodedDeliveryInstructions` parses encoded delivery instructions into the DeliveryInstructions struct
+    /// @dev `decodeDeliveryInstructionsContainer` parses encoded delivery instructions into the DeliveryInstructions struct
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         public
         pure

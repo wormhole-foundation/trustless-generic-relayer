@@ -23,7 +23,7 @@ contract CoreRelayerStructs {
     }
 
     struct DeliveryInstructionsContainer {
-        uint8 payloadID; //1
+        uint8 payloadID; // payloadID = 1
         DeliveryInstructions[] instructions;
     }
 
@@ -71,6 +71,8 @@ contract CoreRelayerStructs {
         uint8 version;
         // gasLimit to call the receiving contract with
         uint32 deliveryGasLimit;
+        // maximum batch size
+        uint8 maximumBatchSize;
         // the payment made on the source chain, which is later paid to the relayer
         uint256 nativePayment;
     }

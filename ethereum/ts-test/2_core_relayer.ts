@@ -104,6 +104,7 @@ describe("Core Relayer Integration Test", () => {
       const sendReceipt: ethers.ContractReceipt = await mockContract
         .sendBatchToTargetChain(batchVAAPayloads, batchVAAConsistencyLevels, fullBatchTest.relayerArgs, {
           value: fullBatchTest.targetChainGasEstimate,
+          gasLimit: 2000000
         })
         .then((tx: ethers.ContractTransaction) => tx.wait());
 
@@ -143,7 +144,7 @@ describe("Core Relayer Integration Test", () => {
       expect(deliveryVM.consistencyLevel).to.equal(fullBatchTest.relayerArgs.consistencyLevel);
 
       // deserialize the delivery instruction payload and validate the values
-      const deliveryInstructions = await coreRelayer.decodeDeliveryInstructions(deliveryVM.payload);
+      const deliveryInstructions = await coreRelayer.decodeDeliveryInstructionsContainer(deliveryVM.payload);
       expect(deliveryInstructions.payloadID).to.equal(1);
       expect(deliveryInstructions.fromAddress).to.equal(
         "0x" + tryNativeToHexString(SOURCE_CONTRACT_ADDRESS, CHAIN_ID_ETH)

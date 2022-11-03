@@ -20,18 +20,12 @@ interface ICoreRelayer {
         uint256 targetCallGasOverride;
     }
 
-    struct DeliveryParameters {
-        uint16 targetChain;
-        bytes32 targetAddress;
-        bytes relayParameters;
-        uint32 nonce;
-        uint8 consistencyLevel;
+    struct DeliveryInstructionsContainer {
+        uint8 payloadID; // payloadID = 1
+        DeliveryInstructions[] instructions;
     }
 
     struct DeliveryInstructions {
-        uint8 payloadID; // payloadID = 1;
-        bytes32 fromAddress;
-        uint16 fromChain;
         bytes32 targetAddress;
         uint16 targetChain;
         bytes relayParameters;
@@ -55,7 +49,11 @@ interface ICoreRelayer {
 
     function estimateEvmCost(uint16 chainId, uint256 gasLimit) external view returns (uint256 gasEstimate);
 
-    function send(DeliveryParameters memory deliveryParams) external payable returns (uint64 sequence);
+    function send(
+        DeliveryInstructionsContainer memory deliveryInstructionsContainer,
+        uint32 nonce,
+        uint8 consistencyLevel
+    ) external payable returns (uint64 sequence);
 
     function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64);
 }
