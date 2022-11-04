@@ -16,19 +16,20 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         pure
         returns (bytes memory encoded)
     {
-        encoded = abi.encodePacked(uint8(1), //version payload number
-        uint8(container.instructions.length)); //number of items in the array
+        encoded = abi.encodePacked(
+            uint8(1), //version payload number
+            uint8(container.instructions.length)
+        ); //number of items in the array
 
         //Append all the messages to the array.
-        for(uint256 i = 0; i < container.instructions.length; i++){
-
-        encoded = abi.encodePacked(
-            encoded,
-            container.instructions[i].targetAddress,
-            container.instructions[i].targetChain,
-            uint16(container.instructions[i].relayParameters.length),
-            container.instructions[i].relayParameters
-        );
+        for (uint256 i = 0; i < container.instructions.length; i++) {
+            encoded = abi.encodePacked(
+                encoded,
+                container.instructions[i].targetAddress,
+                container.instructions[i].targetChain,
+                uint16(container.instructions[i].relayParameters.length),
+                container.instructions[i].relayParameters
+            );
         }
     }
 
@@ -73,14 +74,14 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint256 index = 0;
 
         uint8 payloadId = encoded.toUint8(index);
-            require(payloadId== 1, "invalid payloadId");
+        require(payloadId == 1, "invalid payloadId");
         index += 1;
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
 
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](arrayLen);
 
-        for(uint8 i = 0; i < arrayLen; i++){
+        for (uint8 i = 0; i < arrayLen; i++) {
             DeliveryInstructions memory instructions;
 
             // target contract address

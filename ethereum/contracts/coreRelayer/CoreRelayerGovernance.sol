@@ -14,7 +14,12 @@ import "./CoreRelayerMessages.sol";
 
 import "../interfaces/IWormhole.sol";
 
-abstract contract CoreRelayerGovernance is CoreRelayerGetters, CoreRelayerSetters, CoreRelayerMessages, ERC1967Upgrade {
+abstract contract CoreRelayerGovernance is
+    CoreRelayerGetters,
+    CoreRelayerSetters,
+    CoreRelayerMessages,
+    ERC1967Upgrade
+{
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event GasOracleUpdated(address indexed oldOracle, address indexed newOracle);
