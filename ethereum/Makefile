@@ -33,6 +33,7 @@ dependencies: node_modules forge_dependencies wormhole_dependencies
 
 build: dependencies
 	npm run build
+	npm run typechain
 
 .env: .env.test
 	cp $< $@

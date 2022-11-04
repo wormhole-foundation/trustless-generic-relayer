@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk";
 import { WORMHOLE_MESSAGE_EVENT_ABI, GUARDIAN_PRIVATE_KEY } from "./consts";
 const elliptic = require("elliptic");
@@ -233,7 +233,7 @@ export function verifyDeliveryStatusPayload(
   payload: ethers.BytesLike,
   batchHash: ethers.BytesLike,
   relayerAddress: ethers.BytesLike,
-  deliverySequence: number,
+  deliverySequence: BigNumber,
   deliveryAttempts: number,
   successBoolean: number
 ): boolean {
@@ -253,7 +253,7 @@ export function verifyDeliveryStatusPayload(
   index += 32;
 
   // deliveryId sequence
-  const sequence: number = parseInt(ethers.utils.hexDataSlice(payload, index, index + 8));
+  const sequence: BigNumber = BigNumber.from(ethers.utils.hexDataSlice(payload, index, index + 8));
   index += 8;
 
   // delivery count
@@ -277,7 +277,7 @@ export function verifyDeliveryStatusPayload(
   } else if (emitterAddress != relayerAddress) {
     console.log("Invalid emitter address in delivery AllowedEmitterSequenceedEmitterSequence");
     return false;
-  } else if (sequence != deliverySequence) {
+  } else if (!sequence.eq(deliverySequence)) {
     console.log("Invalid emitter address in delivery AllowedEmitterSequenceedEmitterSequence");
     return false;
   } else if (deliveryCount != deliveryAttempts) {

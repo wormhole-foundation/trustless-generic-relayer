@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "ethers";
+import { GasOracle__factory } from "../../sdk/src";
 import {
   CHAIN_ID_AVAX,
   CHAIN_ID_ETH,
@@ -7,7 +8,6 @@ import {
   LOCALHOST,
   ORACLE_DEPLOYER_PRIVATE_KEY,
 } from "./helpers/consts";
-import { makeContract } from "./helpers/io";
 
 const ETHEREUM_ROOT = `${__dirname}/..`;
 
@@ -18,7 +18,7 @@ describe("Gas Oracle Integration Test", () => {
   const oracleDeployer = new ethers.Wallet(ORACLE_DEPLOYER_PRIVATE_KEY, provider);
 
   const gasOracleAbiPath = `${ETHEREUM_ROOT}/build/GasOracle.sol/GasOracle.json`;
-  const gasOracle = makeContract(oracleDeployer, GAS_ORACLE_ADDRESS, gasOracleAbiPath);
+  const gasOracle = GasOracle__factory.connect( GAS_ORACLE_ADDRESS, oracleDeployer);
 
   const ethPrice = ethers.utils.parseUnits("2000.00", 8);
   const ethereumGasPrice = ethers.utils.parseUnits("100", 9);

@@ -1,7 +1,7 @@
-import {expect} from "chai";
-import {ethers} from "ethers";
-import {TargetDeliveryParameters, TestResults} from "./helpers/structs";
-import {ChainId, tryNativeToHexString} from "@certusone/wormhole-sdk";
+import { expect } from "chai";
+import { ethers } from "ethers";
+import { TestResults } from "./helpers/structs";
+import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk";
 import {
   CHAIN_ID_ETH,
   CORE_RELAYER_ADDRESS,
@@ -9,12 +9,13 @@ import {
   RELAYER_DEPLOYER_PRIVATE_KEY,
   MOCK_RELAYER_INTEGRATION_ADDRESS,
 } from "./helpers/consts";
-import {makeContract} from "./helpers/io";
 import {
   getSignedBatchVaaFromReceiptOnEth,
   getSignedVaaFromReceiptOnEth,
   verifyDeliveryStatusPayload,
 } from "./helpers/utils";
+import { CoreRelayer__factory, MockRelayerIntegration__factory } from "../../sdk/src";
+import { CoreRelayerStructs } from "../../sdk/src/ethers-contracts/CoreRelayer";
 
 const ETHEREUM_ROOT = `${__dirname}/..`;
 
@@ -24,11 +25,8 @@ describe("Core Relayer Integration Test", () => {
   // signers
   const wallet = new ethers.Wallet(RELAYER_DEPLOYER_PRIVATE_KEY, provider);
 
-  const coreRelayerAbiPath = `${ETHEREUM_ROOT}/build/CoreRelayer.sol/CoreRelayer.json`;
-  const coreRelayer = makeContract(wallet, CORE_RELAYER_ADDRESS, coreRelayerAbiPath);
-
-  const mockContractAbi = `${ETHEREUM_ROOT}/build/MockRelayerIntegration.sol/MockRelayerIntegration.json`;
-  const mockContract = makeContract(wallet, MOCK_RELAYER_INTEGRATION_ADDRESS, mockContractAbi);
+  const coreRelayer = CoreRelayer__factory.connect(CORE_RELAYER_ADDRESS, wallet);
+  const mockContract = MockRelayerIntegration__factory.connect(MOCK_RELAYER_INTEGRATION_ADDRESS, wallet);
 
   // test batch VAA information
   const batchVAAPayloads: ethers.BytesLike[] = [
@@ -104,7 +102,7 @@ describe("Core Relayer Integration Test", () => {
       const sendReceipt: ethers.ContractReceipt = await mockContract
         .sendBatchToTargetChain(batchVAAPayloads, batchVAAConsistencyLevels, fullBatchTest.relayerArgs, {
           value: fullBatchTest.targetChainGasEstimate,
-          gasLimit: 2000000
+          gasLimit: 2000000,
         })
         .then((tx: ethers.ContractTransaction) => tx.wait());
 
@@ -144,19 +142,15 @@ describe("Core Relayer Integration Test", () => {
       expect(deliveryVM.consistencyLevel).to.equal(fullBatchTest.relayerArgs.consistencyLevel);
 
       // deserialize the delivery instruction payload and validate the values
-      const deliveryInstructions = await coreRelayer.decodeDeliveryInstructionsContainer(deliveryVM.payload);
-      expect(deliveryInstructions.payloadID).to.equal(1);
-      expect(deliveryInstructions.fromAddress).to.equal(
-        "0x" + tryNativeToHexString(SOURCE_CONTRACT_ADDRESS, CHAIN_ID_ETH)
-      );
-      expect(deliveryInstructions.fromChain).to.equal(SOURCE_CHAIN_ID);
-      expect(deliveryInstructions.targetAddress).to.equal(
-        "0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH)
-      );
-      expect(deliveryInstructions.targetChain).to.equal(TARGET_CHAIN_ID);
+      const deliveryInstructionsContainer = await coreRelayer.decodeDeliveryInstructionsContainer(deliveryVM.payload);
+      expect(deliveryInstructionsContainer.payloadID).to.equal(1);
+      expect(deliveryInstructionsContainer.instructions.length).to.equal(1);
+      const instruction = deliveryInstructionsContainer.instructions[0];
+      expect(instruction.targetAddress).to.equal("0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH));
+      expect(instruction.targetChain).to.equal(TARGET_CHAIN_ID);
 
       // deserialize the deliveryParameters and confirm the values
-      const relayParameters = await coreRelayer.decodeRelayParameters(deliveryInstructions.relayParameters);
+      const relayParameters = await coreRelayer.decodeRelayParameters(instruction.relayParameters);
       expect(relayParameters.version).to.equal(1);
       expect(relayParameters.deliveryGasLimit).to.equal(TARGET_GAS_LIMIT);
       expect(relayParameters.nativePayment.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
@@ -164,9 +158,10 @@ describe("Core Relayer Integration Test", () => {
 
     it("Should deliver the batch VAA and call the wormholeReceiver endpoint on the mock contract", async () => {
       // create the TargetDeliveryParameters
-      const targetDeliveryParams: TargetDeliveryParameters = {
+      const targetDeliveryParams: CoreRelayerStructs.TargetDeliveryParametersStruct = {
         encodedVM: fullBatchTest.signedBatchVM,
         deliveryIndex: batchVAAPayloads.length + 1,
+        multisendIndex: 0,
         targetCallGasOverride: ethers.BigNumber.from(TARGET_GAS_LIMIT),
       };
 

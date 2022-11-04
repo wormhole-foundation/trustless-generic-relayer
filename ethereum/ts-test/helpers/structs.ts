@@ -1,4 +1,5 @@
-import {ethers} from "ethers";
+import { ethers } from "ethers";
+import { MockRelayerIntegration } from "../../../sdk/src/ethers-contracts/MockRelayerIntegration";
 
 export interface RelayerArgs {
   nonce: number;
@@ -8,14 +9,8 @@ export interface RelayerArgs {
   consistencyLevel: number;
 }
 
-export interface TargetDeliveryParameters {
-  encodedVM: ethers.utils.BytesLike;
-  deliveryIndex: number;
-  targetCallGasOverride: ethers.BigNumber;
-}
-
 export interface TestResults {
-  relayerArgs: RelayerArgs;
+  relayerArgs: MockRelayerIntegration.RelayerArgsStruct;
   signedBatchVM: ethers.BytesLike;
   targetChainGasEstimate: ethers.BigNumber;
   deliveryStatusVM: ethers.BytesLike;
