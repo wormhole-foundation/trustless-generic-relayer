@@ -37,6 +37,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         uint8 batchCount;
         address VMEmitterAddress;
         address targetAddress;
+        address refundAddress;
     }
 
     function setUpCoreRelayer(uint32 evmGasOverhead) internal returns (Wormhole wormhole, GasOracle gasOracle) {
@@ -184,6 +185,10 @@ contract TestCoreRelayer is CoreRelayer, Test {
             assertEq(container.instructions[i].targetAddress, payload.toBytes32(index));
             index += 32;
 
+            // refund address
+            assertEq(container.instructions[i].refundAddress, payload.toBytes32(index));
+            index += 32;
+
             // target chain
             assertEq(TARGET_CHAIN_ID, payload.toUint16(index));
             index += 2;
@@ -241,6 +246,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryInstructions memory deliveryParams = DeliveryInstructions({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
+            refundAddress: bytes32(uint256(uint160(batchParams.refundAddress))),
             relayParameters: relayParameters
         });
 
@@ -311,6 +317,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryInstructions memory deliveryParams = DeliveryInstructions({
             targetChain: TARGET_CHAIN_ID,
             targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
+            refundAddress: bytes32(uint256(uint160(batchParams.refundAddress))),
             relayParameters: relayParameters
         });
 

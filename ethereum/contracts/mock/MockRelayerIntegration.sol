@@ -36,6 +36,7 @@ contract MockRelayerIntegration {
         uint32 nonce;
         uint16 targetChainId;
         address targetAddress;
+        address refundAddress;
         uint32 targetGasLimit;
         uint8 consistencyLevel;
     }
@@ -104,6 +105,7 @@ contract MockRelayerIntegration {
         ixs[0] = ICoreRelayer.DeliveryInstructions({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
+            refundAddress: bytes32(uint256(uint160(relayerArgs.refundAddress))),
             relayParameters: relayParameters // REVIEW: rename to encodedRelayParameters?
         });
 

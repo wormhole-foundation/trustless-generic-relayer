@@ -42,8 +42,6 @@ contract CoreRelayer is CoreRelayerGovernance {
                 decodeRelayParameters(deliveryInstructions.instructions[i].relayParameters);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            //collectRelayerParameterPayment(relayParams, deliveryParams[i].targetChain, relayParams.deliveryGasLimit);
-
             require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
 
             // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
@@ -244,39 +242,54 @@ contract CoreRelayer is CoreRelayerGovernance {
         return _deliver(wormhole, internalParams);
     }
 
+    struct StackTooDeep {
+        bytes32 deliveryHash;
+        uint256 gasBudgetInWei;
+        uint256 attemptedDeliveryCount;
+        uint256 preGas;
+    }
+
     function _deliver(IWormhole wormhole, InternalDeliveryParameters memory internalParams)
         internal
         returns (uint64 sequence)
     {
-        require(msg.value == wormhole.messageFee(), "insufficient msg.value to pay wormhole messageFee");
+        StackTooDeep memory stackTooDeep;
+
+        // todo: confirm unit is in wei
+        // todo: change deliverGasLimit to be 2 separate fields so that if relayer overrides it, it does not end up
+        //       giving too large a refund
+        stackTooDeep.gasBudgetInWei = gasOracle().computeGasCost(chainId(), internalParams.relayParams.deliveryGasLimit);
+        require(
+            msg.value >= wormhole.messageFee() + stackTooDeep.gasBudgetInWei,
+            "insufficient msg.value to pay wormhole messageFee and cover gas refund"
+        );
 
         // Compute the hash(batchHash, deliveryId) and check to see if the batch
         // was successfully delivered already. Revert if it was.
-        bytes32 deliveryHash = keccak256(
+        stackTooDeep.deliveryHash = keccak256(
             abi.encodePacked(
                 internalParams.batchVM.hash,
                 internalParams.deliveryId.emitterAddress,
                 internalParams.deliveryId.sequence
             )
         );
-        require(!isDeliveryCompleted(deliveryHash), "batch already delivered");
+        require(!isDeliveryCompleted(stackTooDeep.deliveryHash), "batch already delivered");
 
         // confirm this is the correct destination chain
         require(chainId() == internalParams.deliveryInstructions.targetChain, "targetChain is not this chain");
 
         // confirm the correct delivery attempt sequence
-        uint256 attemptedDeliveryCount = attemptedDeliveryCount(deliveryHash);
-        require(internalParams.deliveryAttempts == attemptedDeliveryCount, "wrong delivery attempt index");
+        stackTooDeep.attemptedDeliveryCount = attemptedDeliveryCount(stackTooDeep.deliveryHash);
+        require(internalParams.deliveryAttempts == stackTooDeep.attemptedDeliveryCount, "wrong delivery attempt index");
 
         // verify the batchVM before calling the receiver
         (bool valid, string memory reason) = wormhole.verifyBatchVM(internalParams.batchVM, true);
         require(valid, reason);
 
         // remove the deliveryVM from the array of observations in the batch
-        uint256 numObservations = internalParams.batchVM.observations.length;
-        bytes[] memory targetObservations = new bytes[](numObservations - 1);
+        bytes[] memory targetObservations = new bytes[](internalParams.batchVM.observations.length - 1);
         uint256 lastIndex = 0;
-        for (uint256 i = 0; i < numObservations;) {
+        for (uint256 i = 0; i < internalParams.batchVM.observations.length;) {
             if (i != internalParams.deliveryIndex) {
                 targetObservations[lastIndex] = internalParams.batchVM.observations[i];
                 unchecked {
@@ -292,10 +305,27 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(!isContractLocked(), "reentrant call");
         setContractLock(true);
 
+        // store gas budget pre target invocation to calculate unused gas budget
+        stackTooDeep.preGas = gasleft();
+
         // call the receiveWormholeMessages endpoint on the target contract
         (bool success,) = address(uint160(uint256(internalParams.deliveryInstructions.targetAddress))).call{
             gas: internalParams.relayParams.deliveryGasLimit
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", targetObservations));
+
+        // refund unused gas budget
+        uint256 weiToSend =
+            (stackTooDeep.gasBudgetInWei - gasOracle().computeGasCost(chainId(), stackTooDeep.preGas - gasleft()));
+        (bool sent,) =
+            address(uint160(uint256(internalParams.deliveryInstructions.refundAddress))).call{value: weiToSend}("");
+
+        if (!sent) {
+            // if refunding fails, pay out full refund to relayer
+            weiToSend = 0;
+        }
+
+        // refund the rest to relayer
+        msg.sender.call{value: msg.value - weiToSend - wormhole.messageFee()}("");
 
         // unlock the contract
         setContractLock(false);
@@ -306,9 +336,9 @@ contract CoreRelayer is CoreRelayerGovernance {
          * If the delivery was unsuccessful, uptick the attempted delivery counter for this delivery hash.
          */
         if (success) {
-            markAsDelivered(deliveryHash);
+            markAsDelivered(stackTooDeep.deliveryHash);
         } else {
-            incrementAttemptedDelivery(deliveryHash);
+            incrementAttemptedDelivery(stackTooDeep.deliveryHash);
         }
 
         // increment the relayer rewards
@@ -323,12 +353,15 @@ contract CoreRelayer is CoreRelayerGovernance {
             batchHash: internalParams.batchVM.hash,
             emitterAddress: internalParams.deliveryId.emitterAddress,
             sequence: internalParams.deliveryId.sequence,
-            deliveryCount: uint16(attemptedDeliveryCount + 1),
+            deliveryCount: uint16(stackTooDeep.attemptedDeliveryCount + 1),
             deliverySuccess: success
         });
         // set the nonce to zero so a batch VAA is not created
-        sequence = wormhole.publishMessage{value: msg.value}(0, encodeDeliveryStatus(status), consistencyLevel());
+        sequence =
+            wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeDeliveryStatus(status), consistencyLevel());
     }
+
+    function _deliverChecks() internal {}
 
     // TODO: WIP
     function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce)

@@ -26,6 +26,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             encoded = abi.encodePacked(
                 encoded,
                 container.instructions[i].targetAddress,
+                container.instructions[i].refundAddress,
                 container.instructions[i].targetChain,
                 uint16(container.instructions[i].relayParameters.length),
                 container.instructions[i].relayParameters
@@ -86,6 +87,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
             // target contract address
             instructions.targetAddress = encoded.toBytes32(index);
+            index += 32;
+
+            // address to send the refund to
+            instructions.refundAddress = encoded.toBytes32(index);
             index += 32;
 
             // target chain of the delivery instructions

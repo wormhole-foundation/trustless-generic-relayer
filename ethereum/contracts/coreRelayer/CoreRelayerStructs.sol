@@ -29,6 +29,7 @@ contract CoreRelayerStructs {
 
     struct DeliveryInstructions {
         bytes32 targetAddress;
+        bytes32 refundAddress;
         uint16 targetChain;
         bytes relayParameters;
     }

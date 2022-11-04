@@ -46,6 +46,7 @@ describe("Core Relayer Integration Test", () => {
   describe("Core Relayer Interaction", () => {
     // for the sake of this test, the target/source chain and address will be the same
     const TARGET_CONTRACT_ADDRESS = MOCK_RELAYER_INTEGRATION_ADDRESS;
+    const TARGET_REFUND_ADDRESS = "0x0000000000000000000000000000000000000001";
     const TARGET_CHAIN_ID: ChainId = CHAIN_ID_ETH;
     const SOURCE_CONTRACT_ADDRESS = TARGET_CONTRACT_ADDRESS;
     const SOURCE_CHAIN_ID: ChainId = TARGET_CHAIN_ID;
@@ -95,6 +96,7 @@ describe("Core Relayer Integration Test", () => {
         targetChainId: TARGET_CHAIN_ID,
         targetAddress: TARGET_CONTRACT_ADDRESS,
         targetGasLimit: TARGET_GAS_LIMIT,
+        refundAddress: TARGET_REFUND_ADDRESS,
         consistencyLevel: deliveryVAAConsistencyLevel,
       };
 
@@ -102,7 +104,6 @@ describe("Core Relayer Integration Test", () => {
       const sendReceipt: ethers.ContractReceipt = await mockContract
         .sendBatchToTargetChain(batchVAAPayloads, batchVAAConsistencyLevels, fullBatchTest.relayerArgs, {
           value: fullBatchTest.targetChainGasEstimate,
-          gasLimit: 2000000,
         })
         .then((tx: ethers.ContractTransaction) => tx.wait());
 
@@ -165,15 +166,22 @@ describe("Core Relayer Integration Test", () => {
         targetCallGasOverride: ethers.BigNumber.from(TARGET_GAS_LIMIT),
       };
 
+      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
+      const observations = parsedBatchVM.observations;
+      const deliveryVM = await mockContract.parseWormholeObservation(observations[observations.length - 1]);
+      const deliveryInstructionsContainer = await coreRelayer.decodeDeliveryInstructionsContainer(deliveryVM.payload);
+      const instruction = deliveryInstructionsContainer.instructions[0];
+      const relayParameters = await coreRelayer.decodeRelayParameters(instruction.relayParameters);
+
       // call the deliver method on the relayer contract
       const deliveryReceipt: ethers.ContractReceipt = await coreRelayer
-        .deliver(targetDeliveryParams)
+        .deliver(targetDeliveryParams, {
+          value: await coreRelayer.estimateEvmCost(instruction.targetChain, relayParameters.deliveryGasLimit),
+          gasLimit: relayParameters.deliveryGasLimit * 10,
+        })
         .then((tx: ethers.ContractTransaction) => tx.wait());
 
       // confirm that the batch VAA payloads were stored in a map in the mock contract
-      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
-
-      const observations = parsedBatchVM.observations;
       const batchLen = observations.length;
       for (let i = 0; i < batchLen - 1; ++i) {
         const parsedVM = await mockContract.parseWormholeObservation(observations[i]);
