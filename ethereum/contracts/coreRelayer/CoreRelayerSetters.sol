@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 
 import "./CoreRelayerState.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+import "./CoreRelayerStructs.sol";
 
 contract CoreRelayerSetters is CoreRelayerState, Context {
     function setOwner(address owner_) internal {
@@ -43,6 +44,14 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.evmDeliverGasOverhead = gasOverhead;
     }
 
+    function setForwardingInstructions(CoreRelayerStructs.ForwardingInstructions memory instructions) internal {
+        _state.forwardingInstructions = instructions;
+    }
+
+    function clearForwardingInstructions() internal {
+       delete _state.forwardingInstructions; //TODO is this the best way to accomplish this?
+    }
+
     function markAsDelivered(bytes32 deliveryHash) internal {
         _state.completedDeliveries[deliveryHash] = true;
     }
@@ -66,4 +75,5 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
     function resetRelayerRewards(address relayer, uint16 rewardChain) internal {
         _state.relayerRewards[relayer][rewardChain] = 0;
     }
+
 }

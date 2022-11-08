@@ -127,10 +127,18 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 4;
 
         // payment made on the source chain
-        relayParams.nativePayment = encoded.toUint256(index);
+        relayParams.nativePayment = encoded.toUint256(index); //TODO this is a trusted field accepted from the integrator
         index += 32;
 
         require(index == encoded.length, "invalid relay parameters");
+    }
+
+    function encodeRelayParameters(uint32 deliveryGasLimit, uint256 nativePayment ) public pure returns (bytes memory relayParams) {
+        relayParams = abi.encodePacked(
+            uint8(1), // version
+            deliveryGasLimit,
+            nativePayment //TODO trusted field accepted from the integrator
+        );
     }
 
     // TODO: WIP

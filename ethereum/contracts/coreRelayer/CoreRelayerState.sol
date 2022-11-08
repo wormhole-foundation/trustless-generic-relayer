@@ -25,6 +25,8 @@ contract CoreRelayerStorage {
         address gasOracle;
         // EVM gas overhead for interacting with the relayer contracts
         uint32 evmDeliverGasOverhead;
+        // Request which will be forwarded from the current delivery.
+        CoreRelayerStructs.ForwardingInstructions forwardingInstructions;
         // mapping of initialized implementations
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains

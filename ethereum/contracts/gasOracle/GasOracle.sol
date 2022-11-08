@@ -23,6 +23,14 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         setChainId(wormhole().chainId());
     }
 
+    //Given a target chainId and a quote amount, returns how much gas can be bought on the target chain for that amount.
+    function computeGasValue(uint16 targetChainId, uint256 quote)  public view returns (uint256 gasAmount) {
+        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
+        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
+
+        gasAmount = (quote * srcNativeCurrencyPrice / gasPrice(targetChainId) * dstNativeCurrencyPrice); 
+    }
+
     // relevant for chains that have dynamic execution pricing (e.g. Ethereum)
     function computeGasCost(uint16 targetChainId, uint256 gasLimit) public view returns (uint256 quote) {
         quote = computeTransactionCost(targetChainId, gasPrice(targetChainId) * gasLimit);

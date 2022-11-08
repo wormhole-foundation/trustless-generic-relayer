@@ -22,6 +22,95 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     /**
+     * @dev `forward` queues up a 'send' which will be executed after the present delivery is complete 
+     * & uses the gas refund to cover the costs.
+     * contract based on user parameters.
+     * it parses the RelayParameters to determine the target chain ID
+     * it estimates the cost of relaying the batch
+     * it confirms that the user has passed enough value to pay the relayer
+     * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
+     * it generates a VAA with the encoded DeliveryInstructions
+     */
+    function forward(DeliveryInstructionsContainer memory deliveryInstructions, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
+        require(isContractLocked(), "Can only forward while a delivery is in process.");
+        require(getForwardingInstructions().isValid != true, "Cannot request multiple forwards.");
+
+        //TODO ensure rollover chain is included in delivery instructions;
+
+        setForwardingInstructions(ForwardingInstructions(encodeDeliveryInstructionsContainer(deliveryInstructions), rolloverChain, nonce, consistencyLevel, true));
+    }
+
+    function emitForward(uint256 refundAmount) internal returns (uint64 sequence) {
+        ForwardingInstructions memory forwardingInstructions = getForwardingInstructions();
+        DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(forwardingInstructions.deliveryInstructionsContainer);
+
+        //make sure the refund amount covers the native gas amounts
+        uint256 totalMinimumFees = sufficientFundsHelper(container, msg.value);
+
+        //find the delivery instruction for the rollover chain
+        uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingInstructions.rolloverChain);
+
+        //calc how much budget is used by chains other than the rollover chain
+        RelayParameters memory rolloverChainRelayParams =
+                decodeRelayParameters(container.instructions[rolloverInstructionIndex].relayParameters);
+        uint256 rolloverChainCostEstimate =
+            estimateEvmCost(container.instructions[rolloverInstructionIndex].targetChain, rolloverChainRelayParams.deliveryGasLimit);
+        uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate;
+        uint256 rolloverBudget = refundAmount - nonrolloverBudget;
+
+        //calc how much gas the remaining budget is worth on the rollover chain
+        uint32 rolloverGasAmount = uint32(gasOracle().computeGasValue(forwardingInstructions.rolloverChain, rolloverBudget));
+
+        //TODO deduct gas cost of this operation from the rollover amount?
+
+        //overwrite the gas budget on the rollover chain to the remaining budget amount
+        container.instructions[rolloverInstructionIndex].relayParameters = encodeRelayParameters(rolloverGasAmount, rolloverBudget);
+
+        //emit delivery request message
+        require(forwardingInstructions.nonce > 0, "nonce must be > 0");
+        bytes memory reencoded = encodeDeliveryInstructionsContainer(container);
+        IWormhole wormhole = wormhole();
+        sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingInstructions.nonce, reencoded, forwardingInstructions.consistencyLevel);
+
+        //clear forwarding request from cache
+        clearForwardingInstructions();
+    }
+
+    function findDeliveryIndex(DeliveryInstructionsContainer memory container, uint16 chainId) internal pure returns (uint16 deliveryInstructionIndex) {
+        for(uint16 i = 0; i < container.instructions.length; i++) {
+            if(container.instructions[i].targetChain == chainId) {
+                deliveryInstructionIndex = i;
+                return deliveryInstructionIndex;
+            }
+        }
+    }
+
+    function sufficientFundsHelper(DeliveryInstructionsContainer memory deliveryInstructions, uint256 funds) internal view returns (uint256 totalFees) {
+        totalFees = wormhole().messageFee();
+        for (uint256 i = 0; i < deliveryInstructions.instructions.length; i++) {
+            // decode the relay parameters
+            RelayParameters memory relayParams =
+                decodeRelayParameters(deliveryInstructions.instructions[i].relayParameters);
+
+            // estimate relay cost and check to see if the user sent enough eth to cover the relay
+            require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
+
+            // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
+            uint256 deliveryCostEstimate =
+                estimateEvmCost(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
+            totalFees = totalFees + deliveryCostEstimate;
+
+            require(
+                relayParams.nativePayment <= deliveryCostEstimate && funds >= totalFees,
+                "insufficient fee paid for delivery request"
+            );
+
+            // sanity check a few of the values before composing the DeliveryInstructions
+            require(deliveryInstructions.instructions[i].targetAddress != bytes32(0), "invalid targetAddress");
+        }
+    }
+
+    /**
      * @dev `send` generates a VAA with DeliveryInstructions to be delivered to the specified target
      * contract based on user parameters.
      * it parses the RelayParameters to determine the target chain ID
@@ -35,29 +124,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        uint256 feeAmount = 0;
-        for (uint256 i = 0; i < deliveryInstructions.instructions.length; i++) {
-            // decode the relay parameters
-            RelayParameters memory relayParams =
-                decodeRelayParameters(deliveryInstructions.instructions[i].relayParameters);
-
-            // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
-
-            // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
-            uint256 deliveryCostEstimate =
-                estimateEvmCost(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
-            feeAmount = feeAmount + deliveryCostEstimate;
-
-            require(
-                relayParams.nativePayment <= deliveryCostEstimate && msg.value >= feeAmount,
-                "insufficient fee specified in msg.value"
-            );
-
-            // sanity check a few of the values before composing the DeliveryInstructions
-            require(deliveryInstructions.instructions[i].targetAddress != bytes32(0), "invalid targetAddress");
-            require(nonce > 0, "nonce must be > 0");
-        }
+        sufficientFundsHelper(deliveryInstructions, msg.value);
+        require(nonce > 0, "nonce must be > 0");
 
         // encode the DeliveryInstructions
         bytes memory container = encodeDeliveryInstructionsContainer(deliveryInstructions);
@@ -316,13 +384,21 @@ contract CoreRelayer is CoreRelayerGovernance {
         // refund unused gas budget
         uint256 weiToSend =
             (stackTooDeep.gasBudgetInWei - gasOracle().computeGasCost(chainId(), stackTooDeep.preGas - gasleft()));
-        (bool sent,) =
-            address(uint160(uint256(internalParams.deliveryInstructions.refundAddress))).call{value: weiToSend}("");
 
-        if (!sent) {
-            // if refunding fails, pay out full refund to relayer
-            weiToSend = 0;
+        //TODO handle the case where the refund amount is insufficient
+        //should result in success for this chain, but a delivery failure for the target.
+        if(getForwardingInstructions().isValid) {
+            emitForward(weiToSend);
+        } else {
+            (bool sent,) =
+                address(uint160(uint256(internalParams.deliveryInstructions.refundAddress))).call{value: weiToSend}("");
+
+            if (!sent) {
+                // if refunding fails, pay out full refund to relayer
+                weiToSend = 0;
+            }
         }
+
 
         // refund the rest to relayer
         msg.sender.call{value: msg.value - weiToSend - wormhole.messageFee()}("");

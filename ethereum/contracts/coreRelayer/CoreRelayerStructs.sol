@@ -34,6 +34,14 @@ contract CoreRelayerStructs {
         bytes relayParameters;
     }
 
+    struct ForwardingInstructions {
+        bytes deliveryInstructionsContainer;
+        uint16 rolloverChain;
+        uint32 nonce;
+        uint8 consistencyLevel;
+        bool isValid;
+    }
+
     struct InternalDeliveryParameters {
         IWormhole.VM2 batchVM;
         DeliveryInstructions deliveryInstructions;

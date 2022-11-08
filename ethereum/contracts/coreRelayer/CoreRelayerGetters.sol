@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IWormhole.sol";
 import "../interfaces/IGasOracle.sol";
+import "./CoreRelayerStructs.sol";
 
 import "./CoreRelayerState.sol";
 
@@ -47,6 +48,10 @@ contract CoreRelayerGetters is CoreRelayerState {
 
     function gasOracleAddress() public view returns (address) {
         return _state.gasOracle;
+    }
+
+    function getForwardingInstructions() internal view returns (CoreRelayerStructs.ForwardingInstructions memory) {
+        return _state.forwardingInstructions;
     }
 
     function isDeliveryCompleted(bytes32 deliveryHash) public view returns (bool) {
