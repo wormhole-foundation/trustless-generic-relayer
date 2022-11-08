@@ -45,7 +45,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(forwardingInstructions.deliveryInstructionsContainer);
 
         //make sure the refund amount covers the native gas amounts
-        uint256 totalMinimumFees = sufficientFundsHelper(container, msg.value);
+        uint256 totalMinimumFees = sufficientFundsHelper(container, refundAmount);
 
         //find the delivery instruction for the rollover chain
         uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingInstructions.rolloverChain);
