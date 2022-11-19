@@ -50,6 +50,12 @@ interface ICoreRelayer {
 
     function estimateEvmCost(uint16 chainId, uint256 gasLimit) external view returns (uint256 gasEstimate);
 
+    function forward(
+        DeliveryInstructionsContainer memory deliveryInstructions, 
+        uint16 rolloverChain, 
+        uint32 nonce, 
+        uint8 consistencyLevel) external;
+
     function send(
         DeliveryInstructionsContainer memory deliveryInstructionsContainer,
         uint32 nonce,

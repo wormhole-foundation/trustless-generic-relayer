@@ -377,6 +377,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         stackTooDeep.preGas = gasleft();
 
         // call the receiveWormholeMessages endpoint on the target contract
+        // TODO catch revert?
         (bool success,) = address(uint160(uint256(internalParams.deliveryInstructions.targetAddress))).call{
             gas: internalParams.relayParams.deliveryGasLimit
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", targetObservations));
