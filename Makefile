@@ -6,11 +6,12 @@ all: build
 build: sdk/node_modules
 	cd ethereum && make build
 	cd sdk && npm run build
-	cd offchain-relayer && bash regenerate-abi.sh
+	cd relayer_engine && npm run build
 
 sdk/node_modules:
 	cd sdk && npm ci
 
+## Assumes there is a running tilt env & relayer engine.
 .PHONY: tilt-test
 tilt-test: tilt-deploy
 	bash testing/run_tilt_tests.sh

@@ -6,8 +6,9 @@ pragma solidity ^0.8.0;
 import "../libraries/external/BytesLib.sol";
 import "../interfaces/IWormhole.sol";
 import "../interfaces/ICoreRelayer.sol";
+import "../interfaces/IWormholeReceiver.sol";
 
-contract MockRelayerIntegration {
+contract MockRelayerIntegration is IWormholeReceiver {
     using BytesLib for bytes;
 
     // wormhole instance on this chain
@@ -155,7 +156,7 @@ contract MockRelayerIntegration {
         require(payload.length == index, "payload.length != index");
     }
 
-    function receiveWormholeMessages(bytes[] memory wormholeObservations) public {
+    function receiveWormholeMessages(bytes[] memory wormholeObservations) public override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length - 1;
 

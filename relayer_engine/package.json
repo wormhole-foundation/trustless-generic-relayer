@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "start": "ts-node main.ts"
+    "start": "ts-node src/main.ts"
   },
   "dependencies": {
     "@certusone/wormhole-sdk": "^0.9.0",

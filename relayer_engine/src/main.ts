@@ -4,7 +4,7 @@ import GenericRelayerPluginDef, { GenericRelayerPluginConfig } from "./plugin/sr
 async function main() {
   // load plugin config
   const pluginConfig = (await relayerEngine.loadFileAndParseToObject(
-    `./plugin/config/${relayerEngine.EnvType.DEVNET.toLowerCase()}.json`
+    `./src/plugin/config/${relayerEngine.EnvType.DEVNET.toLowerCase()}.json`
   )) as GenericRelayerPluginConfig;
 
   // run relayer engine

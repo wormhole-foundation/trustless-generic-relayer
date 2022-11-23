@@ -9,6 +9,9 @@ import "../contracts/interfaces/IGasOracle.sol";
 import {Setup as WormholeSetup} from "../wormhole/ethereum/contracts/Setup.sol";
 import {Implementation as WormholeImplementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
+import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
+import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
+import {MockForwardingIntegration} from "../contracts/mock/MockForwardingIntegration.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 
 import "forge-std/Test.sol";
@@ -81,8 +84,8 @@ contract TestCoreRelayer is CoreRelayer, Test {
         forwardingContract = new MockForwardingIntegration(address(wormhole), address(coreRelayer));
     }
 
-    function setUpDelivery(Wormhole wormhole, CoreRelayer coreRelayer) internal returns (IWormholeReceiver receivingContract) {
-        forwardingContract = new MockRelayerIntegration(address(wormhole), address(coreRelayer));
+    function setUpDelivery(Wormhole wormhole, CoreRelayer coreRelayer) internal returns (IWormholeReceiver deliveryContract) {
+        deliveryContract = new MockRelayerIntegration(address(wormhole), address(coreRelayer));
     }
 
     function testSetupInitialState(
