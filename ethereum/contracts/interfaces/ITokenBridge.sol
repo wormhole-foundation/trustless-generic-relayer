@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "./IWETH.sol";
-import "../../interfaces/IWormhole.sol";
+import "./IWormhole.sol";
 
 interface ITokenBridge {
     struct Transfer {

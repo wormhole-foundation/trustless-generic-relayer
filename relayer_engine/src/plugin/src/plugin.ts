@@ -30,6 +30,16 @@ interface WorkflowPayload {
   time: number;
 }
 
+type RelayRequest = {
+  vaa: string; //The batch VAA in base64
+  time: number; //Time the batch was received
+  deliveryIndex: number; //The index in the delivery which has the delivery request.
+  targetChain: ChainId; //The chain where the delivery will happen
+  redeliver: boolean; //If the request is a redelivery or not
+  maximumGas: number; //The gas limit which should be put on the transaction
+  feeCoverage: BigInt; //The msg.value the relayer should put on the transaction
+};
+
 export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   readonly shouldSpy: boolean;
   readonly shouldRest: boolean;
@@ -64,7 +74,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
   getFilters(): ContractFilter[] {
     if (this.pluginConfig.spyServiceFilters) {
-      return this.pluginConfig.spyServiceFilters;
+      //return this.pluginConfig.spyServiceFilters;
+      return []; //This plugin listens to batches, so we actually want to bypass the inbuilt filters.
     }
     this.logger.error("Contract filters not specified in config");
     throw new Error("Contract filters not specified in config");
@@ -77,6 +88,15 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     this.logger.debug("Parsing VAA...");
     const parsed = wh.parseVaa(vaa);
     this.logger.debug(`Parsed VAA: ${parsed && parsed.hash}`);
+
+    //TODO figure out a way to filter for batch VAAs at the level of the spy
+    //TODO write parser function for batch VAAs which doesn't depend on an ethers wallet
+    //TODO ensure the VAA is a batch VAA
+    //TODO see if one of the observations is from a core relayer contract
+    //TODO verify that it is a transfer or resend VAA, not a redeem or something
+    //TODO eject if any of these criteria aren't met
+
+    //TODO return object with relevant relaying information in order to avoid a double-parse
     return {
       workflowData: {
         time: new Date().getTime(),
