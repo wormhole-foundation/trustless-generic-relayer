@@ -75,6 +75,7 @@ contract CoreRelayerStructs {
         bool deliverySuccess;
     }
 
+    //TODO this struct disagrees with the encode function
     struct RelayParameters {
         // version = 1
         uint8 version;

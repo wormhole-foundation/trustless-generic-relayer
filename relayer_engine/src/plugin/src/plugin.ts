@@ -93,6 +93,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     //TODO write parser function for batch VAAs which doesn't depend on an ethers wallet
     //TODO ensure the VAA is a batch VAA
     //TODO see if one of the observations is from a core relayer contract
+    //TODO parse content from core relayer VAA
     //TODO verify that it is a transfer or resend VAA, not a redeem or something
     //TODO eject if any of these criteria aren't met
 

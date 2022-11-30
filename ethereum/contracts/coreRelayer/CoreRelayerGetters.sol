@@ -39,7 +39,7 @@ contract CoreRelayerGetters is CoreRelayerState {
     }
 
     function evmDeliverGasOverhead() public view returns (uint32) {
-        return _state.evmDeliverGasOverhead;
+        return _state.evmDeliverGasOverhead; //TODO should probably take target chain as an arg
     }
 
     function gasOracle() public view returns (IGasOracle) {

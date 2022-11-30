@@ -21,6 +21,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead()) + wormhole().messageFee());
     }
 
+    function estimateEvmGas(uint16 targetChain, uint256 costEstimate) public view returns (uint256 gasAmount) {
+        //TODO is this division safe?
+        return ((costEstimate - wormhole().messageFee()) / gasOracle().computeGasCost(targetChain, 1)) - evmDeliverGasOverhead();
+    }
+
     /**
      * @dev `forward` queues up a 'send' which will be executed after the present delivery is complete 
      * & uses the gas refund to cover the costs.
@@ -31,7 +36,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function forward(DeliveryInstructionsContainer memory deliveryInstructions, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
+    function multiforward(DeliveryInstructionsContainer memory deliveryInstructions, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
         require(isContractLocked(), "Can only forward while a delivery is in process.");
         require(getForwardingInstructions().isValid != true, "Cannot request multiple forwards.");
 
@@ -110,6 +115,17 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
+    function send(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 gasBudget, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+        //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
+        // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
+        //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
+        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(estimateEvmGas(targetChain, gasBudget), gasBudget));
+        DeliveryInstructions[] memory instructionArray = DeliveryInstruction[](1);
+        instructionArray[0] = instruction;
+        DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
+        return multisend(container, nonce, consistencyLevel);
+    }
+
     /**
      * @dev `send` generates a VAA with DeliveryInstructions to be delivered to the specified target
      * contract based on user parameters.
@@ -119,7 +135,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function send(DeliveryInstructionsContainer memory deliveryInstructions, uint32 nonce, uint8 consistencyLevel)
+    function multisend(DeliveryInstructionsContainer memory deliveryInstructions, uint32 nonce, uint8 consistencyLevel)
         public
         payable
         returns (uint64 sequence)
@@ -233,6 +249,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         internalParams.relayParams = decodeRelayParameters(internalParams.deliveryInstructions.relayParameters);
 
         // override the target gas if requested by the relayer
+        // TODO necessary feature?
         if (targetParams.targetCallGasOverride > internalParams.relayParams.deliveryGasLimit) {
             internalParams.relayParams.deliveryGasLimit = targetParams.targetCallGasOverride;
         }
@@ -266,6 +283,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
         // create the AllowedEmitterSequence for the delivery VAA
+        // TODO this is not a unique key
         internalParams.deliveryId =
             AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
@@ -355,6 +373,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(valid, reason);
 
         // remove the deliveryVM from the array of observations in the batch
+        // TODO consider removing this?
         bytes[] memory targetObservations = new bytes[](internalParams.batchVM.observations.length - 1);
         uint256 lastIndex = 0;
         for (uint256 i = 0; i < internalParams.batchVM.observations.length;) {
