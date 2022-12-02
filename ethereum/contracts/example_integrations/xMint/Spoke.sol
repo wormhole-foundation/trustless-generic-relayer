@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "solidity-bytes-utils/BytesLib.sol";
+//import "solidity-bytes-utils/BytesLib.sol";
 
 import "../../interfaces/IWormhole.sol";
 import "../../interfaces/ITokenBridge.sol";
+import "../../interfaces/IWormholeReceiver.sol";
+import "../../interfaces/ICoreRelayer.sol";
 
 contract Xmint is ERC20, IWormholeReceiver {
-    using BytesLib for bytes;
+    // using BytesLib for bytes;
 
     address owner;
 
@@ -49,7 +51,7 @@ contract Xmint is ERC20, IWormholeReceiver {
 
         uint256 bridgeAmount = msg.value -deliveryFeeBuffer;
 
-        (bool success, bytes memory data) = address(token_bridge).call{value: msg.bridgeAmount}(
+        (bool success, bytes memory data) = address(token_bridge).call{value: bridgeAmount}(
             //TODO why does this function not take a nonce?
             abi.encodeWithSignature("wrapAndTransferETHWithPayload(unit16,bytes32,uint32,bytes)", hubContractChain, hubContract, nonce, encodeRecipientPayload(toWormholeFormat(msg.sender)))
         );
@@ -59,27 +61,27 @@ contract Xmint is ERC20, IWormholeReceiver {
     }
 
     //This function receives messages back from the Hub contract and distributes the tokens to the user.
-    function receiveWormholeMessages(bytes[] memory vaas) {
+    function receiveWormholeMessages(bytes[] memory vaas) public override {
         //Complete the token bridge transfer
-        BridgeStructs.TransferWithPayload memory transferResult = token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
+        ITokenBridge.TransferWithPayload memory transferResult = token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
         //TODO decode recipient, transfer the tokens to them
     }
 
-    function requestDelivery() {
+    function requestDelivery() internal {
         //TODO
     }
 
     //TODO move these two function into common file
-    function encodeRecipientPayload(bytes32 whFormatAddress) returns (bytes payload){
+    function encodeRecipientPayload(bytes32 whFormatAddress) internal returns (bytes memory payload){
 
     }
 
-    function decodeRecipientPayload(bytes payload) returns (bytes32 whFormatAddress){
+    function decodeRecipientPayload(bytes memory payload) internal returns (bytes32 whFormatAddress){
 
     }
 
     //TODO move elsewhere
-    function toWormholeFormat(address native) returns (bytes32 whFormatAddress){
+    function toWormholeFormat(address native) internal returns (bytes32 whFormatAddress){
 
     }
 }

@@ -21,9 +21,20 @@ contract CoreRelayer is CoreRelayerGovernance {
         return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead()) + wormhole().messageFee());
     }
 
-    function estimateEvmGas(uint16 targetChain, uint256 costEstimate) public view returns (uint256 gasAmount) {
+    function estimateEvmGas(uint16 targetChain, uint256 costEstimate) public view returns (uint32 gasAmount) {
         //TODO is this division safe?
-        return ((costEstimate - wormhole().messageFee()) / gasOracle().computeGasCost(targetChain, 1)) - evmDeliverGasOverhead();
+        return 0; //((costEstimate - wormhole().messageFee()) / gasOracle().computeGasCost(targetChain, 1)) - evmDeliverGasOverhead();
+    }
+
+    function forward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumGasBudget, uint32 nonce, uint8 consistencyLevel) public payable {
+        //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
+        // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
+        //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
+        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(estimateEvmGas(targetChain, minimumGasBudget), minimumGasBudget));
+        DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
+        instructionArray[0] = instruction;
+        DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
+        multiforward(container, targetChain, nonce, consistencyLevel);
     }
 
     /**
@@ -120,7 +131,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
         DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(estimateEvmGas(targetChain, gasBudget), gasBudget));
-        DeliveryInstructions[] memory instructionArray = DeliveryInstruction[](1);
+        DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
         return multisend(container, nonce, consistencyLevel);

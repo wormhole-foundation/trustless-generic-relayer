@@ -115,8 +115,8 @@ contract MockRelayerIntegration is IWormholeReceiver {
             ICoreRelayer.DeliveryInstructionsContainer({payloadID: 1, instructions: ixs});
 
         // call the relayer contract and save the sequence.
-        relayerMessageSequence =
-            relayer.send{value: gasEstimate}(deliveryParams, relayerArgs.nonce, relayerArgs.consistencyLevel);
+        //relayerMessageSequence =
+          //  relayer.send{value: gasEstimate}(deliveryParams, relayerArgs.nonce, relayerArgs.consistencyLevel);
     }
 
     struct EmitterSequence {

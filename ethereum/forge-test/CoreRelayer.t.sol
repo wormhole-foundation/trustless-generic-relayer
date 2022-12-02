@@ -407,7 +407,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         vm.recordLogs();
 
         // call the send function on the relayer contract
-        uint64 sequence = this.send{value: gasEstimate + wormholeFee}(container, batchParams.nonce, batchParams.consistencyLevel);
+        uint64 sequence = 0; //this.send{value: gasEstimate + wormholeFee}(container, batchParams.nonce, batchParams.consistencyLevel);
 
         // record the wormhole message emitted by the relayer contract
         Vm.Log[] memory entries = vm.getRecordedLogs();

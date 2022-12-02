@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "solidity-bytes-utils/BytesLib.sol";
+//import "solidity-bytes-utils/BytesLib.sol";
 
 import "../../interfaces/IWormhole.sol";
 import "../../interfaces/ITokenBridge.sol";
+import "../../interfaces/IWormholeReceiver.sol";
+import "../../interfaces/ICoreRelayer.sol";
+
 
 contract Xmint is ERC20, IWormholeReceiver {
-    using BytesLib for bytes;
+    //using BytesLib for bytes;
 
     mapping(uint16 => bytes32) trustedContracts;
     mapping(bytes32 => bool) consumedMessages;
@@ -39,13 +42,13 @@ contract Xmint is ERC20, IWormholeReceiver {
     */
     function registerApplicationContracts(uint16 chainId, bytes32 emitterAddr) public {
         require(msg.sender == owner, "Only owner can register new chains!");
-        _applicationContracts[chainId] = emitterAddr;
+        trustedContracts[chainId] = emitterAddr;
     }
 
     //This is the function which receives all messages from the remote contracts.
-    function receiveWormholeMessages(bytes[] memory vaas) {
+    function receiveWormholeMessages(bytes[] memory vaas) public override {
         //The first message should be from the token bridge, so attempt to redeem it.
-        BridgeStructs.TransferWithPayload memory transferResult = token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
+        ITokenBridge.TransferWithPayload memory transferResult = token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
 
         // Ensure this transfer originated from a trusted address!
         // The token bridge enforces replay protection however, so no need to enforce it here.
@@ -57,7 +60,7 @@ contract Xmint is ERC20, IWormholeReceiver {
         //Calculate how many tokens to mint for the user
         //TODO is transferResult already normalized, or does the normalization have to happen here?
         //TODO is token address the origin mint or the local mint?
-        uint256 mintAmount = calculateMintAmount(transferResult.amount, transferAmount.tokenAddress);
+        uint256 mintAmount = calculateMintAmount(transferResult.amount, toNativeAddress(transferResult.tokenAddress));
 
         //Mint tokens to this contract
         _mint(address(this), mintAmount);
@@ -71,42 +74,36 @@ contract Xmint is ERC20, IWormholeReceiver {
 
     //This function allows you to purchase tokens from the Hub chain. Because this is all on the Hub chain, 
     // there's no need for relaying.
-    function purchaseLocal() {
+    function purchaseLocal() internal {
 
     }
 
-    function mintLocal() {
+    function mintLocal() internal {
 
     }
 
-    function encodeRecipientPayload(bytes encoded) returns (bytes32 whFormatAddress){
+    function encodeRecipientPayload(bytes memory encoded) internal returns (bytes32 whFormatAddress){
 
     }
 
-    function decodeRecipientPayload(bytes32 whFormatAddress) returns (bytes encoded){
+    function decodeRecipientPayload(bytes memory whFormatAddress) internal returns (bytes32 encoded){
 
     }
 
-    function bridgeTokens(uint16 remoteChain, bytes32 intendedRecipient, uint256 amount) {
+    function toNativeAddress(bytes32 whFormatAddress) internal returns (address) {
+
+    } 
+
+    function bridgeTokens(uint16 remoteChain, bytes32 intendedRecipient, uint256 amount) internal {
 
     }
 
-    function requestForward(uint16 targetChain, bytes32 intendedRecipient) {
-        //create delivery instructions container,
-        ICoreRelayer.DeliveryInstructions[] memory ixs = new ICoreRelayer.DeliveryInstructions[](1);
-        ixs[0] = ICoreRelayer.DeliveryInstructions({
-            targetChain: targetChain,
-            targetAddress: trustedContracts[targetChain],
-            refundAddress: intendedRecipient,
-            //relayParameters: relayParameters //TODO enable way to make this off the ICoreRelayer interface
-        });
-        //Fast delivery, nonce 1, rollover remaining funds to the destination chain.
-        core_relayer.forward();
+    function requestForward(uint16 targetChain, bytes32 intendedRecipient) internal {
     }
 
     //This function calculates how many tokens should be minted to the end user based on how much
     //money they sent to this contract.
-    function calculateMintAmount(uint256 inputAmount, address inputToken) returns (unit256 mintAmount) {
+    function calculateMintAmount(uint256 inputAmount, address inputToken) internal returns (uint256 mintAmount) {
         //Because this is a toy example, we will mint them 1 token regardless of what token they paid with
         // or how much they paid.
         return 1 * 10^18;

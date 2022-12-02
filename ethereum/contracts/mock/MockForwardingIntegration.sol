@@ -115,7 +115,7 @@ contract MockForwardingIntegration is IWormholeReceiver {
             ICoreRelayer.DeliveryInstructionsContainer({payloadID: 1, instructions: ixs});
 
         // call the relayer contract and save the sequence.
-        relayer.forward(deliveryParams, relayerArgs.targetChainId, relayerArgs.nonce, relayerArgs.consistencyLevel);
+        //relayer.forward(deliveryParams, relayerArgs.targetChainId, relayerArgs.nonce, relayerArgs.consistencyLevel);
     }
 
     struct EmitterSequence {
