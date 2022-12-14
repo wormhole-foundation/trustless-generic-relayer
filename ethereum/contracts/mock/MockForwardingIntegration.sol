@@ -30,7 +30,7 @@ contract MockForwardingIntegration is IWormholeReceiver {
     }
 
     function estimateRelayCosts(uint16 targetChainId, uint256 targetGasLimit) public view returns (uint256) {
-        return relayer.estimateEvmCost(targetChainId, targetGasLimit);
+        return relayer.quoteEvmDeliveryPrice(targetChainId, targetGasLimit);
     }
 
     struct RelayerArgs {
@@ -107,6 +107,8 @@ contract MockForwardingIntegration is IWormholeReceiver {
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
             refundAddress: bytes32(uint256(uint160(relayerArgs.refundAddress))),
+            computeBudget: 0, //TODO accurate budget
+            nativeBudget: 0, //TODO accurate budget
             relayParameters: relayParameters // REVIEW: rename to encodedRelayParameters?
         });
 
