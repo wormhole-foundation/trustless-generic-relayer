@@ -115,7 +115,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         require(gasOracleAddress() == gasOracle_, "gasOracleAddress() != expected");
         require(wormhole() == IWormhole(wormhole_), "wormhole() != expected");
         require(chainId() == chainId_, "chainId() != expected");
-        require(evmDeliverGasOverhead() == evmGasOverhead_, "evmDeliverGasOverhead() != expected");
+        require(evmDeliverGasOverhead(chainId_) == evmGasOverhead_, "evmDeliverGasOverhead() != expected");
     }
 
     function parseWormholeEventLogs(Vm.Log memory log) public pure returns (IWormhole.VM memory vm) {
@@ -230,7 +230,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
@@ -281,7 +281,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
@@ -316,7 +316,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96
@@ -352,7 +352,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
 
         // compute the expected output
         uint256 expectedGasEstimate = (
@@ -378,7 +378,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
         // the balance of this contract is the max Uint96

@@ -12,25 +12,33 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     /**
-     * @dev `estimateEvmCost` computes the estimated cost of delivering a batch VAA to a target chain.
-     * it computes the estimated gas usage on the target chain
-     * it queries the gasOracle contract for the estimated cost in native currency for relaying the batch
-     * to the target chain
+     * @dev `quoteEvmRelayPrice` returns the amount in wei that must be paid to the core relayer contract 
+     * in order to request delivery of a batch to chainId with gasLimit.
      */
-    function estimateEvmCost(uint16 chainId, uint256 gasLimit) public view returns (uint256 gasEstimate) {
-        return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead()) + wormhole().messageFee());
+    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
+        return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead(chainId)) + wormhole().messageFee());
     }
 
-    function estimateEvmGas(uint16 targetChain, uint256 costEstimate) public view returns (uint32 gasAmount) {
-        //TODO is this division safe?
-        return 0; //((costEstimate - wormhole().messageFee()) / gasOracle().computeGasCost(targetChain, 1)) - evmDeliverGasOverhead();
+    /**
+    * @dev this is the inverse of "quoteEvmRelayPrice". 
+    * Given a computeBudget (denominated in the wei of this chain), and a target chain, this function returns what
+    * amount of gas on the target chain this compute budget corresponds to.
+    */
+    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
+        if(computeBudget <= (wormhole().messageFee() + evmDeliverGasOverhead(targetChain))){
+            return 0;
+        } else {
+            uint256 remainder = computeBudget - (wormhole().messageFee() + evmDeliverGasOverhead(targetChain));
+            //TODO is this division safe?
+            return uint32(remainder / gasOracle().computeGasCost(targetChain, 1));
+        }
     }
 
-    function forward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumGasBudget, uint32 nonce, uint8 consistencyLevel) public payable {
+    function forward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel) public payable {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(estimateEvmGas(targetChain, minimumGasBudget), minimumGasBudget));
+        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(quoteTargetEvmGas(targetChain,minimumComputeBudget), minimumComputeBudget));
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
@@ -70,7 +78,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         RelayParameters memory rolloverChainRelayParams =
                 decodeRelayParameters(container.instructions[rolloverInstructionIndex].relayParameters);
         uint256 rolloverChainCostEstimate =
-            estimateEvmCost(container.instructions[rolloverInstructionIndex].targetChain, rolloverChainRelayParams.deliveryGasLimit);
+            quoteEvmDeliveryPrice(container.instructions[rolloverInstructionIndex].targetChain, rolloverChainRelayParams.deliveryGasLimit);
         uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate;
         uint256 rolloverBudget = refundAmount - nonrolloverBudget;
 
@@ -113,7 +121,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
             // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
             uint256 deliveryCostEstimate =
-                estimateEvmCost(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
+                quoteEvmDeliveryPrice(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
             totalFees = totalFees + deliveryCostEstimate;
 
             require(
@@ -126,11 +134,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function send(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 gasBudget, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+    function send(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(estimateEvmGas(targetChain, gasBudget), gasBudget));
+        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(quoteTargetEvmGas(targetChain, computeBudget), computeBudget));
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
@@ -215,7 +223,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
 
         // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
-        uint256 deliveryCostEstimate = estimateEvmCost(targetChain, targetGasLimit);
+        uint256 deliveryCostEstimate = quoteEvmDeliveryPrice(targetChain, targetGasLimit);
 
         require(
             relayParams.nativePayment == deliveryCostEstimate && msg.value == deliveryCostEstimate,

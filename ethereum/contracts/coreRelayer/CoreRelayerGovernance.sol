@@ -51,9 +51,10 @@ abstract contract CoreRelayerGovernance is
     }
 
     /// @dev updateEvmDeliverGasOverhead changes the EVMGasOverhead variable
+    //TODO make configurable by chain
     function updateEvmDeliverGasOverhead(uint32 newGasOverhead) public onlyOwner {
         // cache the current EVMDeliverGasOverhead
-        uint32 currentGasOverhead = evmDeliverGasOverhead();
+        uint32 currentGasOverhead = evmDeliverGasOverhead(0);
 
         setEvmDeliverGasOverhead(newGasOverhead);
 
