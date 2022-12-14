@@ -44,7 +44,7 @@ contract Xmint is ERC20, IWormholeReceiver {
     //And then requests delivery from relayer network.
     function purchaseTokens() public payable {
         //Calculate how many tokens will be required to cover transaction fees.
-        uint256 deliveryFeeBuffer = core_relayer.estimateEvmCost(hubContractChain, SAFE_DELIVERY_GAS_CAPTURE);
+        uint256 deliveryFeeBuffer = core_relayer.quoteEvmDeliveryPrice(hubContractChain, SAFE_DELIVERY_GAS_CAPTURE);
 
         //require that enough funds were paid to cover the compute budget.
         require(msg.value > deliveryFeeBuffer);
