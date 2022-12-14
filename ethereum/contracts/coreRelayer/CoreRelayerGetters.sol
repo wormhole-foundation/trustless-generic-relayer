@@ -38,7 +38,9 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.registeredRelayers[chain];
     }
 
-    function evmDeliverGasOverhead() public view returns (uint32) {
+    function evmDeliverGasOverhead(uint16 targetChain) public view returns (uint32) {
+        //TODO update the state so this is configurable and updateable
+        targetChain;
         return _state.evmDeliverGasOverhead; //TODO should probably take target chain as an arg
     }
 

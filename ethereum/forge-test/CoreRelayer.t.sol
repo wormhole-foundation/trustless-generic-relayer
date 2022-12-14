@@ -126,7 +126,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         require(gasOracleAddress() == gasOracle_, "gasOracleAddress() != expected");
         require(wormhole() == IWormhole(wormhole_), "wormhole() != expected");
         require(chainId() == chainId_, "chainId() != expected");
-        require(evmDeliverGasOverhead() == evmGasOverhead_, "evmDeliverGasOverhead() != expected");
+        require(evmDeliverGasOverhead(chainId_) == evmGasOverhead_, "evmDeliverGasOverhead() != expected");
     }
 
 
@@ -208,8 +208,13 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
+<<<<<<< HEAD
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
+=======
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+>>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -261,7 +266,12 @@ contract TestCoreRelayer is CoreRelayer, Test {
         
         
         // estimate the cost based on the intialized values
+<<<<<<< HEAD
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+=======
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+>>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
 
         uint256 wormholeFee = wormhole.messageFee();
         
@@ -297,8 +307,13 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
+<<<<<<< HEAD
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
+=======
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+>>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -333,7 +348,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
 
         // compute the expected output
         uint256 expectedGasEstimate = (
@@ -362,8 +377,13 @@ contract TestCoreRelayer is CoreRelayer, Test {
         MockRelayerIntegration deliveryContract = new MockRelayerIntegration(address(wormhole), address(this));
 
         // estimate the cost based on the intialized values
+<<<<<<< HEAD
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
+=======
+        uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+>>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
