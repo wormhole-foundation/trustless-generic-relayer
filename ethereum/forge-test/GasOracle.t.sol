@@ -163,7 +163,7 @@ contract TestGasOracle is Test {
         gasOracle.updatePrice(gasOracle.chainId(), srcGasPrice, srcNativeCurrencyPrice);
 
         // verify price
-        uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit) / srcNativeCurrencyPrice;
+        uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
         require(gasOracle.computeGasCost(dstChainId, gasLimit) == expected, "gasOracle.computeGasCost(...) != expected");
     }
 
@@ -202,7 +202,7 @@ contract TestGasOracle is Test {
         gasOracle.updatePrices(updates);
 
         // verify price
-        uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit) / srcNativeCurrencyPrice;
+        uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
         require(gasOracle.computeGasCost(dstChainId, gasLimit) == expected, "gasOracle.computeGasCost(...) != expected");
     }
 }

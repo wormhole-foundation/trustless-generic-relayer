@@ -9,6 +9,9 @@ import "../contracts/interfaces/IGasOracle.sol";
 import {Setup as WormholeSetup} from "../wormhole/ethereum/contracts/Setup.sol";
 import {Implementation as WormholeImplementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
+import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
+
+import {WormholeSimulator} from "./WormholeSimulator.sol";
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
 import {MockForwardingIntegration} from "../contracts/mock/MockForwardingIntegration.sol";
@@ -21,7 +24,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
     using BytesLib for bytes;
 
     uint16 constant SOURCE_CHAIN_ID = 2;
-    uint16 constant TARGET_CHAIN_ID = 4;
+    uint16 constant TARGET_CHAIN_ID = 2;
     uint16 MAX_UINT16_VALUE = 65535;
     uint96 MAX_UINT96_VALUE = 79228162514264337593543950335;
 
@@ -43,7 +46,8 @@ contract TestCoreRelayer is CoreRelayer, Test {
         address refundAddress;
     }
 
-    function setUpCoreRelayer(uint32 evmGasOverhead) internal returns (Wormhole wormhole, GasOracle gasOracle) {
+    function setUpCoreRelayer(uint32 evmGasOverhead) internal returns (IWormhole wormholeContract, GasOracle gasOracle, WormholeSimulator wormholeSimulator ) {
+        
         // deploy Setup
         WormholeSetup setup = new WormholeSetup();
 
@@ -55,7 +59,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         guardians[0] = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
 
         // deploy Wormhole
-        wormhole = new Wormhole(
+        Wormhole wormhole = new Wormhole(
             address(setup),
             abi.encodeWithSelector(
                 bytes4(keccak256("setup(address,address[],uint16,uint16,bytes32,uint256)")),
@@ -68,6 +72,15 @@ contract TestCoreRelayer is CoreRelayer, Test {
             )
         );
 
+        // replace Wormhole with the Wormhole Simulator contract (giving access to some nice helper methods for signing)
+        wormholeSimulator = new WormholeSimulator(
+            address(wormhole),
+            uint256(0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0)
+        );
+
+        wormholeContract = IWormhole(wormholeSimulator.wormhole());
+
+        
         // deploy the gasOracle and set price
         gasOracle = new GasOracle(address(wormhole));
 
@@ -78,14 +91,12 @@ contract TestCoreRelayer is CoreRelayer, Test {
         setWormhole(address(wormhole));
         setGasOracle(address(gasOracle));
         setEvmDeliverGasOverhead(evmGasOverhead);
+
+        this.registerChain(SOURCE_CHAIN_ID, bytes32(uint256(uint160(address(this)))));
     }
 
-    function setUpForward(Wormhole wormhole, CoreRelayer coreRelayer) internal returns (IWormholeReceiver forwardingContract) {
-        forwardingContract = new MockForwardingIntegration(address(wormhole), address(coreRelayer));
-    }
-
-    function setUpDelivery(Wormhole wormhole, CoreRelayer coreRelayer) internal returns (IWormholeReceiver deliveryContract) {
-        deliveryContract = new MockRelayerIntegration(address(wormhole), address(coreRelayer));
+    function setUpForward(address wormhole, CoreRelayer coreRelayer) internal returns (IWormholeReceiver forwardingContract) {
+        forwardingContract = new MockForwardingIntegration(wormhole, address(coreRelayer));
     }
 
     function testSetupInitialState(
@@ -118,39 +129,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         require(evmDeliverGasOverhead() == evmGasOverhead_, "evmDeliverGasOverhead() != expected");
     }
 
-    function parseWormholeEventLogs(Vm.Log memory log) public pure returns (IWormhole.VM memory vm) {
-        uint256 index = 0;
-
-        // emitterAddress
-        vm.emitterAddress = bytes32(log.topics[1]);
-
-        // sequence
-        vm.sequence = log.data.toUint64(index + 32 - 8);
-        index += 32;
-
-        // nonce
-        vm.nonce = log.data.toUint32(index + 32 - 4);
-        index += 32;
-
-        // skip random bytes
-        index += 32;
-
-        // consistency level
-        vm.consistencyLevel = log.data.toUint8(index + 32 - 1);
-        index += 32;
-
-        // length of payload
-        uint256 payloadLen = log.data.toUint256(index);
-        index += 32;
-
-        vm.payload = log.data.slice(index, payloadLen);
-        index += payloadLen;
-
-        // trailing bytes (due to 32 byte slot overlap)
-        index += log.data.length - index;
-
-        require(index == log.data.length, "failed to parse wormhole message");
-    }
 
     function verifyRelayerMessagePayload(bytes memory payload, DeliveryInstructionsContainer memory container) public {
         // confirm emitted payload
@@ -223,7 +201,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         standardAssume(gasParams, batchParams);
 
         // initialize all contracts
-        (Wormhole wormhole, GasOracle gasOracle) = setUpCoreRelayer(gasParams.evmGasOverhead);
+        (IWormhole wormhole, GasOracle gasOracle, ) = setUpCoreRelayer(gasParams.evmGasOverhead);
 
         // set gasOracle prices
         gasOracle.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
@@ -231,7 +209,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         // estimate the cost based on the intialized values
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+        uint256 wormholeFee = wormhole.messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -272,18 +250,22 @@ contract TestCoreRelayer is CoreRelayer, Test {
     // when calling `deliver` on the target chain.
     function testRelayParametersDeserialization(GasParameters memory gasParams, VMParams memory batchParams) public {
         standardAssume(gasParams, batchParams);
-
+        
         // initialize all contracts
-        (Wormhole wormhole, GasOracle gasOracle) = setUpCoreRelayer(gasParams.evmGasOverhead);
+        (IWormhole wormhole, GasOracle gasOracle,) = setUpCoreRelayer(gasParams.evmGasOverhead);
+        
 
         // set gasOracle prices
         gasOracle.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
-
+        
+        
         // estimate the cost based on the intialized values
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
 
+        uint256 wormholeFee = wormhole.messageFee();
+        
+        
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
@@ -293,14 +275,13 @@ contract TestCoreRelayer is CoreRelayer, Test {
             gasParams.targetGasLimit,
             gasEstimate
         );
-
         // deserialize the relayParameters
         RelayParameters memory decodedRelayParams = decodeRelayParameters(encodedRelayParameters);
-
         // confirm the values were parsed correctly
         assertEq(uint8(1), decodedRelayParams.version);
         assertEq(gasParams.targetGasLimit, decodedRelayParams.deliveryGasLimit);
         assertEq(gasEstimate, decodedRelayParams.nativePayment);
+        
     }
 
     function testRelayParametersDeserializationFail(GasParameters memory gasParams, VMParams memory batchParams)
@@ -309,7 +290,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         standardAssume(gasParams, batchParams);
 
         // initialize all contracts
-        (Wormhole wormhole, GasOracle gasOracle) = setUpCoreRelayer(gasParams.evmGasOverhead);
+        (IWormhole wormhole, GasOracle gasOracle,) = setUpCoreRelayer(gasParams.evmGasOverhead);
 
         // set gasOracle prices
         gasOracle.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
@@ -317,7 +298,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         // estimate the cost based on the intialized values
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+        uint256 wormholeFee = wormhole.messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -345,7 +326,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         standardAssume(gasParams);
 
         // initialize all contract
-        (Wormhole wormhole, GasOracle gasOracle) = setUpCoreRelayer(gasParams.evmGasOverhead);
+        (IWormhole wormhole, GasOracle gasOracle,) = setUpCoreRelayer(gasParams.evmGasOverhead);
 
         // set gasOracle prices
         gasOracle.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
@@ -358,7 +339,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         uint256 expectedGasEstimate = (
             gasOracle.computeGasCost(
                 TARGET_CHAIN_ID, uint256(gasParams.targetGasLimit) + uint256(gasParams.evmGasOverhead)
-            ) + IWormhole(address(wormhole)).messageFee()
+            ) + wormhole.messageFee()
         );
 
         // confirm gas estimate
@@ -367,61 +348,54 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
     // This test confirms that the `send` method generates the correct delivery Instructions payload
     // to be delivered on the target chain.
-    function testSend(GasParameters memory gasParams, VMParams memory batchParams) public {
+    function testSend(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
         standardAssume(gasParams, batchParams);
 
+       vm.assume(gasParams.targetGasLimit >= 200000);
         // initialize all contracts
-        (Wormhole wormhole, GasOracle gasOracle) = setUpCoreRelayer(gasParams.evmGasOverhead);
+        (IWormhole wormhole, GasOracle gasOracle, WormholeSimulator wormholeSimulator) = setUpCoreRelayer(gasParams.evmGasOverhead);
 
         // set gasOracle prices
         gasOracle.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
+        MockRelayerIntegration deliveryContract = new MockRelayerIntegration(address(wormhole), address(this));
+
         // estimate the cost based on the intialized values
         uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
+        uint256 wormholeFee = wormhole.messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
-        // format the relayParameters
-        bytes memory relayParameters = abi.encodePacked(
-            uint8(1), // version
-            gasParams.targetGasLimit,
-            gasEstimate
-        );
-
-        // create delivery parameters struct
-        DeliveryInstructions memory deliveryParams = DeliveryInstructions({
-            targetChain: TARGET_CHAIN_ID,
-            targetAddress: bytes32(uint256(uint160(batchParams.targetAddress))),
-            refundAddress: bytes32(uint256(uint160(batchParams.refundAddress))),
-            relayParameters: relayParameters
-        });
-
-        DeliveryInstructions[] memory array = new DeliveryInstructions[](1);
-        array[0] = deliveryParams;
-        DeliveryInstructionsContainer memory container =  DeliveryInstructionsContainer(1, array);
-
         // start listening to events
         vm.recordLogs();
 
+        // send an arbitrary wormhole message to be relayed
+        wormhole.publishMessage{value: wormholeFee}(batchParams.nonce, message, batchParams.consistencyLevel);
+
         // call the send function on the relayer contract
-        uint64 sequence = 0; //this.send{value: gasEstimate + wormholeFee}(container, batchParams.nonce, batchParams.consistencyLevel);
+
+        this.send{value: gasEstimate + wormholeFee + gasOracle.computeGasCost(TARGET_CHAIN_ID, 1)}(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(deliveryContract)))), bytes32(uint256(uint160(batchParams.refundAddress))), gasEstimate, batchParams.nonce, batchParams.consistencyLevel);
 
         // record the wormhole message emitted by the relayer contract
         Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes memory signedBatchVAA = wormholeSimulator.fetchSignedBatchVAAFromLogs(wormholeSimulator.fetchWormholeMessageFromLog(entries, 2), batchParams.nonce, wormhole.chainId(), address(this));
 
-        // parse the event logs into a VM struct and confirm the data emitted by the contract
-        IWormhole.VM memory deliveryVM = parseWormholeEventLogs(entries[0]);
+        TargetDeliveryParameters memory deliveryParams = TargetDeliveryParameters({
+            encodedVM: signedBatchVAA,
+            deliveryIndex: 1,
+            multisendIndex: 0,
+            targetCallGasOverride: 0
+        });
 
-        // confirm the values emitted by the contract
-        assertEq(deliveryVM.emitterAddress, bytes32(uint256(uint160(address(this)))));
-        assertEq(deliveryVM.sequence, sequence);
-        assertEq(deliveryVM.nonce, batchParams.nonce);
+        this.deliver{value: gasEstimate + gasOracle.computeGasCost(TARGET_CHAIN_ID, 1)}(deliveryParams);
 
-        // verify the payload in separate function to avoid stack-too-deep error
-        verifyRelayerMessagePayload(deliveryVM.payload, container);
+        bytes memory signedMsg = wormholeSimulator.fetchSignedMessageFromLogs(entries[0], wormhole.chainId(), address(this));
+
+
+        assertTrue(keccak256(deliveryContract.getPayload(keccak256(abi.encodePacked(keccak256(signedMsg.slice(72, signedMsg.length-72)))))) == keccak256(message));
+
     }
 
     /**

@@ -8,6 +8,9 @@ import "../interfaces/IWormhole.sol";
 import "../interfaces/ICoreRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
 
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+
 contract MockRelayerIntegration is IWormholeReceiver {
     using BytesLib for bytes;
 
@@ -132,7 +135,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         require(valid, reason);
 
         bytes memory payload = parsed.payload;
-        require(payload.toUint16(0) == parsed.emitterChainId, "source chain != emitterChainId");
+        require(wormhole.chainId() == parsed.emitterChainId, "source chain != emitterChainId");
         require(uint256(payload.toUint8(2)) == numObservations, "incorrect number of observations");
 
         verifiedPayloads[parsed.hash] = payload;
@@ -158,18 +161,18 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
     function receiveWormholeMessages(bytes[] memory wormholeObservations) public override {
         // loop through the array of wormhole observations from the batch and store each payload
-        uint256 numObservations = wormholeObservations.length - 1;
+        uint256 numObservations = wormholeObservations.length;
 
-        EmitterSequence[] memory emitterSequences =
-            parseVerifyingMessage(wormholeObservations[numObservations], numObservations);
+        //EmitterSequence[] memory emitterSequences =
+        //    parseVerifyingMessage(wormholeObservations[numObservations], numObservations);
 
         for (uint256 i = 0; i < numObservations;) {
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
 
-            require(emitterSequences[i].emitter == parsed.emitterAddress, "verifying emitter != emitterAddress");
-            require(emitterSequences[i].sequence == parsed.sequence, "verifying sequence != sequence");
+         //   require(emitterSequences[i].emitter == parsed.emitterAddress, "verifying emitter != emitterAddress");
+          //  require(emitterSequences[i].sequence == parsed.sequence, "verifying sequence != sequence");
 
             // save the payload from each wormhole message
             verifiedPayloads[parsed.hash] = parsed.payload;

@@ -23,7 +23,11 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function estimateEvmGas(uint16 targetChain, uint256 costEstimate) public view returns (uint32 gasAmount) {
         //TODO is this division safe?
-        return 0; //((costEstimate - wormhole().messageFee()) / gasOracle().computeGasCost(targetChain, 1)) - evmDeliverGasOverhead();
+        uint256 estimatePlusOverhead = (costEstimate - wormhole().messageFee()) / gasOracle().computeGasCost(targetChain, 1);
+        if(estimatePlusOverhead >= evmDeliverGasOverhead()) {
+            return uint32(estimatePlusOverhead - evmDeliverGasOverhead());
+        }
+        return uint32(0);
     }
 
     function forward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumGasBudget, uint32 nonce, uint8 consistencyLevel) public payable {
@@ -115,9 +119,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint256 deliveryCostEstimate =
                 estimateEvmCost(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
             totalFees = totalFees + deliveryCostEstimate;
-
             require(
-                relayParams.nativePayment <= deliveryCostEstimate && funds >= totalFees,
+                relayParams.nativePayment >= deliveryCostEstimate && funds >= totalFees,
                 "insufficient fee paid for delivery request"
             );
 
@@ -355,6 +358,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // todo: confirm unit is in wei
         // todo: change deliverGasLimit to be 2 separate fields so that if relayer overrides it, it does not end up
         //       giving too large a refund
+
         stackTooDeep.gasBudgetInWei = gasOracle().computeGasCost(chainId(), internalParams.relayParams.deliveryGasLimit);
         require(
             msg.value >= wormhole.messageFee() + stackTooDeep.gasBudgetInWei,
