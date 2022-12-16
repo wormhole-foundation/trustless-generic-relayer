@@ -16,7 +16,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * in order to request delivery of a batch to chainId with gasLimit.
      */
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
-        return (gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead(chainId)) + wormhole().messageFee());
+        return gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead(chainId)) + wormholeFee(chainId);
     }
 
     /**
@@ -25,12 +25,16 @@ contract CoreRelayer is CoreRelayerGovernance {
     * amount of gas on the target chain this compute budget corresponds to.
     */
     function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
-        if(computeBudget <= (wormhole().messageFee() + evmDeliverGasOverhead(targetChain))){
+        if(computeBudget <= wormholeFee(targetChain)) {
             return 0;
         } else {
-            uint256 remainder = computeBudget - (wormhole().messageFee() + evmDeliverGasOverhead(targetChain));
+            uint256 remainder = computeBudget - wormholeFee(targetChain);
             //TODO is this division safe?
-            return uint32(remainder / gasOracle().computeGasCost(targetChain, 1));
+            uint256 gas = (remainder / gasOracle().computeGasCost(targetChain, 1));
+            if(gas <= evmDeliverGasOverhead(targetChain)) {
+                return 0;
+            }
+            return uint32(gas - evmDeliverGasOverhead(targetChain));
         }
     }
 
@@ -123,6 +127,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint256 deliveryCostEstimate =
                 quoteEvmDeliveryPrice(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
             totalFees = totalFees + deliveryCostEstimate;
+
             require(
                 relayParams.nativePayment >= deliveryCostEstimate && funds >= totalFees,
                 "insufficient fee paid for delivery request"

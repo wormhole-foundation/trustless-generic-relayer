@@ -208,13 +208,8 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-<<<<<<< HEAD
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = wormhole.messageFee();
-=======
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
->>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
+        uint256 wormholeFee = wormhole.messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -266,13 +261,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         
         
         // estimate the cost based on the intialized values
-<<<<<<< HEAD
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-=======
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
->>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
-
         uint256 wormholeFee = wormhole.messageFee();
         
         
@@ -307,13 +296,8 @@ contract TestCoreRelayer is CoreRelayer, Test {
         gasOracle.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         // estimate the cost based on the intialized values
-<<<<<<< HEAD
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = wormhole.messageFee();
-=======
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
->>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
+        uint256 wormholeFee = wormhole.messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -377,16 +361,12 @@ contract TestCoreRelayer is CoreRelayer, Test {
         MockRelayerIntegration deliveryContract = new MockRelayerIntegration(address(wormhole), address(this));
 
         // estimate the cost based on the intialized values
-<<<<<<< HEAD
-        uint256 gasEstimate = estimateEvmCost(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = wormhole.messageFee();
-=======
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
-        uint256 wormholeFee = IWormhole(address(wormhole)).messageFee();
->>>>>>> fc3f5a6 (refactoring + cleaned up some TODOs)
+        uint256 wormholeFee = wormhole.messageFee();
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
+        vm.assume(gasEstimate > 0);
 
         // start listening to events
         vm.recordLogs();
@@ -396,7 +376,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         // call the send function on the relayer contract
 
-        this.send{value: gasEstimate + wormholeFee + gasOracle.computeGasCost(TARGET_CHAIN_ID, 1)}(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(deliveryContract)))), bytes32(uint256(uint160(batchParams.refundAddress))), gasEstimate, batchParams.nonce, batchParams.consistencyLevel);
+        this.send{value: gasEstimate + wormholeFee}(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(deliveryContract)))), bytes32(uint256(uint160(batchParams.refundAddress))), gasEstimate, batchParams.nonce, batchParams.consistencyLevel);
 
         // record the wormhole message emitted by the relayer contract
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -409,7 +389,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
             targetCallGasOverride: 0
         });
 
-        this.deliver{value: gasEstimate + gasOracle.computeGasCost(TARGET_CHAIN_ID, 1)}(deliveryParams);
+        this.deliver{value: gasEstimate + wormholeFee}(deliveryParams);
 
         bytes memory signedMsg = wormholeSimulator.fetchSignedMessageFromLogs(entries[0], wormhole.chainId(), address(this));
 

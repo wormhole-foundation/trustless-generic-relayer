@@ -42,6 +42,12 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
 
     function setEvmDeliverGasOverhead(uint32 gasOverhead) internal {
         _state.evmDeliverGasOverhead = gasOverhead;
+        // take target chain as parameter
+    }
+
+    function setWormholeFee(uint32 wormholeFee) internal {
+        _state.wormholeFee = wormholeFee;
+        // take target chain as parameter
     }
 
     function setForwardingInstructions(CoreRelayerStructs.ForwardingInstructions memory instructions) internal {
