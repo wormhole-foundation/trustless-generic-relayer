@@ -26,8 +26,8 @@ lib/forge-std:
 wormhole_dependencies: wormhole/ethereum/build
 
 wormhole/ethereum/build:
-	git clone --depth 1 --branch scratch/batch_vaa_integration --single-branch https://github.com/certusone/wormhole.git
-	cd wormhole/ethereum && npm ci && npm run build && make .env
+	git clone --depth 1 --branch feat/batch_vaa_alternative --single-branch https://github.com/certusone/wormhole.git
+	cd wormhole/ethereum && npm ci && npm run build && make .env4
 
 dependencies: node_modules forge_dependencies wormhole_dependencies
 
@@ -43,7 +43,7 @@ test: unit-test integration-test
 
 .PHONY: unit-test
 unit-test: dependencies build
-	forge test
+	forge test -vvv
 
 .PHONY: integration-test
 integration-test: dependencies build

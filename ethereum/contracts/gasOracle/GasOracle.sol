@@ -28,7 +28,7 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
         uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
 
-        gasAmount = (quote * srcNativeCurrencyPrice / gasPrice(targetChainId) * dstNativeCurrencyPrice); 
+        gasAmount = (quote * srcNativeCurrencyPrice / (gasPrice(targetChainId) * dstNativeCurrencyPrice)); 
     }
 
     // relevant for chains that have dynamic execution pricing (e.g. Ethereum)
@@ -44,7 +44,7 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
         require(dstNativeCurrencyPrice > 0, "dstNativeCurrencyPrice == 0");
 
-        quote = (dstNativeCurrencyPrice * transactionFee) / srcNativeCurrencyPrice;
+        quote = (dstNativeCurrencyPrice * transactionFee + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
     }
 
     function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)

@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 
 import "./CoreRelayerStructs.sol";
 
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+
 contract CoreRelayerStorage {
     struct Provider {
         uint16 chainId;
@@ -23,8 +26,10 @@ contract CoreRelayerStorage {
         address pendingOwner;
         // address of the gas oracle on this chain
         address gasOracle;
-        // EVM gas overhead for interacting with the relayer contracts
+        // EVM gas overhead for interacting with the relayer contracts; should be different for each chain
         uint32 evmDeliverGasOverhead;
+        // Wormhole message fee; should be different for each chain
+        uint32 wormholeFee;
         // Request which will be forwarded from the current delivery.
         CoreRelayerStructs.ForwardingInstructions forwardingInstructions;
         // mapping of initialized implementations
