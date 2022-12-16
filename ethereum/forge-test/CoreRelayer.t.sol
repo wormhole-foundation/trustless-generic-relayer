@@ -211,6 +211,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
 
+
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
@@ -263,8 +264,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // estimate the cost based on the intialized values
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
-        
-        
+
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
 
@@ -298,6 +298,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // estimate the cost based on the intialized values
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
+
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
@@ -363,6 +364,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // estimate the cost based on the intialized values
         uint256 gasEstimate = quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
         uint256 wormholeFee = wormhole.messageFee();
+
 
         // the balance of this contract is the max Uint96
         vm.assume(gasEstimate < MAX_UINT96_VALUE - wormholeFee);
