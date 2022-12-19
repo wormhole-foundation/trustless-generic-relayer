@@ -13,6 +13,10 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         uint128 nativeCurrencyPrice;
     }
 
+    //TODO implement new IGasOracle interface
+    //TODO allow relayer addresses to be updated by owner
+    //TODO allow contract upgrade by owner, similar to current core relayer impl
+
     constructor(address wormholeAddress) {
         setOwner(_msgSender());
 

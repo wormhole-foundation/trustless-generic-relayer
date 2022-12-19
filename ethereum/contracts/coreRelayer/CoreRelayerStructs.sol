@@ -6,11 +6,12 @@ pragma solidity ^0.8.0;
 import "../interfaces/IWormhole.sol";
 
 contract CoreRelayerStructs {
-    struct AllowedEmitterSequence {
-        // wormhole emitter address
-        bytes32 emitterAddress;
-        // wormhole message sequence
-        uint64 sequence;
+    //This first group of structs are external facing API objects,
+    //which should be considered untrusted and unmodifiable
+
+    struct DeliveryRequestContainer {
+        uint8 payloadID; // payloadID = 1
+        DeliveryRequest[] requests;
     }
 
     struct TargetDeliveryParameters {
@@ -22,16 +23,75 @@ contract CoreRelayerStructs {
         uint32 targetCallGasOverride;
     }
 
-    struct DeliveryInstructionsContainer {
-        uint8 payloadID; // payloadID = 1
-        DeliveryInstructions[] instructions;
+    struct TargetDeliveryParametersSingle {
+        // encoded batchVM to be delivered on the target chain
+        bytes[] encodedVMs;
+        // Index of the delivery VM in a batch
+        uint8 deliveryIndex;
+        // Index of the target chain inside the delivery VM
+        uint8 multisendIndex;
+        // Optional gasOverride which can be supplied by the relayer
+        uint32 targetCallGasOverride;
     }
 
-    struct DeliveryInstructions {
+    struct DeliveryRequest {
+        uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
-        uint16 targetChain;
+        uint256 computeBudget;
+        uint256 applicationBudget;
         bytes relayParameters;
+    }
+
+    struct RelayParameters {
+        uint8 version; //1
+        bytes32 oracleAddressOverride;
+    }
+
+    //Below this are internal structs
+
+
+
+
+    //Wire Types
+    struct DeliveryPayload {
+        uint8 payloadId; //1
+        uint8 arrayLength;
+        DeliveryInstruction[] instructions;
+    }
+
+    struct DeliveryInstruction {
+        uint16 targetChain;
+        bytes32 targetAddress;
+        bytes32 refundAddress;
+        uint256 computeBudgetTarget;
+        uint256 applicationBudgetTarget;
+        uint256 sourceReward;
+        uint16 sourceChain;
+        uint32 executionParametersLength;
+        bytes executionParameters; //Has the gas limit to execute with
+    }
+
+    struct ExecutionParameters {
+        uint8 version;
+        uint32 gasLimit;
+        bytes32 relayerAddress;
+    }
+
+    //End Wire Types
+
+
+
+
+
+
+    //Internal usage structs
+
+    struct AllowedEmitterSequence {
+        // wormhole emitter address
+        bytes32 emitterAddress;
+        // wormhole message sequence
+        uint64 sequence;
     }
 
     struct ForwardingInstructions {
@@ -44,15 +104,15 @@ contract CoreRelayerStructs {
 
     struct InternalDeliveryParameters {
         IWormhole.VM2 batchVM;
-        DeliveryInstructions deliveryInstructions;
+        DeliveryInstruction internalInstruction;
         AllowedEmitterSequence deliveryId;
-        RelayParameters relayParams;
         uint8 deliveryIndex;
-        uint16 deliveryAttempts;
+        uint16 deliveryAttempts; //TODO unused?
         uint16 fromChain;
+        uint32 deliveryGasLimit;
     }
 
-    // TODO: WIP
+    // TODO: Add single VAA variant
     struct RedeliveryInstructions {
         uint8 payloadID; // payloadID = 3;
         // Hash of the batch to re-deliver
@@ -73,18 +133,6 @@ contract CoreRelayerStructs {
         uint64 sequence;
         uint16 deliveryCount;
         bool deliverySuccess;
-    }
-
-    //TODO this struct disagrees with the encode function
-    struct RelayParameters {
-        // version = 1
-        uint8 version;
-        // gasLimit to call the receiving contract with
-        uint32 deliveryGasLimit;
-        // maximum batch size
-        uint8 maximumBatchSize;
-        // the payment made on the source chain, which is later paid to the relayer
-        uint256 nativePayment;
     }
 
     // TODO: WIP

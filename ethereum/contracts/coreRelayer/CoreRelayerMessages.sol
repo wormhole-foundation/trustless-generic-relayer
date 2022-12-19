@@ -113,33 +113,34 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         return DeliveryInstructionsContainer(payloadId, instructionArray);
     }
 
+    //TODO update to new relayer params struct
     /// @dev `decodeRelayParameters` parses encoded relay parameters into the RelayParameters struct
-    function decodeRelayParameters(bytes memory encoded) public pure returns (RelayParameters memory relayParams) {
-        uint256 index = 0;
+    // function decodeRelayParameters(bytes memory encoded) public pure returns (RelayParameters memory relayParams) {
+    //     uint256 index = 0;
 
-        // version
-        relayParams.version = encoded.toUint8(index);
-        index += 1;
-        require(relayParams.version == 1, "invalid version");
+    //     // version
+    //     relayParams.version = encoded.toUint8(index);
+    //     index += 1;
+    //     require(relayParams.version == 1, "invalid version");
 
-        // gas limit
-        relayParams.deliveryGasLimit = encoded.toUint32(index);
-        index += 4;
+    //     // gas limit
+    //     relayParams.deliveryGasLimit = encoded.toUint32(index);
+    //     index += 4;
 
-        // payment made on the source chain
-        relayParams.nativePayment = encoded.toUint256(index); //TODO this is a trusted field accepted from the integrator
-        index += 32;
+    //     // payment made on the source chain
+    //     relayParams.nativePayment = encoded.toUint256(index); //TODO this is a trusted field accepted from the integrator
+    //     index += 32;
 
-        require(index == encoded.length, "invalid relay parameters");
-    }
+    //     require(index == encoded.length, "invalid relay parameters");
+    // }
 
-    function encodeRelayParameters(uint32 deliveryGasLimit, uint256 nativePayment ) public pure returns (bytes memory relayParams) {
-        relayParams = abi.encodePacked(
-            uint8(1), // version
-            deliveryGasLimit,
-            nativePayment //TODO trusted field accepted from the integrator
-        );
-    }
+    // function encodeRelayParameters(uint32 deliveryGasLimit, uint256 nativePayment ) public pure returns (bytes memory relayParams) {
+    //     relayParams = abi.encodePacked(
+    //         uint8(1), // version
+    //         deliveryGasLimit,
+    //         nativePayment //TODO trusted field accepted from the integrator
+    //     );
+    // }
 
     // TODO: WIP
     function parseDeliveryStatus(bytes memory encoded) internal pure returns (DeliveryStatus memory ds) {
@@ -224,5 +225,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 32;
 
         require(encoded.length == index, "invalid RewardPayout");
+    }
+
+    //TODO this
+    function decodeDeliveryPayload(bytes memory encoded) internal pure returns (DeliveryPayload memory deliveryPayload) {
+
     }
 }

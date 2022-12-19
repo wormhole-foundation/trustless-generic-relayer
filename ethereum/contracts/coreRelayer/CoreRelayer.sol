@@ -38,11 +38,16 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function forward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel) public payable {
+    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
+        //TODO requires a new function on the gas oracle
+        return 0;
+    }
+
+    function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(quoteTargetEvmGas(targetChain,minimumComputeBudget), minimumComputeBudget));
+        DeliveryInstructions memory instruction = DeliveryInstructions(targetChain, targetAddress, refundAddress, minimumComputeBudget, nativeBudget, relayParameters);
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
@@ -79,20 +84,14 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingInstructions.rolloverChain);
 
         //calc how much budget is used by chains other than the rollover chain
-        RelayParameters memory rolloverChainRelayParams =
-                decodeRelayParameters(container.instructions[rolloverInstructionIndex].relayParameters);
-        uint256 rolloverChainCostEstimate =
-            quoteEvmDeliveryPrice(container.instructions[rolloverInstructionIndex].targetChain, rolloverChainRelayParams.deliveryGasLimit);
+        uint256 rolloverChainCostEstimate = container.instructions[rolloverInstructionIndex].computeBudget + container.instructions[rolloverInstructionIndex].nativeBudget;
         uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate;
-        uint256 rolloverBudget = refundAmount - nonrolloverBudget;
-
-        //calc how much gas the remaining budget is worth on the rollover chain
-        uint32 rolloverGasAmount = uint32(gasOracle().computeGasValue(forwardingInstructions.rolloverChain, rolloverBudget));
+        uint256 rolloverBudget = refundAmount - nonrolloverBudget - container.instructions[rolloverInstructionIndex].nativeBudget;
 
         //TODO deduct gas cost of this operation from the rollover amount?
 
         //overwrite the gas budget on the rollover chain to the remaining budget amount
-        container.instructions[rolloverInstructionIndex].relayParameters = encodeRelayParameters(rolloverGasAmount, rolloverBudget);
+        container.instructions[rolloverInstructionIndex].computeBudget = rolloverBudget;
 
         //emit delivery request message
         require(forwardingInstructions.nonce > 0, "nonce must be > 0");
@@ -116,21 +115,16 @@ contract CoreRelayer is CoreRelayerGovernance {
     function sufficientFundsHelper(DeliveryInstructionsContainer memory deliveryInstructions, uint256 funds) internal view returns (uint256 totalFees) {
         totalFees = wormhole().messageFee();
         for (uint256 i = 0; i < deliveryInstructions.instructions.length; i++) {
-            // decode the relay parameters
-            RelayParameters memory relayParams =
-                decodeRelayParameters(deliveryInstructions.instructions[i].relayParameters);
+            uint256 currentOverhead = evmDeliverGasOverhead(deliveryInstructions.instructions[i].targetChain);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
+            require(deliveryInstructions.instructions[i].computeBudget > currentOverhead, "Insufficient compute budget specified to cover required overheads");
 
-            // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
-            uint256 deliveryCostEstimate =
-                quoteEvmDeliveryPrice(deliveryInstructions.instructions[i].targetChain, relayParams.deliveryGasLimit);
-            totalFees = totalFees + deliveryCostEstimate;
+            totalFees = totalFees + deliveryInstructions.instructions[i].computeBudget + deliveryInstructions.instructions[i].nativeBudget;
 
             require(
-                relayParams.nativePayment >= deliveryCostEstimate && funds >= totalFees,
-                "insufficient fee paid for delivery request"
+                funds >= totalFees,
+                "Insufficient funds were provided to cover the delivery fees."
             );
 
             // sanity check a few of the values before composing the DeliveryInstructions
@@ -138,11 +132,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function send(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+    function requestDelivery(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable returns (uint64 sequence) {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryInstructions memory instruction = DeliveryInstructions(targetAddress, refundAddress, targetChain, encodeRelayParameters(quoteTargetEvmGas(targetChain, computeBudget), computeBudget));
+        DeliveryInstructions memory instruction = DeliveryInstructions(targetChain, targetAddress, refundAddress, computeBudget, nativeBudget, relayParameters);
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
@@ -180,58 +174,60 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        IWormhole wormhole = wormhole();
-        (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole.parseAndVerifyVM(deliveryStatusVm);
+        // IWormhole wormhole = wormhole();
+        // (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole.parseAndVerifyVM(deliveryStatusVm);
 
-        require(valid, reason);
-        require(verifyRelayerVM(vm), "invalid emitter");
+        // require(valid, reason);
+        // require(verifyRelayerVM(vm), "invalid emitter");
 
-        DeliveryStatus memory status = parseDeliveryStatus(vm.payload);
+        // DeliveryStatus memory status = parseDeliveryStatus(vm.payload);
 
-        require(status.deliverySuccess == false, "delivery already succeeded");
+        // require(status.deliverySuccess == false, "delivery already succeeded");
 
-        bytes32 deliveryHash = keccak256(abi.encodePacked(status.batchHash, status.emitterAddress, status.sequence));
-        uint256 redeliveryAttempt = redeliveryAttemptCount(deliveryHash);
-        require(status.deliveryCount - 1 == redeliveryAttempt, "old delivery status receipt presented");
-        require(status.deliveryCount <= type(uint16).max, "too many retries");
-        incrementRedeliveryAttempt(deliveryHash);
+        // bytes32 deliveryHash = keccak256(abi.encodePacked(status.batchHash, status.emitterAddress, status.sequence));
+        // uint256 redeliveryAttempt = redeliveryAttemptCount(deliveryHash);
+        // require(status.deliveryCount - 1 == redeliveryAttempt, "old delivery status receipt presented");
+        // require(status.deliveryCount <= type(uint16).max, "too many retries");
+        // incrementRedeliveryAttempt(deliveryHash);
 
-        RelayParameters memory relayParams = decodeRelayParameters(newRelayerParams);
+        // RelayParameters memory relayParams = decodeRelayParameters(newRelayerParams);
 
-        // estimate relay cost and check to see if the user sent enough eth to cover the relay
-        collectRelayerParameterPayment(relayParams, vm.emitterChainId, relayParams.deliveryGasLimit);
+        // // estimate relay cost and check to see if the user sent enough eth to cover the relay
+        // collectRelayerParameterPayment(relayParams, vm.emitterChainId, relayParams.deliveryGasLimit);
 
-        RedeliveryInstructions memory redeliveryInstructions = RedeliveryInstructions({
-            payloadID: 3,
-            batchHash: status.batchHash,
-            emitterAddress: status.emitterAddress,
-            sequence: status.sequence,
-            deliveryCount: status.deliveryCount,
-            relayParameters: newRelayerParams
-        });
+        // RedeliveryInstructions memory redeliveryInstructions = RedeliveryInstructions({
+        //     payloadID: 3,
+        //     batchHash: status.batchHash,
+        //     emitterAddress: status.emitterAddress,
+        //     sequence: status.sequence,
+        //     deliveryCount: status.deliveryCount,
+        //     relayParameters: newRelayerParams
+        // });
 
-        // emit delivery status message and set nonce to zero to opt out of batching
-        sequence = wormhole.publishMessage{value: msg.value}(
-            0,
-            encodeRedeliveryInstructions(redeliveryInstructions),
-            consistencyLevel() //TODO user configurable?
-        );
+        // // emit delivery status message and set nonce to zero to opt out of batching
+        // sequence = wormhole.publishMessage{value: msg.value}(
+        //     0,
+        //     encodeRedeliveryInstructions(redeliveryInstructions),
+        //     consistencyLevel() //TODO user configurable?
+        // );
+
+        return 0;
     }
 
     // TODO: WIP
-    function collectRelayerParameterPayment(
-        RelayParameters memory relayParams,
+    function collectRelayerPayment(
         uint16 targetChain,
-        uint32 targetGasLimit
+        uint256 computeBudget,
+        uint256 nativeBudget
     ) internal {
-        require(relayParams.deliveryGasLimit > 0, "invalid deliveryGasLimit in relayParameters");
-
-        // estimate the gas costs of the delivery, and confirm the user sent the right amount of gas
-        uint256 deliveryCostEstimate = quoteEvmDeliveryPrice(targetChain, targetGasLimit);
+        require(computeBudget > (evmDeliverGasOverhead(targetChain) + wormhole().messageFee()), "Insufficient compute budget!");
+        
+        //TODO also implement a cap on the compute budget.
+        require(nativeBudget < computeBudget, "Native budget cannot be more than the compute budget.");
 
         require(
-            relayParams.nativePayment == deliveryCostEstimate && msg.value == deliveryCostEstimate,
-            "insufficient fee specified in msg.value"
+            msg.value == (computeBudget + nativeBudget),
+            "Fee in msg.value does not cover the specified budget."
         );
     }
 
@@ -265,16 +261,16 @@ contract CoreRelayer is CoreRelayerGovernance {
             AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
-        internalParams.deliveryInstructions =
-            decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
+        internalParams.internalInstruction =
+            decodeDeliveryPayload(deliveryVM.payload).instructions[targetParams.multisendIndex];
 
-        // parse the relayParams
-        internalParams.relayParams = decodeRelayParameters(internalParams.deliveryInstructions.relayParameters);
+        //calc how much gas to put on the delivery
+        //TODO fix this to reflect the proper wire type
+        internalParams.deliveryGasLimit = internalParams.deliveryGasLimit;
 
         // override the target gas if requested by the relayer
-        // TODO necessary feature?
         if (targetParams.targetCallGasOverride > internalParams.relayParams.deliveryGasLimit) {
-            internalParams.relayParams.deliveryGasLimit = targetParams.targetCallGasOverride;
+            internalParams.deliveryGasLimit = targetParams.targetCallGasOverride;
         }
 
         // set the remaining values in the InternalDeliveryParameters struct
@@ -337,7 +333,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         internalParams.deliveryInstructions.relayParameters = redeliveryInstructions.relayParameters;
 
         // parse the new relayParams
-        internalParams.relayParams = decodeRelayParameters(redeliveryInstructions.relayParameters);
+        // internalParams.relayParams = decodeRelayParameters(redeliveryInstructions.relayParameters);
 
         // override the target gas if requested by the relayer
         if (targetParams.targetCallGasOverride > internalParams.relayParams.deliveryGasLimit) {
