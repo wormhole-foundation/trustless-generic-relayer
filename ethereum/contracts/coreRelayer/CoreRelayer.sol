@@ -16,7 +16,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * in order to request delivery of a batch to chainId with gasLimit.
      */
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
-        return gasOracle().quoteEvmDeliveryPrice(chainId, gasLimit);
+        nativePriceQuote = gasOracle().quoteEvmDeliveryPrice(chainId, gasLimit);
     }
 
     /**
@@ -25,12 +25,11 @@ contract CoreRelayer is CoreRelayerGovernance {
     * amount of gas on the target chain this compute budget corresponds to.
     */
     function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
-        return gasOracle().quoteTargetEvmGas(targetChain, computeBudget);
+        gasAmount = gasOracle().quoteTargetEvmGas(targetChain, computeBudget);
     }
 
     function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
-        //TODO requires a new function on the gas oracle
-        return 0;
+        targetAmount = gasOracle().assetConversionAmount(sourceChain, sourceAmount, targetChain);
     }
 
     function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
