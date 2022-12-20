@@ -26,7 +26,7 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
     }
 
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
-        nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee();
+        nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee(chainId);
     }
 
     function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
@@ -34,7 +34,7 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
             return 0;
         } else {
             uint256 remainder = computeBudget - wormholeFee(targetChain);
-            uint256 gas = (remainder / gasOracle().computeGasCost(targetChain, 1));
+            uint256 gas = (remainder / computeGasCost(targetChain, 1));
             if(gas <= deliverGasOverhead(targetChain)) {
                 return 0;
             }

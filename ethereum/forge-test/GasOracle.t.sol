@@ -11,20 +11,14 @@ import "forge-std/console.sol";
 contract TestGasOracle is Test {
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
 
-    Implementation internal wormhole;
     GasOracle internal gasOracle;
 
     function initializeGasOracle() internal {
-        wormhole = new Implementation();
-
-        // chainId, governanceChainId
-        vm.store(address(wormhole), bytes32(0), 0x0000000000000000000000000000000000000000000000000000000000010002);
-
-        gasOracle = new GasOracle(address(wormhole));
+   
+        gasOracle = new GasOracle(TEST_ORACLE_CHAIN_ID);
 
         require(gasOracle.owner() == address(this), "owner() != expected");
-        require(gasOracle.chainId() == wormhole.chainId(), "chainId() != expected");
-        require(address(gasOracle.wormhole()) == address(wormhole), "wormhole() != expected");
+        require(gasOracle.chainId() == TEST_ORACLE_CHAIN_ID, "chainId() != expected");
     }
 
     function testCannotUpdatePriceWithChainIdZero(uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) public {

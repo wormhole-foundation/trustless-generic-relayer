@@ -9,12 +9,9 @@ import "./GasOracleState.sol";
 
 contract GasOracleSetters is Context, GasOracleState {
     function setChainId(uint16 oracleChainId) internal {
-        _state.provider.chainId = oracleChainId;
+        _state.chainId = oracleChainId;
     }
 
-    function setWormhole(address wormhole) internal {
-        _state.provider.wormhole = payable(wormhole);
-    }
 
     function setOwner(address owner) internal {
         _state.owner = owner;
