@@ -14,8 +14,8 @@ import {
 import * as wh from "@certusone/wormhole-sdk";
 import { Logger } from "winston";
 import { assertBool } from "./utils";
-import { ChainId } from "@certusone/wormhole-sdk";
-import { DumpOptions } from "js-yaml";
+import {ChainId, ParsedVaaV2} from "@certusone/wormhole-sdk";
+import {parseDeliveryInstructions} from "./instructions.parser";
 
 let PLUGIN_NAME: string = "GenericRelayerPlugin";
 
@@ -28,6 +28,7 @@ export interface GenericRelayerPluginConfig {
 interface WorkflowPayload {
   vaa: string; // base64
   time: number;
+  parsedInstructions: string;
 }
 
 type RelayRequest = {
@@ -47,6 +48,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   readonly pluginName = GenericRelayerPlugin.pluginName;
   private static pluginConfig: GenericRelayerPluginConfig | undefined;
   pluginConfig: GenericRelayerPluginConfig;
+  private smartContractAddressesByChain: {[chainId: number]: string};
 
   static init(pluginConfig: any): (env: CommonEnv, logger: Logger) => Plugin {
     const pluginConfigParsed: GenericRelayerPluginConfig = {
@@ -70,6 +72,12 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     };
     this.shouldRest = this.pluginConfig.shouldRest;
     this.shouldSpy = this.pluginConfig.shouldSpy;
+    this.smartContractAddressesByChain = {};
+    if (this.pluginConfig.spyServiceFilters?.length) {
+      for (const filter of this.pluginConfig.spyServiceFilters) {
+        this.smartContractAddressesByChain[filter.chainId] = filter.emitterAddress;
+      }
+    }
   }
 
   getFilters(): ContractFilter[] {
@@ -84,15 +92,31 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   async consumeEvent(
     vaa: Buffer,
     stagingArea: { counter?: number }
-  ): Promise<{ workflowData: WorkflowPayload; nextStagingArea: StagingArea }> {
+  ): Promise<{ workflowData?: WorkflowPayload; nextStagingArea?: StagingArea } | null> {
     this.logger.debug("Parsing VAA...");
-    const parsed = wh.parseVaa(vaa);
+    const parsed = wh.parseVaa(vaa) as ParsedVaaV2;
+    //TODO figure out a way to filter for batch VAAs at the level of the spy
+    // deal only with batches
+    if (parsed.version != 2) {
+      return null;
+    }
+    // only process batch if there's a vaa inside from a generic relayer smart contract.
+    const emitterChain = parsed.observations[0].emitterChain;
+    let addr = this.smartContractAddressesByChain[emitterChain];
+    if (!addr) {
+      return null;
+    }
+
+    //see if one of the observations is from a core relayer contract
+    const relayerInstructions = parsed.observations.filter(obs => obs.emitterAddress.toString("hex") == addr);
+    if (!relayerInstructions.length) {
+      return null;
+    }
+
+    const parsedInstructions = relayerInstructions.map(instr => parseDeliveryInstructions(instr.payload));
+
     this.logger.debug(`Parsed VAA: ${parsed && parsed.hash}`);
 
-    //TODO figure out a way to filter for batch VAAs at the level of the spy
-    //TODO write parser function for batch VAAs which doesn't depend on an ethers wallet
-    //TODO ensure the VAA is a batch VAA
-    //TODO see if one of the observations is from a core relayer contract
     //TODO parse content from core relayer VAA
     //TODO verify that it is a transfer or resend VAA, not a redeem or something
     //TODO eject if any of these criteria aren't met
@@ -102,6 +126,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       workflowData: {
         time: new Date().getTime(),
         vaa: vaa.toString("base64"),
+        parsedInstructions: JSON.stringify(parsedInstructions)
       },
       nextStagingArea: {
         counter: stagingArea?.counter ? stagingArea.counter + 1 : 0,
