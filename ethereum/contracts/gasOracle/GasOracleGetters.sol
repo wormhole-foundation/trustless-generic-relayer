@@ -38,4 +38,8 @@ contract GasOracleGetters is GasOracleState {
     function owner() public view returns (address) {
         return _state.owner;
     }
+
+    function pendingOwner() public view returns (address) {
+        return _state.pendingOwner;
+    }
 }

@@ -13,12 +13,15 @@ contract GasOracleStorage {
     struct State {
         uint16 chainId;
         address owner;
+        address pendingOwner;
 
         mapping(uint16 => PriceData) data;
         mapping(uint16 => uint32) deliverGasOverhead;
         mapping(uint16 => uint32) wormholeFee;
 
         mapping(uint16 => bytes32) permissionedRelayerAddress;
+
+
     }
 }
 

@@ -17,6 +17,10 @@ contract GasOracleSetters is Context, GasOracleState {
         _state.owner = owner;
     }
 
+    function setPendingOwner(address pendingOwner) internal {
+        _state.pendingOwner = pendingOwner;
+    }
+
     function setDeliverGasOverhead(uint16 chainId, uint32 deliverGasOverhead) internal {
         _state.deliverGasOverhead[chainId] = deliverGasOverhead;
     }

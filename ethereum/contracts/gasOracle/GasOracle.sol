@@ -5,14 +5,10 @@ pragma solidity ^0.8.0;
 
 import "./GasOracleGetters.sol";
 import "./GasOracleSetters.sol";
+import "./GasOracleGovernance.sol";
 
-contract GasOracle is GasOracleGetters, GasOracleSetters {
+contract GasOracle is GasOracleGovernance {
     
-
-    //TODO implement new IGasOracle interface
-    //TODO allow relayer addresses to be updated by owner
-    //TODO allow contract upgrade by owner, similar to current core relayer impl
-
     constructor(uint16 chainId) {
         setOwner(_msgSender());
         setChainId(chainId);
@@ -46,31 +42,9 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
         return relayerAddress(targetChain);
     }
 
-    struct UpdatePrice {
-        uint16 chainId;
-        uint128 gasPrice;
-        uint128 nativeCurrencyPrice;
-    }
+    
 
-    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
-        public
-        onlyOwner
-    {
-        require(updateChainId > 0, "updateChainId == 0");
-        require(updateGasPrice > 0, "updateGasPrice == 0");
-        require(updateNativeCurrencyPrice > 0, "updateNativeCurrencyPrice == 0");
-        setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
-    }
-
-    function updatePrices(UpdatePrice[] memory updates) public onlyOwner {
-        uint256 pricesLen = updates.length;
-        for (uint256 i = 0; i < pricesLen;) {
-            updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
-            unchecked {
-                i += 1;
-            }
-        }
-    }
+  
 
     modifier onlyOwner() {
         require(owner() == _msgSender(), "owner() != _msgSender()");
