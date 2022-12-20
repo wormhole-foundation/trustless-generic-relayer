@@ -26,10 +26,6 @@ contract CoreRelayerStorage {
         address pendingOwner;
         // address of the gas oracle on this chain
         address gasOracle;
-        // EVM gas overhead for interacting with the relayer contracts; should be different for each chain
-        uint32 evmDeliverGasOverhead;
-        // Wormhole message fee; should be different for each chain
-        uint32 wormholeFee;
         // Request which will be forwarded from the current delivery.
         CoreRelayerStructs.ForwardingInstructions forwardingInstructions;
         // mapping of initialized implementations

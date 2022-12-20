@@ -6,7 +6,14 @@ import "./IGasOracle.sol";
 
 interface ICoreRelayer {
     
-    function getGasOracle() external returns (IGasOracle gasOracle);
+    function gasOracle() external returns (IGasOracle gasOracle);
+
+    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) external view returns (uint256 nativePriceQuote);
+
+    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) external view returns (uint32 gasAmount);
+
+    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
+
 
     /**
     * @dev This is the basic function for requesting delivery

@@ -12,30 +12,20 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     /**
-     * @dev `quoteEvmRelayPrice` returns the amount in wei that must be paid to the core relayer contract 
+     * @dev `quoteEvmDeliveryPrice` returns the amount in wei that must be paid to the core relayer contract 
      * in order to request delivery of a batch to chainId with gasLimit.
      */
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
-        return gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead(chainId)) + wormholeFee(chainId);
+        return gasOracle().quoteEvmDeliveryPrice(chainId, gasLimit);
     }
 
     /**
-    * @dev this is the inverse of "quoteEvmRelayPrice". 
+    * @dev this is the inverse of "quoteEvmDeliveryPrice". 
     * Given a computeBudget (denominated in the wei of this chain), and a target chain, this function returns what
     * amount of gas on the target chain this compute budget corresponds to.
     */
     function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
-        if(computeBudget <= wormholeFee(targetChain)) {
-            return 0;
-        } else {
-            uint256 remainder = computeBudget - wormholeFee(targetChain);
-            //TODO is this division safe?
-            uint256 gas = (remainder / gasOracle().computeGasCost(targetChain, 1));
-            if(gas <= evmDeliverGasOverhead(targetChain)) {
-                return 0;
-            }
-            return uint32(gas - evmDeliverGasOverhead(targetChain));
-        }
+        return gasOracle().quoteTargetEvmGas(targetChain, computeBudget);
     }
 
     function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {

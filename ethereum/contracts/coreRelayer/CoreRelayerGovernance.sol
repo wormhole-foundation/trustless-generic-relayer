@@ -23,8 +23,7 @@ abstract contract CoreRelayerGovernance is
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event GasOracleUpdated(address indexed oldOracle, address indexed newOracle);
-    event EVMDeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
-
+    
     /// @dev registerChain registers other relayer contracts with this relayer
     function registerChain(uint16 relayerChainId, bytes32 relayerAddress) public onlyOwner {
         require(relayerAddress != bytes32(0), "invalid relayer address");
@@ -50,16 +49,6 @@ abstract contract CoreRelayerGovernance is
         emit ContractUpgraded(currentImplementation, newImplementation);
     }
 
-    /// @dev updateEvmDeliverGasOverhead changes the EVMGasOverhead variable
-    //TODO make configurable by chain
-    function updateEvmDeliverGasOverhead(uint32 newGasOverhead) public onlyOwner {
-        // cache the current EVMDeliverGasOverhead
-        uint32 currentGasOverhead = evmDeliverGasOverhead(0);
-
-        setEvmDeliverGasOverhead(newGasOverhead);
-
-        emit EVMDeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
-    }
 
     /// @dev updateGasOracleContract changes the contract address for the gasOracle
     function updateGasOracleContract(uint16 thisRelayerChainId, address newGasOracleAddress) public onlyOwner {

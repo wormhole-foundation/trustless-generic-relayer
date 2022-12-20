@@ -23,5 +23,7 @@ interface IGasOracle {
 
     function getRelayerAddressSingle(uint16 targetChain) external view returns (bytes32 whAddress);
 
+    function wormholeFee(uint16 targetChainId) external view returns (uint32);
+
     //TODO add applicationBudget helper calculation function
 }
