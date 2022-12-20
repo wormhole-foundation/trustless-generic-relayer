@@ -113,7 +113,7 @@ contract TestGasOracle is Test {
 
         // you shall not pass
         vm.expectRevert("srcNativeCurrencyPrice == 0");
-        gasOracle.computeGasCost(dstChainId, 1);
+        gasOracle.quoteEvmDeliveryPrice(dstChainId, 1);
     }
 
     function testCannotGetPriceBeforeUpdateDstPrice(
@@ -136,7 +136,7 @@ contract TestGasOracle is Test {
 
         // you shall not pass
         vm.expectRevert("dstNativeCurrencyPrice == 0");
-        gasOracle.computeGasCost(dstChainId, 1);
+        gasOracle.quoteEvmDeliveryPrice(dstChainId, 1);
     }
 
     function testUpdatePrice(
@@ -164,7 +164,7 @@ contract TestGasOracle is Test {
 
         // verify price
         uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
-        require(gasOracle.computeGasCost(dstChainId, gasLimit) == expected, "gasOracle.computeGasCost(...) != expected");
+        require(gasOracle.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "gasOracle.quoteEvmDeliveryPrice(...) != expected");
     }
 
     function testUpdatePrices(
@@ -203,6 +203,6 @@ contract TestGasOracle is Test {
 
         // verify price
         uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
-        require(gasOracle.computeGasCost(dstChainId, gasLimit) == expected, "gasOracle.computeGasCost(...) != expected");
+        require(gasOracle.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "gasOracle.quoteEvmDeliveryPrice(...) != expected");
     }
 }

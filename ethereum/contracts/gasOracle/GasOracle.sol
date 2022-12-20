@@ -7,48 +7,49 @@ import "./GasOracleGetters.sol";
 import "./GasOracleSetters.sol";
 
 contract GasOracle is GasOracleGetters, GasOracleSetters {
-    struct UpdatePrice {
-        uint16 chainId;
-        uint128 gasPrice;
-        uint128 nativeCurrencyPrice;
-    }
+    
 
     //TODO implement new IGasOracle interface
     //TODO allow relayer addresses to be updated by owner
     //TODO allow contract upgrade by owner, similar to current core relayer impl
 
-    constructor(address wormholeAddress) {
+    constructor(uint16 chainId) {
         setOwner(_msgSender());
-
-        // might use this later to consume price data via VAAs?
-        require(wormholeAddress != address(0), "wormholeAddress == address(0)");
-        setWormhole(wormholeAddress);
-
-        setChainId(wormhole().chainId());
+        setChainId(chainId);
     }
 
-    //Given a target chainId and a quote amount, returns how much gas can be bought on the target chain for that amount.
-    function computeGasValue(uint16 targetChainId, uint256 quote)  public view returns (uint256 gasAmount) {
-        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
-        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
+    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
+        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
+        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
 
-        gasAmount = (quote * srcNativeCurrencyPrice / (gasPrice(targetChainId) * dstNativeCurrencyPrice)); 
+        targetAmount = (sourceAmount * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
     }
 
-    // relevant for chains that have dynamic execution pricing (e.g. Ethereum)
-    function computeGasCost(uint16 targetChainId, uint256 gasLimit) public view returns (uint256 quote) {
-        quote = computeTransactionCost(targetChainId, gasPrice(targetChainId) * gasLimit);
+    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
+        nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee();
     }
 
-    // relevant for chains that have deterministic execution costs (e.g. Solana)
-    function computeTransactionCost(uint16 targetChainId, uint256 transactionFee) public view returns (uint256 quote) {
-        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
-        require(srcNativeCurrencyPrice > 0, "srcNativeCurrencyPrice == 0");
+    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
+        if(computeBudget <= wormholeFee(targetChain)) {
+            return 0;
+        } else {
+            uint256 remainder = computeBudget - wormholeFee(targetChain);
+            uint256 gas = (remainder / gasOracle().computeGasCost(targetChain, 1));
+            if(gas <= deliverGasOverhead(targetChain)) {
+                return 0;
+            }
+            return uint32(gas - deliverGasOverhead(targetChain));
+        }
+    }
 
-        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
-        require(dstNativeCurrencyPrice > 0, "dstNativeCurrencyPrice == 0");
+    function getRelayerAddressSingle(uint16 targetChain) public view returns (bytes32 whAddress) {
+        return relayerAddress(targetChain);
+    }
 
-        quote = (dstNativeCurrencyPrice * transactionFee + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
+    struct UpdatePrice {
+        uint16 chainId;
+        uint128 gasPrice;
+        uint128 nativeCurrencyPrice;
     }
 
     function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
@@ -74,5 +75,24 @@ contract GasOracle is GasOracleGetters, GasOracleSetters {
     modifier onlyOwner() {
         require(owner() == _msgSender(), "owner() != _msgSender()");
         _;
+    }
+
+    /************
+     * HELPER METHODS    
+     ************/
+
+    // relevant for chains that have dynamic execution pricing (e.g. Ethereum)
+    function computeGasCost(uint16 targetChainId, uint256 gasLimit) internal view returns (uint256 quote) {
+        quote = computeTransactionCost(targetChainId, gasPrice(targetChainId) * gasLimit);
+    }
+
+    function computeTransactionCost(uint16 targetChainId, uint256 transactionFee) internal view returns (uint256 quote) {
+        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
+        require(srcNativeCurrencyPrice > 0, "srcNativeCurrencyPrice == 0");
+
+        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChainId);
+        require(dstNativeCurrencyPrice > 0, "dstNativeCurrencyPrice == 0");
+
+        quote = (dstNativeCurrencyPrice * transactionFee + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
     }
 }
