@@ -20,6 +20,9 @@ abstract contract CoreRelayerGovernance is
     CoreRelayerMessages,
     ERC1967Upgrade
 {
+    //TODO convert this upgrade to being managed by guardian VAAs
+    //TODO set default gas oracle function, managed by VAAs
+
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event GasOracleUpdated(address indexed oldOracle, address indexed newOracle);

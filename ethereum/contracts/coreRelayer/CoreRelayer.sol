@@ -11,42 +11,9 @@ import "./CoreRelayerGovernance.sol";
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
-    /**
-     * @dev `quoteEvmRelayPrice` returns the amount in wei that must be paid to the core relayer contract 
-     * in order to request delivery of a batch to chainId with gasLimit.
-     */
-    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
-        return gasOracle().computeGasCost(chainId, gasLimit + evmDeliverGasOverhead(chainId)) + wormholeFee(chainId);
-    }
-
-    /**
-    * @dev this is the inverse of "quoteEvmRelayPrice". 
-    * Given a computeBudget (denominated in the wei of this chain), and a target chain, this function returns what
-    * amount of gas on the target chain this compute budget corresponds to.
-    */
-    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
-        if(computeBudget <= wormholeFee(targetChain)) {
-            return 0;
-        } else {
-            uint256 remainder = computeBudget - wormholeFee(targetChain);
-            //TODO is this division safe?
-            uint256 gas = (remainder / gasOracle().computeGasCost(targetChain, 1));
-            if(gas <= evmDeliverGasOverhead(targetChain)) {
-                return 0;
-            }
-            return uint32(gas - evmDeliverGasOverhead(targetChain));
-        }
-    }
-
-    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
-        //TODO requires a new function on the gas oracle
-        return 0;
-    }
 
     function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
-        //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
-        // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
-        //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
+        //TODO adjust to new function args
         DeliveryInstructions memory instruction = DeliveryInstructions(targetChain, targetAddress, refundAddress, minimumComputeBudget, nativeBudget, relayParameters);
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
@@ -527,4 +494,16 @@ contract CoreRelayer is CoreRelayerGovernance {
     function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
         return wormhole().parseVM(observation);
     }
+
+    function getGasOracle() returns (IGasOracle) {
+        //TODO return default oracle
+    }
+
+    function getSelectedGasOracle(bytes relayerParams) returns (IGasOracle) {
+        if(relayerParams == 0 || relayerParams.length == 0){
+            return getGasOracle();
+        } else {
+            //TODO parse relayerParams & instantiate IGasOracle. If that fails, explode.
+        }
+    } 
 }
