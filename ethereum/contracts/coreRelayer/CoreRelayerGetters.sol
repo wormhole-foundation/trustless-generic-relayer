@@ -38,10 +38,6 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.registeredRelayers[chain];
     }
 
-    function wormholeFee(uint16 targetChain) public view returns (uint32) {
-        return gasOracle().wormholeFee(targetChain);
-    }
-
     function gasOracle() public view returns (IGasOracle) {
         return IGasOracle(_state.gasOracle);
     }

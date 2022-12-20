@@ -34,8 +34,8 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
         //TODO adjust to new function args
-        DeliveryInstructions memory instruction = DeliveryInstructions(targetChain, targetAddress, refundAddress, minimumComputeBudget, nativeBudget, relayParameters);
-        DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
+        DeliveryInstruction memory instruction = DeliveryInstruction(targetChain, targetAddress, refundAddress, minimumComputeBudget, nativeBudget, relayParameters);
+        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
         multiforward(container, targetChain, nonce, consistencyLevel);
@@ -102,7 +102,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     function sufficientFundsHelper(DeliveryInstructionsContainer memory deliveryInstructions, uint256 funds) internal view returns (uint256 totalFees) {
         totalFees = wormhole().messageFee();
         for (uint256 i = 0; i < deliveryInstructions.instructions.length; i++) {
-            uint256 currentOverhead = evmDeliverGasOverhead(deliveryInstructions.instructions[i].targetChain);
+            uint256 currentOverhead = getGasOracle().deliverGasOverhead(deliveryInstructions.instructions[i].targetChain);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
             require(deliveryInstructions.instructions[i].computeBudget > currentOverhead, "Insufficient compute budget specified to cover required overheads");
@@ -123,15 +123,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryInstructions memory instruction = DeliveryInstructions(targetChain, targetAddress, refundAddress, computeBudget, nativeBudget, relayParameters);
-        DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
+        DeliveryInstruction memory instruction = DeliveryInstruction(targetChain, targetAddress, refundAddress, computeBudget, nativeBudget, relayParameters);
+        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](1);
         instructionArray[0] = instruction;
         DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
         return multisend(container, nonce, consistencyLevel);
     }
 
     /**
-     * @dev `send` generates a VAA with DeliveryInstructions to be delivered to the specified target
+     * @dev `multisend` generates a VAA with DeliveryInstructions to be delivered to the specified target
      * contract based on user parameters.
      * it parses the RelayParameters to determine the target chain ID
      * it estimates the cost of relaying the batch
@@ -207,7 +207,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 computeBudget,
         uint256 nativeBudget
     ) internal {
-        require(computeBudget > (evmDeliverGasOverhead(targetChain) + wormhole().messageFee()), "Insufficient compute budget!");
+        require(computeBudget > (getGasOracle().deliverGasOverhead(targetChain) + wormhole().messageFee()), "Insufficient compute budget!");
         
         //TODO also implement a cap on the compute budget.
         require(nativeBudget < computeBudget, "Native budget cannot be more than the compute budget.");
@@ -515,11 +515,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         return wormhole().parseVM(observation);
     }
 
-    function getGasOracle() returns (IGasOracle) {
-        //TODO return default oracle
+    function getGasOracle() public view returns (IGasOracle) {
+        return gasOracle();
     }
 
-    function getSelectedGasOracle(bytes relayerParams) returns (IGasOracle) {
+    function getSelectedGasOracle(bytes relayerParams) public view returns (IGasOracle) {
         if(relayerParams == 0 || relayerParams.length == 0){
             return getGasOracle();
         } else {

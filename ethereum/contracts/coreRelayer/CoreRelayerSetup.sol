@@ -33,10 +33,6 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
 
         setGasOracle(gasOracle);
 
-        setEvmDeliverGasOverhead(evmGasOverhead);
-
-        setWormholeFee(0);
-
         _upgradeTo(implementation);
 
         // call initialize function of the new implementation

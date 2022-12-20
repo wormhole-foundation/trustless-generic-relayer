@@ -6,7 +6,7 @@ import "./IGasOracle.sol";
 
 interface ICoreRelayer {
     
-    function gasOracle() external returns (IGasOracle gasOracle);
+    function getGasOracle() external returns (IGasOracle);
 
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) external view returns (uint256 nativePriceQuote);
 
@@ -18,19 +18,19 @@ interface ICoreRelayer {
     /**
     * @dev This is the basic function for requesting delivery
     */
-    function requestDelivery(DeliveryInstructions memory instructions, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestDelivery(DeliveryRequest memory deliveryRequest, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
-    function requestForward(DeliveryInstructions memory instructions, uint32 nonce, uint8 consistencyLevel) external payable;
+    function requestForward(DeliveryRequest memory deliveryRequest, uint32 nonce, uint8 consistencyLevel) external payable;
 
     function requestRedelivery(bytes32 transactionHash, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable;
 
-    function requestMultidelivery(DeliveryInstructionsContainer memory deliveryInstructions, uint32 nonce, uint8 consistencyLevel) external payable;
+    function requestMultidelivery(DeliveryRequestContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel) external payable;
 
     /**
     @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
         the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
      */
-    function requestMultiforward(DeliveryInstructionsContainer memory deliveryInstructions, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external payable;
+    function requestMultiforward(DeliveryRequestContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external payable;
 
     function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64 sequence);
 
@@ -45,9 +45,26 @@ interface ICoreRelayer {
     function collectRewards(bytes memory encodedVm) external;
 
 
-    struct DeliveryInstructionsContainer {
+    struct DeliveryRequestContainer {
         uint8 payloadID; // payloadID = 1
-        DeliveryInstructions[] instructions;
+        DeliveryRequest[] requests;
+    }
+
+    /**
+    *  targetChain - the chain to send to in Wormhole Chain ID format.
+    *  targetAddress - is the recipient contract address on the target chain (in Wormhole 32-byte address format).
+    *  refundAddress - is the address where any remaining computeBudget should be sent at the end of the transaction. (In Wormhole address format. Must be on the target chain.)
+    *  computeBudget - is the maximum amount (denominated in this chain's wei) that the relayer should spend on transaction fees (gas) for this delivery. Usually calculated from quoteEvmDeliveryPrice.
+    *  applicationBudget - this amount (denominated in this chain's wei) will be converted to the target native currency and given to the recipient contract at the beginning of the delivery execution.
+    *  relayParameters - optional payload which can alter relayer behavior.
+    */
+    struct DeliveryRequest {
+        uint16 targetChain;
+        bytes32 targetAddress;
+        bytes32 refundAddress;
+        uint256 computeBudget;
+        uint256 applicationBudget;
+        bytes relayParameters; //Optional
     }
 
     struct TargetDeliveryParameters {
@@ -70,25 +87,6 @@ interface ICoreRelayer {
         uint8 multisendIndex;
         // Optional gasOverride which can be supplied by the relayer
         uint32 targetCallGasOverride;
-    }
-
-    /**
-    *  targetChain - the chain to send to in Wormhole Chain ID format.
-    *  targetAddress - is the recipient contract address on the target chain (in Wormhole 32-byte address format).
-    *  refundAddress - is the address where any remaining computeBudget should be sent at the end of the transaction. (In Wormhole address format. Must be on the target chain.)
-    *  computeBudget - is the maximum amount (denominated in this chain's wei) that the relayer should spend on transaction fees (gas) for this delivery. Usually calculated from quoteEvmDeliveryPrice.
-    *  applicationBudget - this amount (denominated in this chain's wei) will be converted to the target native currency and given to the recipient contract at the beginning of the delivery execution.
-    *  nonce - the nonce the delivery VAA should be emitted with - used for batching. All messages you want included in your batch must have the same non-zero nonce.
-    *  consistencyLevel - the consistency level the delivery VAA should be emitted with. Usually either instant or finality. Behavior varies by chain.
-    *  relayParameters - optional payload which can alter relayer behavior.
-    */
-    struct DeliveryInstructions {
-        uint16 targetChain;
-        bytes32 targetAddress;
-        bytes32 refundAddress;
-        uint256 computeBudget;
-        uint256 applicationBudget;
-        bytes relayParameters; //Optional
     }
 
     struct RelayParameters {

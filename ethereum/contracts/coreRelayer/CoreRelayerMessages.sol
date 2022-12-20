@@ -80,21 +80,21 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
 
-        DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](arrayLen);
+        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](arrayLen);
 
         for (uint8 i = 0; i < arrayLen; i++) {
-            DeliveryInstructions memory instructions;
+            DeliveryInstruction memory instruction;
 
             // target contract address
-            instructions.targetAddress = encoded.toBytes32(index);
+            instruction.targetAddress = encoded.toBytes32(index);
             index += 32;
 
             // address to send the refund to
-            instructions.refundAddress = encoded.toBytes32(index);
+            instruction.refundAddress = encoded.toBytes32(index);
             index += 32;
 
-            // target chain of the delivery instructions
-            instructions.targetChain = encoded.toUint16(index);
+            // target chain of the delivery instruction
+            instruction.targetChain = encoded.toUint16(index);
             index += 2;
 
             // length of relayParameters
@@ -102,10 +102,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             index += 2;
 
             // relayParameters
-            instructions.relayParameters = encoded.slice(index, relayParametersLen);
+            instruction.relayParameters = encoded.slice(index, relayParametersLen);
             index += relayParametersLen;
 
-            instructionArray[i] = instructions;
+            instructionArray[i] = instruction;
         }
 
         require(index == encoded.length, "invalid delivery instructions payload");
@@ -228,7 +228,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     //TODO this
-    function decodeDeliveryPayload(bytes memory encoded) internal pure returns (DeliveryPayload memory deliveryPayload) {
+    function decodeDeliveryPayload(bytes memory encoded) internal pure returns (DeliveryInstructionsContainer memory deliveryInstructions) {
 
     }
 }
