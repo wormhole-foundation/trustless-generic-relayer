@@ -34,9 +34,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
-        //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
-        // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
-        //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
+        //TODO adjust to new function args
         DeliveryInstructions memory instruction = DeliveryInstructions(targetChain, targetAddress, refundAddress, minimumComputeBudget, nativeBudget, relayParameters);
         DeliveryInstructions[] memory instructionArray = new DeliveryInstructions[](1);
         instructionArray[0] = instruction;
@@ -517,4 +515,16 @@ contract CoreRelayer is CoreRelayerGovernance {
     function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
         return wormhole().parseVM(observation);
     }
+
+    function getGasOracle() returns (IGasOracle) {
+        //TODO return default oracle
+    }
+
+    function getSelectedGasOracle(bytes relayerParams) returns (IGasOracle) {
+        if(relayerParams == 0 || relayerParams.length == 0){
+            return getGasOracle();
+        } else {
+            //TODO parse relayerParams & instantiate IGasOracle. If that fails, explode.
+        }
+    } 
 }
