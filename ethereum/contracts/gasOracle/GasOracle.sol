@@ -42,13 +42,30 @@ contract GasOracle is GasOracleGovernance {
         return relayerAddress(targetChain);
     }
 
-    
+    struct UpdatePrice {
+        uint16 chainId;
+        uint128 gasPrice;
+        uint128 nativeCurrencyPrice;
+    }
 
-  
+    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
+        public
+        onlyOwner
+    {
+        require(updateChainId > 0, "updateChainId == 0");
+        require(updateGasPrice > 0, "updateGasPrice == 0");
+        require(updateNativeCurrencyPrice > 0, "updateNativeCurrencyPrice == 0");
+        setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
+    }
 
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "owner() != _msgSender()");
-        _;
+    function updatePrices(UpdatePrice[] memory updates) public onlyOwner {
+        uint256 pricesLen = updates.length;
+        for (uint256 i = 0; i < pricesLen;) {
+            updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
+            unchecked {
+                i += 1;
+            }
+        }
     }
 
     /************

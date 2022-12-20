@@ -161,6 +161,13 @@ contract TestGasOracle is Test {
         require(gasOracle.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "gasOracle.quoteEvmDeliveryPrice(...) != expected");
     }
 
+    struct UpdatePrice {
+        uint16 chainId;
+        uint128 gasPrice;
+        uint128 nativeCurrencyPrice;
+    }
+
+
     function testUpdatePrices(
         uint16 dstChainId,
         uint128 dstGasPrice,

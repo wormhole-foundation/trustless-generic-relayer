@@ -21,47 +21,21 @@ abstract contract GasOracleGovernance is
     event PermissionedRelayerAddressUpdated(uint16 chainId, bytes32 indexed oldAddress, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
 
-    function setPermissionedRelayerAddress(uint16 chainId, bytes32 relayerAddress) public onlyOwner {
+    function setPermissionedRelayerAddress(uint16 chainId, bytes32 newRelayerAddress) public onlyOwner {
         bytes32 oldAddress = relayerAddress(chainId);
-        setRelayerAddress(chainId, relayerAddress);
-        emit PermissionedRelayerAddressUpdated(chainId, oldAddress, newAddress);
+        setRelayerAddress(chainId, newRelayerAddress);
+        emit PermissionedRelayerAddressUpdated(chainId, oldAddress, newRelayerAddress);
     }
 
     function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {
+        uint32 currentGasOverhead = deliverGasOverhead(chainId);
         setDeliverGasOverhead(chainId, newGasOverhead);
         emit DeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
     }
 
-
-    struct UpdatePrice {
-        uint16 chainId;
-        uint128 gasPrice;
-        uint128 nativeCurrencyPrice;
-    }
-
-    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
-        public
-        onlyOwner
-    {
-        require(updateChainId > 0, "updateChainId == 0");
-        require(updateGasPrice > 0, "updateGasPrice == 0");
-        require(updateNativeCurrencyPrice > 0, "updateNativeCurrencyPrice == 0");
-        setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
-    }
-
-    function updatePrices(UpdatePrice[] memory updates) public onlyOwner {
-        uint256 pricesLen = updates.length;
-        for (uint256 i = 0; i < pricesLen;) {
-            updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
-            unchecked {
-                i += 1;
-            }
-        }
-    }
-
     /// @dev upgrade serves to upgrade contract implementations
-    function upgrade(uint16 chainId, address newImplementation) public onlyOwner {
-        require(chainId == chainId(), "wrong chain id");
+    function upgrade(uint16 gasOracleChainId, address newImplementation) public onlyOwner {
+        require(gasOracleChainId == chainId(), "wrong chain id");
 
         address currentImplementation = _getImplementation();
 
@@ -109,7 +83,7 @@ abstract contract GasOracleGovernance is
     }
 
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "caller must be the owner");
+        require(owner() == _msgSender(), "owner() != _msgSender()");
         _;
     }
 }
