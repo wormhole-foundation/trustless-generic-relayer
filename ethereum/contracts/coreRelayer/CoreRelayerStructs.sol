@@ -31,7 +31,7 @@ contract CoreRelayerStructs {
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
         // Optional gasOverride which can be supplied by the relayer
-        uint32 targetCallGasOverride;
+        // uint32 targetCallGasOverride;
     }
 
     struct DeliveryRequest {
@@ -56,6 +56,7 @@ contract CoreRelayerStructs {
     //Wire Types
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
+        bool sufficientlyFunded;
         DeliveryInstruction[] instructions;
     }
 
@@ -67,8 +68,7 @@ contract CoreRelayerStructs {
         uint256 applicationBudgetTarget;
         uint256 sourceReward;
         uint16 sourceChain;
-        uint32 executionParametersLength;
-        bytes executionParameters; //Has the gas limit to execute with
+        ExecutionParameters executionParameters; //Has the gas limit to execute with
     }
 
     struct ExecutionParameters {

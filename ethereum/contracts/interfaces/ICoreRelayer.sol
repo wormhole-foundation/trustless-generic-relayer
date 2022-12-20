@@ -6,15 +6,6 @@ import "./IGasOracle.sol";
 
 interface ICoreRelayer {
     
-    function getGasOracle() external returns (IGasOracle);
-
-    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) external view returns (uint256 nativePriceQuote);
-
-    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) external view returns (uint32 gasAmount);
-
-    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
-
-
     /**
     * @dev This is the basic function for requesting delivery
     */
@@ -22,7 +13,7 @@ interface ICoreRelayer {
 
     function requestForward(DeliveryRequest memory deliveryRequest, uint32 nonce, uint8 consistencyLevel) external payable;
 
-    function requestRedelivery(bytes32 transactionHash, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable;
+    function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 
     function requestMultidelivery(DeliveryRequestContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel) external payable;
 
@@ -43,6 +34,8 @@ interface ICoreRelayer {
     function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
 
     function collectRewards(bytes memory encodedVm) external;
+
+    function getDefaultRelayProvider() external returns (IGasOracle);
 
 
     struct DeliveryRequestContainer {
@@ -75,7 +68,7 @@ interface ICoreRelayer {
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
         // Optional gasOverride which can be supplied by the relayer
-        uint32 targetCallGasOverride;
+        // uint32 targetCallGasOverride;
     }
 
     struct TargetDeliveryParametersSingle {
