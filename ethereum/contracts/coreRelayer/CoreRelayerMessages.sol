@@ -11,24 +11,25 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
+    function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container)
         internal
         pure
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
-            uint8(container.instructions.length)
-        ); //number of items in the array
+            uint8(container.requests.length) //number of requests in the array
+        ); 
 
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.instructions.length; i++) {
             encoded = abi.encodePacked(
                 encoded,
+                container.instructions[i].targetChain,
                 container.instructions[i].targetAddress,
                 container.instructions[i].refundAddress,
-                container.instructions[i].targetChain,
-                uint16(container.instructions[i].relayParameters.length),
+                container.instructions[i].computeBudget,
+                container.instructions[i].applicationBudget,
                 container.instructions[i].relayParameters
             );
         }

@@ -56,7 +56,6 @@ contract CoreRelayerStructs {
     //Wire Types
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        uint8 arrayLength;
         DeliveryInstruction[] instructions;
     }
 

@@ -130,7 +130,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         return multisend(container, nonce, consistencyLevel);
     }
 
+
+
     /**
+     * TODO: Correct this spec
      * @dev `multisend` generates a VAA with DeliveryInstructions to be delivered to the specified target
      * contract based on user parameters.
      * it parses the RelayParameters to determine the target chain ID
@@ -139,16 +142,16 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function multisend(DeliveryInstructionsContainer memory deliveryInstructions, uint32 nonce, uint8 consistencyLevel)
+    function requestMultiforward(DeliveryRequestContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel)
         public
         payable
         returns (uint64 sequence)
     {
-        sufficientFundsHelper(deliveryInstructions, msg.value);
+        sufficientFundsHelper(deliveryRequests, msg.value);
         require(nonce > 0, "nonce must be > 0");
 
         // encode the DeliveryInstructions
-        bytes memory container = encodeDeliveryInstructionsContainer(deliveryInstructions);
+        bytes memory container = encodeDeliveryRequestsContainer(deliveryRequests);
 
         // emit delivery message
         IWormhole wormhole = wormhole();
