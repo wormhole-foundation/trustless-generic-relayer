@@ -1,4 +1,4 @@
-/* // SPDX-License-Identifier: Apache 2
+// SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
 
@@ -22,7 +22,6 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 contract TestCoreRelayer is CoreRelayer, Test {
-    
     using BytesLib for bytes;
 
     uint16 constant SOURCE_CHAIN_ID = 2;
@@ -166,7 +165,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         require(index == payload.length, "failed to parse DeliveryInstructions payload");
         */
-    /*}
+    }
 
     function standardAssume(GasParameters memory gasParams) public {
         uint128 halfMaxUint128 = 2 ** (128 / 2) - 1;
@@ -198,7 +197,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
     */
     // This tests confirms that the DeliveryInstructions are deserialized correctly
     // when calling `deliver` on the target chain.
-    /*
     function testDeliveryInstructionDeserialization(GasParameters memory gasParams, VMParams memory batchParams)
         public
     {
@@ -254,11 +252,10 @@ contract TestCoreRelayer is CoreRelayer, Test {
         assertEq(TARGET_CHAIN_ID, instructions.instructions[0].targetChain);
         //assertEq(deliveryParams.relayParameters, instructions.instructions[0].relayParameters);
         */
-    /*}
+    }
 
     // This tests confirms that the DeliveryInstructions are deserialized correctly
     // when calling `deliver` on the target chain.
-    /*
     function testRelayParametersDeserialization(GasParameters memory gasParams, VMParams memory batchParams) public {
         standardAssume(gasParams, batchParams);
         
@@ -334,7 +331,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
     */
     //This test confirms that the amount of gas required when querying or requesting delivery
     //is the expected amount
-    /*
     function testEstimateCost(GasParameters memory gasParams) public {
         standardAssume(gasParams);
 
@@ -403,7 +399,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         assertTrue(keccak256(deliveryContract.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(message));
         */
-    /*}
+    }
 
     /**
     FORWARDING TESTS
@@ -415,5 +411,4 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
     //This test confirms that forwarding cannot occur if there are insufficient refunds after the request
 
-/*}
- */
+}
