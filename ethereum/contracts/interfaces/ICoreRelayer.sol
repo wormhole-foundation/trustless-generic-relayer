@@ -9,9 +9,9 @@ interface ICoreRelayer {
     /**
     * @dev This is the basic function for requesting delivery
     */
-    function requestDelivery(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
+    function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
-    function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
+    function requestForward(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
     function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 

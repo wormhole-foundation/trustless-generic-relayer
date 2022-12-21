@@ -43,7 +43,7 @@ test: unit-test integration-test
 
 .PHONY: unit-test
 unit-test: dependencies build
-	forge test -vvv
+	forge test -vvvvv --via-ir
 
 .PHONY: integration-test
 integration-test: dependencies build

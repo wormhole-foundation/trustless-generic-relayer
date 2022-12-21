@@ -5,36 +5,36 @@ pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
 
-import "./CoreRelayerStructs.sol";
+
 import "./CoreRelayerGovernance.sol";
+import "./CoreRelayerStructs.sol";
 
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
-    function requestDelivery(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable returns (uint64 sequence) {
+    function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryRequest memory request = DeliveryRequest(targetChain, targetAddress, refundAddress, computeBudget, applicationBudget, relayParameters);
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
         return requestMultidelivery(container, nonce, consistencyLevel);
     }
 
-    function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public payable {
         //TODO adjust to new function args
-        DeliveryRequest memory request = DeliveryRequest(targetChain, targetAddress, refundAddress, computeBudget, applicationBudget, relayParameters);
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
-        return requestMultiforward(container, targetChain, nonce, consistencyLevel);
+        return requestMultiforward(container, rolloverChain, nonce, consistencyLevel);
     }
 
     //TODO this
+    /*
     function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence) {
 
-    }
+    }*/
 
     //TODO this
     /**
@@ -274,6 +274,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             20 //REVISE encode finality
         );
     }
+    
 
     function collectRewards(bytes memory encodedVm) public {
         (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVm);
