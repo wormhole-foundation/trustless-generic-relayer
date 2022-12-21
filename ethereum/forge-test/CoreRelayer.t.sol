@@ -82,7 +82,9 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         
         // deploy the gasOracle and set price
-        gasOracle = new GasOracle(address(wormhole));
+        gasOracle = new GasOracle(SOURCE_CHAIN_ID);
+
+        gasOracle.setPermissionedRelayerAddress(SOURCE_CHAIN_ID, address(this));
 
         // set up the relayer contracts
         setOwner(address(this));
@@ -90,7 +92,6 @@ contract TestCoreRelayer is CoreRelayer, Test {
         setChainId(SOURCE_CHAIN_ID);
         setWormhole(address(wormhole));
         setGasOracle(address(gasOracle));
-        setEvmDeliverGasOverhead(evmGasOverhead);
 
         this.registerChain(SOURCE_CHAIN_ID, bytes32(uint256(uint160(address(this)))));
     }
@@ -104,8 +105,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         uint8 consistencyLevel_,
         address gasOracle_,
         address wormhole_,
-        uint16 chainId_,
-        uint32 evmGasOverhead_
+        uint16 chainId_
     ) public {
         vm.assume(chainId_ > 0);
         vm.assume(gasOracle_ != address(0));
@@ -119,14 +119,12 @@ contract TestCoreRelayer is CoreRelayer, Test {
         setChainId(chainId_);
         setWormhole(wormhole_);
         setGasOracle(gasOracle_);
-        setEvmDeliverGasOverhead(evmGasOverhead_);
 
         require(owner() == owner_, "owner() != expected");
         require(consistencyLevel() == consistencyLevel_, "consistencyLevel() != expected");
         require(gasOracleAddress() == gasOracle_, "gasOracleAddress() != expected");
         require(wormhole() == IWormhole(wormhole_), "wormhole() != expected");
         require(chainId() == chainId_, "chainId() != expected");
-        require(evmDeliverGasOverhead(chainId_) == evmGasOverhead_, "evmDeliverGasOverhead() != expected");
     }
 
 

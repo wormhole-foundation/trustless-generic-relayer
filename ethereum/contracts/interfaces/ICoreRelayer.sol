@@ -9,19 +9,19 @@ interface ICoreRelayer {
     /**
     * @dev This is the basic function for requesting delivery
     */
-    function requestDelivery(DeliveryRequest memory deliveryRequest, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestDelivery(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 
-    function requestForward(DeliveryRequest memory deliveryRequest, uint32 nonce, uint8 consistencyLevel) external payable;
+    function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 
     function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 
-    function requestMultidelivery(DeliveryRequestContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel) external payable;
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
     /**
     @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
         the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
      */
-    function requestMultiforward(DeliveryRequestContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external payable;
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
     function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64 sequence);
 
@@ -38,7 +38,7 @@ interface ICoreRelayer {
     function getDefaultRelayProvider() external returns (IGasOracle);
 
 
-    struct DeliveryRequestContainer {
+    struct DeliveryRequestsContainer {
         uint8 payloadID; // payloadID = 1
         DeliveryRequest[] requests;
     }

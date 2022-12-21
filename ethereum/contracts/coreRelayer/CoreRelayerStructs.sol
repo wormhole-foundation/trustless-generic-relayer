@@ -9,7 +9,7 @@ contract CoreRelayerStructs {
     //This first group of structs are external facing API objects,
     //which should be considered untrusted and unmodifiable
 
-    struct DeliveryRequestContainer {
+    struct DeliveryRequestsContainer {
         uint8 payloadID; // payloadID = 1
         DeliveryRequest[] requests;
     }

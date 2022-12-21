@@ -11,29 +11,42 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container)
+    function encodeDeliveryInstructionsContainer(DeliveryRequestsContainer memory container)
         internal
         pure
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
+            uint8(1), // sufficiently funded
             uint8(container.requests.length) //number of requests in the array
         ); 
 
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.instructions.length; i++) {
+
+            IGasOracle selectedGasOracle = getSelectedGasOracle(container.instructions[i].relayParameters);
+
+            bytes32 targetChain = container.instructions[i].targetChain;
+            uint256 computeBudget = container.instructions[i].computeBudget;
+            uint256 applicationBudget = container.instructions[i].applicationBudget;
             encoded = abi.encodePacked(
                 encoded,
-                container.instructions[i].targetChain,
+                targetChain,
                 container.instructions[i].targetAddress,
                 container.instructions[i].refundAddress,
-                container.instructions[i].computeBudget,
-                container.instructions[i].applicationBudget,
-                container.instructions[i].relayParameters
+                selectedGasOracle.assetConversionAmount(chainId(), computeBudget, targetChain), 
+                selectedGasOracle.assetConversionAmount(chainId(), applicationBudget, targetChain),
+                computeBudget + applicationBudget,
+                chainId(),
+                uint8(1), //version for ExecutionParameters
+                selectedGasOracle.quoteTargetEvmGas(targetChain, computeBudget),
+                selectedGasOracle.getRelayerAddressSingle(targetChain)
             );
         }
     }
+
+
 
     function encodeDeliveryStatus(DeliveryStatus memory ds) internal pure returns (bytes memory) {
         require(ds.payloadID == 2, "invalid DeliveryStatus");
@@ -78,6 +91,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint8 payloadId = encoded.toUint8(index);
         require(payloadId == 1, "invalid payloadId");
         index += 1;
+        bool sufficientlyFunded = encoded.toUint8(index) == 1;
+        index += 1;
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
 
@@ -85,6 +100,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         for (uint8 i = 0; i < arrayLen; i++) {
             DeliveryInstruction memory instruction;
+
+            // target chain of the delivery instruction
+            instruction.targetChain = encoded.toUint16(index);
+            index += 2;
 
             // target contract address
             instruction.targetAddress = encoded.toBytes32(index);
@@ -94,24 +113,33 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.refundAddress = encoded.toBytes32(index);
             index += 32;
 
-            // target chain of the delivery instruction
-            instruction.targetChain = encoded.toUint16(index);
+            instruction.computeBudgetTarget = encoded.toUint256(index);
+            index += 32;
+
+            instruction.applicationBudgetTarget = encoded.toUint256(index);
+            index += 32;
+
+            instruction.sourceReward = encoded.toUint256(index);
+            index += 32;
+
+            instruction.sourceChain = encoded.toUint16(index);
             index += 2;
 
-            // length of relayParameters
-            uint16 relayParametersLen = encoded.toUint16(index);
-            index += 2;
+            instruction.executionParameters.version = encoded.toUint8(index);
+            index += 1;
 
-            // relayParameters
-            instruction.relayParameters = encoded.slice(index, relayParametersLen);
-            index += relayParametersLen;
+            instruction.executionParameters.gasLimit = encoded.toUint32(index);
+            index += 4;
+
+            instruction.executionParameters.relayerAddress = encoded.toBytes32(index);
+            index += 32;
 
             instructionArray[i] = instruction;
         }
 
         require(index == encoded.length, "invalid delivery instructions payload");
 
-        return DeliveryInstructionsContainer(payloadId, instructionArray);
+        return DeliveryInstructionsContainer(payloadId, sufficientlyFunded, instructionArray);
     }
 
     //TODO update to new relayer params struct
@@ -228,8 +256,5 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         require(encoded.length == index, "invalid RewardPayout");
     }
 
-    //TODO this
-    function decodeDeliveryPayload(bytes memory encoded) internal pure returns (DeliveryInstructionsContainer memory deliveryInstructions) {
-
-    }
+   
 }

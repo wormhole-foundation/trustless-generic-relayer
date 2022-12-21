@@ -38,9 +38,17 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.registeredRelayers[chain];
     }
 
-    function gasOracle() public view returns (IGasOracle) {
+    function gasOracle() internal view returns (IGasOracle) {
         return IGasOracle(_state.gasOracle);
     }
+
+    function getSelectedGasOracle(bytes relayerParams) internal view returns (IGasOracle) {
+        if(relayerParams == 0 || relayerParams.length == 0){
+            return gasOracle();
+        } else {
+            //TODO parse relayerParams & instantiate IGasOracle. If that fails, explode.
+        }
+    } 
 
     function gasOracleAddress() public view returns (address) {
         return _state.gasOracle;

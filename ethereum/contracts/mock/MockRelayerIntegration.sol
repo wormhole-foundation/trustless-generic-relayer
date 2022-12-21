@@ -105,19 +105,19 @@ contract MockRelayerIntegration is IWormholeReceiver {
         // encode the relay parameters
         bytes memory relayParameters = abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, gasEstimate);
 
-        ICoreRelayer.DeliveryInstructions[] memory ixs = new ICoreRelayer.DeliveryInstructions[](1);
-        ixs[0] = ICoreRelayer.DeliveryInstructions({
+        ICoreRelayer.DeliveryRequest[] memory ixs = new ICoreRelayer.DeliveryRequest[](1);
+        ixs[0] = ICoreRelayer.DeliveryRequest({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
             refundAddress: bytes32(uint256(uint160(relayerArgs.refundAddress))),
             computeBudget: 0, //TODO accurate budget
-            nativeBudget: 0, //TODO accurate budget
+            applicationBudget: 0, //TODO accurate budget
             relayParameters: relayParameters // REVIEW: rename to encodedRelayParameters?
         });
 
         // create the relayer params to call the relayer with
-        ICoreRelayer.DeliveryInstructionsContainer memory deliveryParams =
-            ICoreRelayer.DeliveryInstructionsContainer({payloadID: 1, instructions: ixs});
+        ICoreRelayer.DeliveryRequestsContainer memory deliveryParams =
+            ICoreRelayer.DeliveryRequestsContainer({payloadID: 1, instructions: ixs});
 
         // call the relayer contract and save the sequence.
         //relayerMessageSequence =

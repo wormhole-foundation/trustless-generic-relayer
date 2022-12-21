@@ -11,24 +11,24 @@ import "./CoreRelayerGovernance.sol";
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
-    function requestDelivery(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable returns (uint64 sequence) {
+    function requestDelivery(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable returns (uint64 sequence) {
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
-        DeliveryInstruction memory instruction = DeliveryInstruction(targetChain, targetAddress, refundAddress, computeBudget, nativeBudget, relayParameters);
-        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](1);
-        instructionArray[0] = instruction;
-        DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
-        return multisend(container, nonce, consistencyLevel);
+        DeliveryRequest memory request = DeliveryRequest(targetChain, targetAddress, refundAddress, computeBudget, applicationBudget, relayParameters);
+        DeliveryRequest[] memory requests = new DeliveryRequest[](1);
+        requests[0] = request;
+        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
+        return requestMultidelivery(container, nonce, consistencyLevel);
     }
 
-    function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 minimumComputeBudget, uint256 nativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
+    function requestForward(uint16 targetChain, bytes32 targetAddress, bytes32 refundAddress, uint256 computeBudget, uint256 applicationBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable {
         //TODO adjust to new function args
-        DeliveryInstruction memory instruction = DeliveryInstruction(targetChain, targetAddress, refundAddress, minimumComputeBudget, nativeBudget, relayParameters);
-        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](1);
-        instructionArray[0] = instruction;
-        DeliveryInstructionsContainer memory container = DeliveryInstructionsContainer(1, instructionArray);
-        multiforward(container, targetChain, nonce, consistencyLevel);
+        DeliveryRequest memory request = DeliveryRequest(targetChain, targetAddress, refundAddress, computeBudget, applicationBudget, relayParameters);
+        DeliveryRequest[] memory requests = new DeliveryRequest[](1);
+        requests[0] = request;
+        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
+        return requestMultiforward(container, targetChain, nonce, consistencyLevel);
     }
 
     //TODO this
@@ -47,7 +47,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultidelivery(DeliveryRequestContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel)
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel)
         public
         payable
         returns (uint64 sequence)
@@ -56,7 +56,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(nonce > 0, "nonce must be > 0");
 
         // encode the DeliveryInstructions
-        bytes memory container = encodeDeliveryRequestsContainer(deliveryRequests);
+        bytes memory container = encodeDeliveryInstructionsContainer(deliveryRequests);
 
         // emit delivery message
         IWormhole wormhole = wormhole();
@@ -122,15 +122,16 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function sufficientFundsHelper(DeliveryInstructionsContainer memory deliveryInstructions, uint256 funds) internal view returns (uint256 totalFees) {
+    function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees) {
         totalFees = wormhole().messageFee();
-        for (uint256 i = 0; i < deliveryInstructions.instructions.length; i++) {
-            uint256 currentOverhead = getGasOracle().deliverGasOverhead(deliveryInstructions.instructions[i].targetChain);
+        for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
+            DeliveryRequest request = deliveryRequests.requests[i];
+            uint256 currentOverhead = getSelectedGasOracle(request.relayParameters).deliverGasOverhead(request.targetChain);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            require(deliveryInstructions.instructions[i].computeBudget > currentOverhead, "Insufficient compute budget specified to cover required overheads");
+            require(request.computeBudget > currentOverhead, "Insufficient compute budget specified to cover required overheads");
 
-            totalFees = totalFees + deliveryInstructions.instructions[i].computeBudget + deliveryInstructions.instructions[i].nativeBudget;
+            totalFees = totalFees + request.computeBudget + request.applicationBudget;
 
             require(
                 funds >= totalFees,
@@ -138,7 +139,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             );
 
             // sanity check a few of the values before composing the DeliveryInstructions
-            require(deliveryInstructions.instructions[i].targetAddress != bytes32(0), "invalid targetAddress");
+            require(request.targetAddress != bytes32(0), "invalid targetAddress");
         }
     }
 
@@ -194,7 +195,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", encodedVMs));
 
         // refund unused gas budget
-        uint256 weiToRefund = internalInstruction.executionParameters.deliveryGasLimit - (preGas - gasLeft());
+        uint256 weiToRefund = internalInstruction.executionParameters.deliveryGasLimit - (preGas - gasleft());
 
 
         // unlock the contract
@@ -225,7 +226,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
             //TODO emit special delivery failure status when the delivery succeeded by the forward
             //failed, this delivery failure can be redelivered
-            emitForward(weiToSend);
+            emitForward(weiToRefund);
         } else {
             (bool sent,) =
                 fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
@@ -295,13 +296,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         return gasOracle();
     }
 
-    function getSelectedGasOracle(bytes relayerParams) internal view returns (IGasOracle) {
-        if(relayerParams == 0 || relayerParams.length == 0){
-            return getGasOracle();
-        } else {
-            //TODO parse relayerParams & instantiate IGasOracle. If that fails, explode.
-        }
-    } 
 
     function redeliverSingle(TargetDeliveryParametersSingle memory targetParams, bytes memory encodedRedeliveryVm) external payable returns (uint64 sequence){
         
@@ -318,7 +312,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
         DeliveryInstruction memory deliveryInstruction =
-            decodeDeliveryPayload(deliveryVM.payload).instructions[targetParams.multisendIndex];
+            decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
         require(fromWormholeFormat(deliveryInstruction.executionParameters.relayerAddress) == msg.sender);
@@ -330,7 +324,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(!isDeliveryCompleted(deliveryVM.hash));
 
         //mark as delivered, so it can't be reattempted
-        markAsDelivered(deliveryHash.hash);
+        markAsDelivered(deliveryVM.hash);
 
         //make sure this delivery is intended for this chain
         require(chainId() == deliveryInstruction.targetChain, "targetChain is not this chain");
@@ -358,6 +352,8 @@ contract CoreRelayer is CoreRelayerGovernance {
 
 
     //Batch VAA entrypoints
+
+    /*
     function redeliver(TargetDeliveryParameters memory targetParams, bytes memory encodedRedeliveryVm)
         public
         payable
@@ -434,6 +430,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it records the specified relayer fees for the caller
      * it emits a DeliveryStatus message containing the results of the delivery
      */
+     /*
     function deliver(TargetDeliveryParameters memory targetParams) public payable returns (uint64 sequence) {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
@@ -473,5 +470,5 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         return _deliver(wormhole, internalParams);
     }
-
+*/
 }
