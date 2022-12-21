@@ -27,13 +27,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         return requestMultiforward(container, rolloverChain, nonce, consistencyLevel);
     }
 
-    //TODO this
-    /*
     function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence) {
 
-    }*/
+    }
 
-    //TODO this
     /**
      * TODO: Correct this spec
      * @dev `multisend` generates a VAA with DeliveryInstructions to be delivered to the specified target
@@ -56,7 +53,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(nonce > 0, "nonce must be > 0");
 
         // encode the DeliveryInstructions
-        bytes memory container = encodeDeliveryInstructionsContainer(deliveryRequests);
+        bytes memory container = convertToEncodedDeliveryInstructions(deliveryRequests);
 
         // emit delivery message
         IWormhole wormhole = wormhole();
@@ -80,7 +77,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //TODO ensure rollover chain is included in delivery instructions;
 
-        setForwardingInstructions(ForwardingInstructions(encodeDeliveryInstructionsContainer(deliveryRequests), rolloverChain, nonce, consistencyLevel, true));
+        setForwardingInstructions(ForwardingInstructions(convertToEncodedDeliveryInstructions(deliveryRequests), rolloverChain, nonce, consistencyLevel, true));
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64 sequence) {
@@ -108,7 +105,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //emit delivery request message
         require(forwardingInstructions.nonce > 0, "nonce must be > 0");
-        bytes memory reencoded = encodeDeliveryInstructionsContainer(container);
+        bytes memory reencoded = convertToEncodedDeliveryInstructions(container);
         IWormhole wormhole = wormhole();
         sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingInstructions.nonce, reencoded, forwardingInstructions.consistencyLevel);
 

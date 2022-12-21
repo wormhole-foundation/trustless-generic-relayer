@@ -240,7 +240,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         DeliveryRequest[] memory array = new DeliveryRequest[](1);
         array[0] = deliveryParams;
         DeliveryRequestsContainer memory container =  DeliveryRequestsContainer(1, array);
-        bytes memory encodedDeliveryInstructions = encodeDeliveryInstructionsContainer(container);
+        bytes memory encodedDeliveryInstructions = convertToEncodedDeliveryInstructions(container);
 
         // deserialize the payload by parsing into the DliveryInstructions struct
         DeliveryInstructionsContainer memory instructions = decodeDeliveryInstructionsContainer(encodedDeliveryInstructions);

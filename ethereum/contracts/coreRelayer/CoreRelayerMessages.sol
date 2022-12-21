@@ -11,7 +11,7 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function encodeDeliveryInstructionsContainer(DeliveryRequestsContainer memory container)
+    function convertToEncodedDeliveryInstructions(DeliveryRequestsContainer memory container)
         internal
         view
         returns (bytes memory encoded)
