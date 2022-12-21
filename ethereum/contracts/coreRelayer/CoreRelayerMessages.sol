@@ -21,30 +21,34 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             uint8(1), // sufficiently funded
             uint8(container.requests.length) //number of requests in the array
         ); 
-
+        
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.requests.length; i++) {
 
-            IGasOracle selectedGasOracle = getSelectedGasOracle(container.requests[i].relayParameters);
+            encoded = appendDeliveryInstruction(encoded, container.requests[i]);
+            
 
-            uint16 targetChain = container.requests[i].targetChain;
-            uint256 computeBudget = container.requests[i].computeBudget;
-            uint256 applicationBudget = container.requests[i].applicationBudget;
-            encoded = abi.encodePacked(
-                encoded,
-                targetChain,
-                container.requests[i].targetAddress,
-                container.requests[i].refundAddress,
-                selectedGasOracle.assetConversionAmount(chainId(), computeBudget, targetChain), 
-                selectedGasOracle.assetConversionAmount(chainId(), applicationBudget, targetChain),
-                computeBudget + applicationBudget,
-                chainId(),
-                uint8(1), //version for ExecutionParameters
-                selectedGasOracle.quoteTargetEvmGas(targetChain, computeBudget),
-                selectedGasOracle.getRelayerAddressSingle(targetChain)
-            );
         }
     }
+
+    function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request) internal view returns (bytes memory newEncoded) {
+        IGasOracle selectedGasOracle = getSelectedGasOracle(request.relayParameters);
+            newEncoded = abi.encodePacked(
+                encoded,
+               request.targetChain,
+                request.targetAddress,
+                request.refundAddress);
+            newEncoded = abi.encodePacked(newEncoded, 
+                selectedGasOracle.assetConversionAmount(chainId(), request.computeBudget, request.targetChain), 
+                selectedGasOracle.assetConversionAmount(chainId(), request.applicationBudget, request.targetChain),
+                request.computeBudget + request.applicationBudget,
+                chainId());
+            newEncoded = abi.encodePacked(newEncoded, 
+                uint8(1), //version for ExecutionParameters
+                selectedGasOracle.quoteTargetEvmGas(request.targetChain, request.computeBudget),
+                selectedGasOracle.getRelayerAddressSingle(request.targetChain));
+    }
+
 
 
 

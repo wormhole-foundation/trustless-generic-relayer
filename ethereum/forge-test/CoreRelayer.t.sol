@@ -355,7 +355,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
     // This test confirms that the `send` method generates the correct delivery Instructions payload
     // to be delivered on the target chain.
     function testSend(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
-        /*
+        
         standardAssume(gasParams, batchParams);
 
        vm.assume(gasParams.targetGasLimit >= 200000);
@@ -398,7 +398,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         this.deliverSingle{value: computeBudget + gasOracle.wormholeFee(TARGET_CHAIN_ID)}(TargetDeliveryParametersSingle(encodedVMs, 1, 0));
 
         assertTrue(keccak256(deliveryContract.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(message));
-        */
+        
     }
 
     /**
