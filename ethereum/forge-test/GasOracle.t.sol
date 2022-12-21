@@ -9,7 +9,6 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 contract TestGasOracle is Test {
-    /*
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
 
     GasOracle internal gasOracle;
@@ -206,5 +205,5 @@ contract TestGasOracle is Test {
         // verify price
         uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
         require(gasOracle.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "gasOracle.quoteEvmDeliveryPrice(...) != expected");
-    }*/
+    }
 }

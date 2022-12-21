@@ -21,32 +21,29 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             uint8(1), // sufficiently funded
             uint8(container.requests.length) //number of requests in the array
         ); 
-        
+
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.requests.length; i++) {
 
-            encoded = appendDeliveryInstruction(encoded, container.requests[i]);
-            
+            IGasOracle selectedGasOracle = getSelectedGasOracle(container.requests[i].relayParameters);
 
-        }
-    }
-
-    function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request) internal view returns (bytes memory newEncoded) {
-        IGasOracle selectedGasOracle = getSelectedGasOracle(request.relayParameters);
-            newEncoded = abi.encodePacked(
+            uint16 targetChain = container.requests[i].targetChain;
+            uint256 computeBudget = container.requests[i].computeBudget;
+            uint256 applicationBudget = container.requests[i].applicationBudget;
+            encoded = abi.encodePacked(
                 encoded,
-               request.targetChain,
-                request.targetAddress,
-                request.refundAddress);
-            newEncoded = abi.encodePacked(newEncoded, 
-                selectedGasOracle.assetConversionAmount(chainId(), request.computeBudget, request.targetChain), 
-                selectedGasOracle.assetConversionAmount(chainId(), request.applicationBudget, request.targetChain),
-                request.computeBudget + request.applicationBudget,
-                chainId());
-            newEncoded = abi.encodePacked(newEncoded, 
+                targetChain,
+                container.requests[i].targetAddress,
+                container.requests[i].refundAddress,
+                selectedGasOracle.assetConversionAmount(chainId(), computeBudget, targetChain), 
+                selectedGasOracle.assetConversionAmount(chainId(), applicationBudget, targetChain),
+                computeBudget + applicationBudget,
+                chainId(),
                 uint8(1), //version for ExecutionParameters
-                selectedGasOracle.quoteTargetEvmGas(request.targetChain, request.computeBudget),
-                selectedGasOracle.getRelayerAddressSingle(request.targetChain));
+                selectedGasOracle.quoteTargetEvmGas(targetChain, computeBudget),
+                selectedGasOracle.getRelayerAddressSingle(targetChain)
+            );
+        }
     }
 
 
@@ -63,7 +60,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         );
     }
 
-    /*
     // TODO: WIP
     function encodeRedeliveryInstructions(RedeliveryInstructions memory rdi) internal pure returns (bytes memory) {
         require(rdi.payloadID == 3, "invalid RedeliveryInstructions");
@@ -76,7 +72,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             uint16(rdi.relayParameters.length),
             rdi.relayParameters
         );
-    }*/
+    }
 
     // TODO: WIP
     function encodeRewardPayout(RewardPayout memory rp) internal pure returns (bytes memory) {
@@ -101,7 +97,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 1;
 
         DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](arrayLen);
-        
+
         for (uint8 i = 0; i < arrayLen; i++) {
             DeliveryInstruction memory instruction;
 
