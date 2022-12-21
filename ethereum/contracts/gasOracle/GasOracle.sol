@@ -7,6 +7,7 @@ import "./GasOracleGetters.sol";
 import "./GasOracleSetters.sol";
 import "./GasOracleGovernance.sol";
 
+//TODO refactor/ rename to provider
 contract GasOracle is GasOracleGovernance {
     
     constructor(uint16 chainId) {

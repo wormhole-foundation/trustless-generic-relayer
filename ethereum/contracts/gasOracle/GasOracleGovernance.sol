@@ -18,13 +18,12 @@ abstract contract GasOracleGovernance is
 {
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event PermissionedRelayerAddressUpdated(uint16 chainId, bytes32 indexed oldAddress, bytes32 indexed newAddress);
+    event PermissionedRelayerAddressUpdated(uint16 chainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
 
     function setPermissionedRelayerAddress(uint16 chainId, bytes32 newRelayerAddress) public onlyOwner {
-        bytes32 oldAddress = relayerAddress(chainId);
         setRelayerAddress(chainId, newRelayerAddress);
-        emit PermissionedRelayerAddressUpdated(chainId, oldAddress, newRelayerAddress);
+        emit PermissionedRelayerAddressUpdated(chainId, newRelayerAddress);
     }
 
     function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {

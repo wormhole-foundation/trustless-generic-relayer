@@ -29,6 +29,7 @@ contract GasOracleSetters is Context, GasOracleState {
         _state.wormholeFee[chainId] = wormholeFee;
     }
 
+    //TODO rename to capture that this is the dedicated reward address
     function setRelayerAddress(uint16 chainId, bytes32 relayerAddress) internal {
         _state.permissionedRelayerAddress[chainId] = relayerAddress;
     }
