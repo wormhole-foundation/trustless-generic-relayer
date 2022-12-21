@@ -13,9 +13,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
-        //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
-        // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
-        //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
@@ -52,6 +49,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
+        //TODO, also in forward
+        //Enforce request correctness, such as maximum gas amounts or unregistered chains
+        //And enforce collect relayer payment and resultant checks
         sufficientFundsHelper(deliveryRequests, msg.value);
         require(nonce > 0, "nonce must be > 0");
 
@@ -126,14 +126,23 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
+    /*
+    By the time this function completes, we must be certain that the specified funds are sufficient to cover
+    delivery for each one of the deliveryRequests with at least 1 gas on the target chains.
+    */
     function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees) {
         totalFees = wormhole().messageFee();
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
             DeliveryRequest memory request = deliveryRequests.requests[i];
-            uint256 currentOverhead = getSelectedGasOracle(request.relayParameters).deliverGasOverhead(request.targetChain);
+
+            IGasOracle selectedProvider = getSelectedGasOracle(request.relayParameters);
+            uint256 computeOverhead = selectedProvider.quoteEvmDeliveryPrice(request.targetChain, 1);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            require(request.computeBudget > currentOverhead, "Insufficient compute budget specified to cover required overheads");
+            require(request.computeBudget >= computeOverhead, "Insufficient compute budget specified to cover required overheads");
+
+            // TODO add function to provider interface to retrieve this on a per-chain basis
+            require(request.applicationBudget <= request.computeBudget);
 
             totalFees = totalFees + request.computeBudget + request.applicationBudget;
 
@@ -142,27 +151,9 @@ contract CoreRelayer is CoreRelayerGovernance {
                 "Insufficient funds were provided to cover the delivery fees."
             );
 
-            // sanity check a few of the values before composing the DeliveryInstructions
+            //additional sanity checks
             require(request.targetAddress != bytes32(0), "invalid targetAddress");
         }
-    }
-
-
-    // TODO: WIP
-    function collectRelayerPayment(
-        uint16 targetChain,
-        uint256 computeBudget,
-        uint256 nativeBudget
-    ) internal {
-        require(computeBudget > (getGasOracle().deliverGasOverhead(targetChain) + wormhole().messageFee()), "Insufficient compute budget!");
-        
-        //TODO also implement a cap on the compute budget.
-        require(nativeBudget < computeBudget, "Native budget cannot be more than the compute budget.");
-
-        require(
-            msg.value == (computeBudget + nativeBudget),
-            "Fee in msg.value does not cover the specified budget."
-        );
     }
 
     function _executeDelivery(IWormhole wormhole, DeliveryInstruction memory internalInstruction, bytes[] memory encodedVMs)
