@@ -9,7 +9,6 @@ import "./GasOracleState.sol";
 
 contract GasOracleGetters is GasOracleState {
 
-
     function chainId() public view returns (uint16) {
         return _state.chainId;
     }
@@ -31,8 +30,8 @@ contract GasOracleGetters is GasOracleState {
     }
 
     function relayerAddress(uint16 targetChainId) public view returns (bytes32) {
-        require(_state.permissionedRelayerAddress[targetChainId] != bytes32(0), "No permissioned relayer address");
-        return _state.permissionedRelayerAddress[targetChainId];
+        require(_state.relayerAddressMap[targetChainId] != bytes32(0), "No permissioned relayer address");
+        return _state.relayerAddressMap[targetChainId];
     }
 
     function owner() public view returns (address) {

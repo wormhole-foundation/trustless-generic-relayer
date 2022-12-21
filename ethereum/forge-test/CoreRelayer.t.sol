@@ -85,7 +85,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         // deploy the gasOracle and set price
         gasOracle = new GasOracle(SOURCE_CHAIN_ID);
 
-        gasOracle.setPermissionedRelayerAddress(SOURCE_CHAIN_ID, bytes32(uint256(uint160(address(this)))));
+        gasOracle.setRelayerAddress(SOURCE_CHAIN_ID, bytes32(uint256(uint160(address(this)))));
 
         // set up the relayer contracts
         setOwner(address(this));
@@ -387,7 +387,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
 
         DeliveryRequest memory request = DeliveryRequest(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(deliveryContract)))), bytes32(uint256(uint160(batchParams.refundAddress))), computeBudget, 0, bytes(""));
 
-        this.requestDelivery{value: computeBudget + gasOracle.wormholeFee(TARGET_CHAIN_ID)}(request, batchParams.nonce, batchParams.consistencyLevel);
+        this.requestDelivery{value: wormhole.messageFee() + computeBudget}(request, batchParams.nonce, batchParams.consistencyLevel);
 
         // record the wormhole message emitted by the relayer contract
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -396,7 +396,7 @@ contract TestCoreRelayer is CoreRelayer, Test {
         encodedVMs[0] = wormholeSimulator.fetchSignedMessageFromLogs(entries[0], wormhole.chainId(), address(this));
         encodedVMs[1] = wormholeSimulator.fetchSignedMessageFromLogs(entries[1], wormhole.chainId(), address(this));
 
-        this.deliverSingle{value: computeBudget + gasOracle.wormholeFee(TARGET_CHAIN_ID)}(TargetDeliveryParametersSingle(encodedVMs, 1, 0));
+        this.deliverSingle{value: computeBudget}(TargetDeliveryParametersSingle(encodedVMs, 1, 0));
 
         assertTrue(keccak256(deliveryContract.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(message));
         

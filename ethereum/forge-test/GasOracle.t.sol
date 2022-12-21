@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "../contracts/gasOracle/GasOracle.sol";
+import "../contracts/interfaces/IGasOracle.sol";
 import {Implementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import "forge-std/Test.sol";
 
@@ -11,14 +12,16 @@ import "forge-std/console.sol";
 contract TestGasOracle is Test {
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
 
-    GasOracle internal gasOracle;
+    IGasOracle internal gasOracle;
 
     function initializeGasOracle() internal {
    
-        gasOracle = new GasOracle(TEST_ORACLE_CHAIN_ID);
+        GasOracle gasOracleImplementation = new GasOracle(TEST_ORACLE_CHAIN_ID);
 
-        require(gasOracle.owner() == address(this), "owner() != expected");
-        require(gasOracle.chainId() == TEST_ORACLE_CHAIN_ID, "chainId() != expected");
+        require(gasOracleImplementation.owner() == address(this), "owner() != expected");
+        require(gasOracleImplementation.chainId() == TEST_ORACLE_CHAIN_ID, "chainId() != expected");
+
+        gasOracle = IGasOracle(address(gasOracleImplementation));
     }
 
     function testCannotUpdatePriceWithChainIdZero(uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) public {
@@ -126,7 +129,7 @@ contract TestGasOracle is Test {
 
         // update the price with reasonable values
         //vm.prank(gasOracle.owner());
-        gasOracle.updatePrice(gasOracle.chainId(), srcGasPrice, srcNativeCurrencyPrice);
+        gasOracle.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
 
         // you shall not pass
         vm.expectRevert("dstNativeCurrencyPrice == 0");
@@ -139,7 +142,9 @@ contract TestGasOracle is Test {
         uint64 dstNativeCurrencyPrice,
         uint128 srcGasPrice,
         uint64 srcNativeCurrencyPrice,
-        uint64 gasLimit
+        uint32 gasLimit,
+        uint32 deliverGasOverhead,
+        uint32 targetWormholeFee
     )
         public
     {
@@ -154,10 +159,13 @@ contract TestGasOracle is Test {
 
         // update the prices with reasonable values
         gasOracle.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
-        gasOracle.updatePrice(gasOracle.chainId(), srcGasPrice, srcNativeCurrencyPrice);
+        gasOracle.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
+
+        gasOracle.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
+        gasOracle.updateWormholeFee(dstChainId, targetWormholeFee);
 
         // verify price
-        uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
+        uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;
         require(gasOracle.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "gasOracle.quoteEvmDeliveryPrice(...) != expected");
     }
 
@@ -174,7 +182,9 @@ contract TestGasOracle is Test {
         uint64 dstNativeCurrencyPrice,
         uint128 srcGasPrice,
         uint64 srcNativeCurrencyPrice,
-        uint64 gasLimit
+        uint32 gasLimit,
+        uint32 deliverGasOverhead,
+        uint32 targetWormholeFee
     )
         public
     {
@@ -187,13 +197,13 @@ contract TestGasOracle is Test {
 
         initializeGasOracle();
 
-        GasOracle.UpdatePrice[] memory updates = new GasOracle.UpdatePrice[](2);
-        updates[0] = GasOracle.UpdatePrice({
-            chainId: gasOracle.chainId(),
+        IGasOracle.UpdatePrice[] memory updates = new IGasOracle.UpdatePrice[](2);
+        updates[0] = IGasOracle.UpdatePrice({
+            chainId: TEST_ORACLE_CHAIN_ID,
             gasPrice: srcGasPrice,
             nativeCurrencyPrice: srcNativeCurrencyPrice
         });
-        updates[1] = GasOracle.UpdatePrice({
+        updates[1] = IGasOracle.UpdatePrice({
             chainId: dstChainId,
             gasPrice: dstGasPrice,
             nativeCurrencyPrice: dstNativeCurrencyPrice
@@ -202,8 +212,11 @@ contract TestGasOracle is Test {
         // update the prices with reasonable values
         gasOracle.updatePrices(updates);
 
+         gasOracle.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
+        gasOracle.updateWormholeFee(dstChainId, targetWormholeFee);
+
         // verify price
-        uint256 expected = (uint256(dstGasPrice) * dstNativeCurrencyPrice * gasLimit + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
+        uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;
         require(gasOracle.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "gasOracle.quoteEvmDeliveryPrice(...) != expected");
     }
 }

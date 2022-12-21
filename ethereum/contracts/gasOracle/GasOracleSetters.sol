@@ -30,8 +30,8 @@ contract GasOracleSetters is Context, GasOracleState {
     }
 
     //TODO rename to capture that this is the dedicated reward address
-    function setRelayerAddress(uint16 chainId, bytes32 relayerAddress) internal {
-        _state.permissionedRelayerAddress[chainId] = relayerAddress;
+    function setRelayerAddressInternal(uint16 chainId, bytes32 relayerAddress) internal {
+        _state.relayerAddressMap[chainId] = relayerAddress;
     }
     
     function setPriceInfo(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) internal {

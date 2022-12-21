@@ -46,7 +46,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             newEncoded = abi.encodePacked(newEncoded, 
                 uint8(1), //version for ExecutionParameters
                 selectedGasOracle.quoteTargetEvmGas(request.targetChain, request.computeBudget),
-                selectedGasOracle.getRelayerAddressSingle(request.targetChain));
+                selectedGasOracle.getRelayerAddress(request.targetChain));
     }
 
 

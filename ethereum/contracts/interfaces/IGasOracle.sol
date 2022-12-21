@@ -22,11 +22,23 @@ interface IGasOracle {
 
     function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
 
-    function getRelayerAddressSingle(uint16 targetChain) external view returns (bytes32 whAddress);
+    function getRelayerAddress(uint16 targetChain) external view returns (bytes32 whAddress);
 
-    function wormholeFee(uint16 targetChainId) external view returns (uint32);
+    function setRelayerAddress(uint16 targetChain, bytes32 newRelayerAddress) external;
 
-    function deliverGasOverhead(uint16 targetChainId) external view returns (uint32);
+    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) external;
+
+    struct UpdatePrice {
+        uint16 chainId;
+        uint128 gasPrice;
+        uint128 nativeCurrencyPrice;
+    }
+
+    function updatePrices(UpdatePrice[] memory updates) external;
+
+    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) external;
+
+    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) external;
 
     //TODO add applicationBudget helper calculation function
 }

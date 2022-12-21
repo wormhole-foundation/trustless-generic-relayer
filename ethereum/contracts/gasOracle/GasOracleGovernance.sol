@@ -21,8 +21,8 @@ abstract contract GasOracleGovernance is
     event PermissionedRelayerAddressUpdated(uint16 chainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
 
-    function setPermissionedRelayerAddress(uint16 chainId, bytes32 newRelayerAddress) public onlyOwner {
-        setRelayerAddress(chainId, newRelayerAddress);
+    function setRelayerAddress(uint16 chainId, bytes32 newRelayerAddress) public onlyOwner {
+        setRelayerAddressInternal(chainId, newRelayerAddress);
         emit PermissionedRelayerAddressUpdated(chainId, newRelayerAddress);
     }
 
@@ -30,6 +30,10 @@ abstract contract GasOracleGovernance is
         uint32 currentGasOverhead = deliverGasOverhead(chainId);
         setDeliverGasOverhead(chainId, newGasOverhead);
         emit DeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
+    }
+
+    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public onlyOwner {
+        setWormholeFee(chainId, newWormholeFee);
     }
 
     /// @dev upgrade serves to upgrade contract implementations

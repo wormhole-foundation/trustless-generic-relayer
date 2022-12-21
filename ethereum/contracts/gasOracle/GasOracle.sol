@@ -15,12 +15,6 @@ contract GasOracle is GasOracleGovernance {
         setChainId(chainId);
     }
 
-    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
-        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
-        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
-
-        targetAmount = (sourceAmount * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
-    }
 
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
         nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee(chainId);
@@ -39,7 +33,14 @@ contract GasOracle is GasOracleGovernance {
         }
     }
 
-    function getRelayerAddressSingle(uint16 targetChain) public view returns (bytes32 whAddress) {
+    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
+        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
+        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
+
+        targetAmount = (sourceAmount * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
+    }
+
+    function getRelayerAddress(uint16 targetChain) public view returns (bytes32 whAddress) {
         return relayerAddress(targetChain);
     }
 

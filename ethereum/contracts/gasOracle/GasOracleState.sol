@@ -20,7 +20,7 @@ contract GasOracleStorage {
         mapping(uint16 => uint32) wormholeFee;
 
         //TODO rename to reward addresses or something similar
-        mapping(uint16 => bytes32) permissionedRelayerAddress;
+        mapping(uint16 => bytes32) relayerAddressMap;
 
 
     }
