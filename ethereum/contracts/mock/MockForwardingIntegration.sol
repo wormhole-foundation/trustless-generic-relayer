@@ -30,7 +30,8 @@ contract MockForwardingIntegration is IWormholeReceiver {
     }
 
     function estimateRelayCosts(uint16 targetChainId, uint256 targetGasLimit) public view returns (uint256) {
-        return relayer.quoteEvmDeliveryPrice(targetChainId, targetGasLimit);
+        //return relayer.quoteEvmDeliveryPrice(targetChainId, targetGasLimit);
+        return 0;
     }
 
     struct RelayerArgs {
@@ -103,7 +104,7 @@ contract MockForwardingIntegration is IWormholeReceiver {
         bytes memory relayParameters = abi.encodePacked(uint8(1), relayerArgs.targetGasLimit, gasEstimate);
 
         ICoreRelayer.DeliveryRequest[] memory ixs = new ICoreRelayer.DeliveryRequest[](1);
-        ixs[0] = ICoreRelayer.DeliveryInstructions({
+        ixs[0] = ICoreRelayer.DeliveryRequest({
             targetChain: relayerArgs.targetChainId,
             targetAddress: bytes32(uint256(uint160(relayerArgs.targetAddress))),
             refundAddress: bytes32(uint256(uint160(relayerArgs.refundAddress))),
@@ -114,7 +115,7 @@ contract MockForwardingIntegration is IWormholeReceiver {
 
         // create the relayer params to call the relayer with
         ICoreRelayer.DeliveryRequestsContainer memory deliveryParams =
-            ICoreRelayer.DeliveryRequestsContainer({payloadID: 1, instructions: ixs});
+            ICoreRelayer.DeliveryRequestsContainer({payloadID: 1, requests: ixs});
 
         // call the relayer contract and save the sequence.
         //relayer.forward(deliveryParams, relayerArgs.targetChainId, relayerArgs.nonce, relayerArgs.consistencyLevel);

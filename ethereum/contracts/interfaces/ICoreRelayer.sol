@@ -79,7 +79,7 @@ interface ICoreRelayer {
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
         // Optional gasOverride which can be supplied by the relayer
-        uint32 targetCallGasOverride;
+       // uint32 targetCallGasOverride;
     }
 
     struct RelayParameters {

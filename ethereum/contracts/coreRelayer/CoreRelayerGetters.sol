@@ -42,10 +42,11 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IGasOracle(_state.gasOracle);
     }
 
-    function getSelectedGasOracle(bytes relayerParams) internal view returns (IGasOracle) {
-        if(relayerParams == 0 || relayerParams.length == 0){
+    function getSelectedGasOracle(bytes memory relayerParams) internal view returns (IGasOracle) {
+        if(relayerParams.length == 0){
             return gasOracle();
         } else {
+            return gasOracle();
             //TODO parse relayerParams & instantiate IGasOracle. If that fails, explode.
         }
     } 

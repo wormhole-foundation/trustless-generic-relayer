@@ -74,34 +74,37 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultiforward(DeliveryInstructionsContainer memory deliveryInstructions, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
         require(isContractLocked(), "Can only forward while a delivery is in process.");
         require(getForwardingInstructions().isValid != true, "Cannot request multiple forwards.");
 
         //TODO ensure rollover chain is included in delivery instructions;
 
-        setForwardingInstructions(ForwardingInstructions(encodeDeliveryInstructionsContainer(deliveryInstructions), rolloverChain, nonce, consistencyLevel, true));
+        setForwardingInstructions(ForwardingInstructions(encodeDeliveryInstructionsContainer(deliveryRequests), rolloverChain, nonce, consistencyLevel, true));
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64 sequence) {
+        // TODO: Fix this
+        /*
         ForwardingInstructions memory forwardingInstructions = getForwardingInstructions();
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(forwardingInstructions.deliveryInstructionsContainer);
 
         //make sure the refund amount covers the native gas amounts
         uint256 totalMinimumFees = sufficientFundsHelper(container, refundAmount);
 
+
         //find the delivery instruction for the rollover chain
         uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingInstructions.rolloverChain);
 
         //calc how much budget is used by chains other than the rollover chain
-        uint256 rolloverChainCostEstimate = container.instructions[rolloverInstructionIndex].computeBudget + container.instructions[rolloverInstructionIndex].nativeBudget;
+        uint256 rolloverChainCostEstimate = container.instructions[rolloverInstructionIndex].computeBudgetTarget + container.instructions[rolloverInstructionIndex].applicationBudgetTarget;
         uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate;
-        uint256 rolloverBudget = refundAmount - nonrolloverBudget - container.instructions[rolloverInstructionIndex].nativeBudget;
+        uint256 rolloverBudget = refundAmount - nonrolloverBudget - container.instructions[rolloverInstructionIndex].applicationBudgetTarget;
 
         //TODO deduct gas cost of this operation from the rollover amount?
 
         //overwrite the gas budget on the rollover chain to the remaining budget amount
-        container.instructions[rolloverInstructionIndex].computeBudget = rolloverBudget;
+        container.instructions[rolloverInstructionIndex].computeBudgetTarget = rolloverBudget;
 
         //emit delivery request message
         require(forwardingInstructions.nonce > 0, "nonce must be > 0");
@@ -111,6 +114,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //clear forwarding request from cache
         clearForwardingInstructions();
+        */
     }
 
     function findDeliveryIndex(DeliveryInstructionsContainer memory container, uint16 chainId) internal pure returns (uint16 deliveryInstructionIndex) {
@@ -125,7 +129,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees) {
         totalFees = wormhole().messageFee();
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
-            DeliveryRequest request = deliveryRequests.requests[i];
+            DeliveryRequest memory request = deliveryRequests.requests[i];
             uint256 currentOverhead = getSelectedGasOracle(request.relayParameters).deliverGasOverhead(request.targetChain);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
@@ -186,16 +190,16 @@ contract CoreRelayer is CoreRelayerGovernance {
         setContractLock(true);
 
         // store gas budget pre target invocation to calculate unused gas budget
-        uint32 preGas = gasleft();
+        uint256 preGas = gasleft();
 
         // call the receiveWormholeMessages endpoint on the target contract
         // TODO try/catch around this
         (bool success,) = fromWormholeFormat(internalInstruction.targetAddress).call{
-            gas: internalInstruction.executionParameters.deliveryGasLimit, value:internalInstruction.applicationBudgetTarget
+            gas: internalInstruction.executionParameters.gasLimit, value:internalInstruction.applicationBudgetTarget
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", encodedVMs));
 
         // refund unused gas budget
-        uint256 weiToRefund = internalInstruction.executionParameters.deliveryGasLimit - (preGas - gasleft());
+        uint256 weiToRefund = internalInstruction.executionParameters.gasLimit - (preGas - gasleft());
 
 
         // unlock the contract
@@ -306,7 +310,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole wormhole = wormhole();
 
         // validate the deliveryIndex and cache the delivery VAA
-        (IWormhole.VM memory deliveryVM, bool valid) = wormhole().parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
+        (IWormhole.VM memory deliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
         require(valid, "Invalid VAA at delivery index");
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 

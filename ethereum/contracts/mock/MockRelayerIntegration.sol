@@ -33,7 +33,8 @@ contract MockRelayerIntegration is IWormholeReceiver {
     }
 
     function estimateRelayCosts(uint16 targetChainId, uint256 targetGasLimit) public view returns (uint256) {
-        return relayer.quoteEvmDeliveryPrice(targetChainId, targetGasLimit);
+        //return relayer.quoteEvmDeliveryPrice(targetChainId, targetGasLimit);
+        return 0;
     }
 
     struct RelayerArgs {
@@ -117,7 +118,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
         // create the relayer params to call the relayer with
         ICoreRelayer.DeliveryRequestsContainer memory deliveryParams =
-            ICoreRelayer.DeliveryRequestsContainer({payloadID: 1, instructions: ixs});
+            ICoreRelayer.DeliveryRequestsContainer({payloadID: 1, requests: ixs});
 
         // call the relayer contract and save the sequence.
         //relayerMessageSequence =

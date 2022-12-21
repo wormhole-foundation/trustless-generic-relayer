@@ -13,7 +13,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     function encodeDeliveryInstructionsContainer(DeliveryRequestsContainer memory container)
         internal
-        pure
+        view
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
@@ -23,18 +23,18 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         ); 
 
         //Append all the messages to the array.
-        for (uint256 i = 0; i < container.instructions.length; i++) {
+        for (uint256 i = 0; i < container.requests.length; i++) {
 
-            IGasOracle selectedGasOracle = getSelectedGasOracle(container.instructions[i].relayParameters);
+            IGasOracle selectedGasOracle = getSelectedGasOracle(container.requests[i].relayParameters);
 
-            bytes32 targetChain = container.instructions[i].targetChain;
-            uint256 computeBudget = container.instructions[i].computeBudget;
-            uint256 applicationBudget = container.instructions[i].applicationBudget;
+            uint16 targetChain = container.requests[i].targetChain;
+            uint256 computeBudget = container.requests[i].computeBudget;
+            uint256 applicationBudget = container.requests[i].applicationBudget;
             encoded = abi.encodePacked(
                 encoded,
                 targetChain,
-                container.instructions[i].targetAddress,
-                container.instructions[i].refundAddress,
+                container.requests[i].targetAddress,
+                container.requests[i].refundAddress,
                 selectedGasOracle.assetConversionAmount(chainId(), computeBudget, targetChain), 
                 selectedGasOracle.assetConversionAmount(chainId(), applicationBudget, targetChain),
                 computeBudget + applicationBudget,

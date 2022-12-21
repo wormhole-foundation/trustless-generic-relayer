@@ -10,7 +10,8 @@ import "../../interfaces/IWormholeReceiver.sol";
 import "../../interfaces/ICoreRelayer.sol";
 
 
-contract Xmint is ERC20, IWormholeReceiver {
+abstract contract Xmint is ERC20, IWormholeReceiver {
+    /*
     //using BytesLib for bytes;
 
     mapping(uint16 => bytes32) trustedContracts;
@@ -40,6 +41,7 @@ contract Xmint is ERC20, IWormholeReceiver {
         This function is used to add spoke contract deployments into the trusted addresses of this
         contract.
     */
+    /*
     function registerApplicationContracts(uint16 chainId, bytes32 emitterAddr) public {
         require(msg.sender == owner, "Only owner can register new chains!");
         trustedContracts[chainId] = emitterAddr;
@@ -70,6 +72,7 @@ contract Xmint is ERC20, IWormholeReceiver {
 
         //Request delivery from the relayer network.
         requestForward(fromChain, decodeRecipientPayload(transferResult.payload));
+        *
     }
 
     //This function allows you to purchase tokens from the Hub chain. Because this is all on the Hub chain, 
@@ -107,5 +110,5 @@ contract Xmint is ERC20, IWormholeReceiver {
         //Because this is a toy example, we will mint them 1 token regardless of what token they paid with
         // or how much they paid.
         return 1 * 10^18;
-    }
+    }*/
 }

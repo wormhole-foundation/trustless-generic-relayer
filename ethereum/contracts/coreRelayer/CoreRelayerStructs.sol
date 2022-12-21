@@ -20,7 +20,7 @@ contract CoreRelayerStructs {
         // Index of the delivery VM in a batch
         uint8 deliveryIndex;
         uint8 multisendIndex;
-        uint32 targetCallGasOverride;
+        //uint32 targetCallGasOverride;
     }
 
     struct TargetDeliveryParametersSingle {

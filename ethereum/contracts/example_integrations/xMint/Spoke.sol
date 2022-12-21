@@ -9,7 +9,8 @@ import "../../interfaces/ITokenBridge.sol";
 import "../../interfaces/IWormholeReceiver.sol";
 import "../../interfaces/ICoreRelayer.sol";
 
-contract Xmint is ERC20, IWormholeReceiver {
+abstract contract Xmint is ERC20, IWormholeReceiver {
+    /*
     // using BytesLib for bytes;
 
     address owner;
@@ -84,4 +85,5 @@ contract Xmint is ERC20, IWormholeReceiver {
     function toWormholeFormat(address native) internal returns (bytes32 whFormatAddress){
 
     }
+    */
 }

@@ -26,5 +26,7 @@ interface IGasOracle {
 
     function wormholeFee(uint16 targetChainId) external view returns (uint32);
 
+    function deliverGasOverhead(uint16 targetChainId) external view returns (uint32);
+
     //TODO add applicationBudget helper calculation function
 }
