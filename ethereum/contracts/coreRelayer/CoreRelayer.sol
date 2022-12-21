@@ -13,13 +13,14 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+        /*
         //TODO should maximum batch size be removed from relay parameters, or is that a valuable protection? It's not currently enforced.
         // RelayParameters memory relayParameters = RelayParameters(1,estimateEvmGas(gasBudget), 0, gasBudget);
         //TODO should encode relay parameters take in relay parameters? Should relay parameters still exist?
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
-        return requestMultidelivery(container, nonce, consistencyLevel);
+        return requestMultidelivery(container, nonce, consistencyLevel);*/
     }
 
     function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public payable {
@@ -184,7 +185,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //         i += 1;
         //     }
         // }
-
+        /*
         // lock the contract to prevent reentrancy
         require(!isContractLocked(), "reentrant call");
         setContractLock(true);
@@ -246,6 +247,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         msg.sender.call{value: msg.value - weiToRefund - internalInstruction.applicationBudgetTarget - wormhole.messageFee()}("");
 
         //TODO emit evm event that the delivery happened
+        */
     }
 
     //REVISE Consider outputting a VAA which has rewards for every chain to reduce rebalancing complexity
@@ -308,6 +310,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable returns (uint64 sequence) {
         // cache wormhole instance
+        /*
         IWormhole wormhole = wormhole();
 
         // validate the deliveryIndex and cache the delivery VAA
@@ -334,7 +337,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //make sure this delivery is intended for this chain
         require(chainId() == deliveryInstruction.targetChain, "targetChain is not this chain");
 
-        return _executeDelivery(wormhole, deliveryInstruction, targetParams.encodedVMs);
+        return _executeDelivery(wormhole, deliveryInstruction, targetParams.encodedVMs);*/
     }
 
     function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {

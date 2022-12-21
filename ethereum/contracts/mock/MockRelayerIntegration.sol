@@ -86,7 +86,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             1 // consistencyLevel
         );
     }
-
+/*
     function sendBatchToTargetChain(
         bytes[] calldata payload,
         uint8[] calldata consistencyLevel,
@@ -123,14 +123,14 @@ contract MockRelayerIntegration is IWormholeReceiver {
         // call the relayer contract and save the sequence.
         //relayerMessageSequence =
           //  relayer.send{value: gasEstimate}(deliveryParams, relayerArgs.nonce, relayerArgs.consistencyLevel);
-    }
+    }*/
 
     struct EmitterSequence {
         bytes32 emitter;
         uint64 sequence;
     }
 
-    function parseVerifyingMessage(bytes memory verifyingObservation, uint256 numObservations)
+    /*function parseVerifyingMessage(bytes memory verifyingObservation, uint256 numObservations)
         public
         returns (EmitterSequence[] memory emitterSequences)
     {
@@ -160,7 +160,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             }
         }
         require(payload.length == index, "payload.length != index");
-    }
+    }*/
 
     function receiveWormholeMessages(bytes[] memory wormholeObservations) public override {
         // loop through the array of wormhole observations from the batch and store each payload
