@@ -12,6 +12,11 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
+    event DeliverySuccess(bytes32 deliveryVaaHash, address recipientContract);
+    event DeliveryFailure(bytes32 deliveryVaaHash, address recipientContract);
+    event ForwardRequestFailure(bytes32 deliveryVaaHash, address recipientContract);
+    event ForwardRequestSuccess(bytes32 deliveryVaaHash, address recipientContract);
+
     function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
@@ -153,7 +158,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function _executeDelivery(IWormhole wormhole, DeliveryInstruction memory internalInstruction, bytes[] memory encodedVMs)
+    function _executeDelivery(IWormhole wormhole, DeliveryInstruction memory internalInstruction, bytes[] memory encodedVMs, bytes32 deliveryVaaHash)
         internal
         returns (uint64 sequence)
     {
@@ -181,14 +186,16 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 preGas = gasleft();
 
         // call the receiveWormholeMessages endpoint on the target contract
-        // TODO try/catch around this
         (bool success,) = fromWormholeFormat(internalInstruction.targetAddress).call{
             gas: internalInstruction.executionParameters.gasLimit, value:internalInstruction.applicationBudgetTarget
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", encodedVMs));
 
-        // refund unused gas budget
-        uint256 weiToRefund = internalInstruction.executionParameters.gasLimit - (preGas - gasleft());
+        uint256 postGas = gasleft();
 
+        // refund unused gas budget
+        //TODO currently in gas units, needs to be converted to wei by multiplying the percentage remaining times the
+        //compute budget
+        uint256 weiToRefund = internalInstruction.executionParameters.gasLimit - (preGas - postGas);
 
         // unlock the contract
         setContractLock(false);
@@ -196,10 +203,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // increment the relayer rewards
         incrementRelayerRewards(msg.sender, internalInstruction.sourceChain, internalInstruction.sourceReward);
 
-        //TODO always emit one VAA, of four types when delivering
-        //Delivery success, delivery failure, forward, or a forward failure
-
-        //TODO decide if we want to actually do this
+        //TODO decide if we want to always emit a VAA, or only when forwarding
         // // emit delivery status message
         // DeliveryStatus memory status = DeliveryStatus({
         //     payloadID: 2,
@@ -214,10 +218,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //     wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeDeliveryStatus(status), consistencyLevel());
 
         if(getForwardingInstructions().isValid) {
-            //TODO decide what to do in the case of an insufficient refund to cover these costs
-
-            //TODO emit special delivery failure status when the delivery succeeded by the forward
-            //failed, this delivery failure can be redelivered
+            //TODO make sure emitForward also emits its two events
             emitForward(weiToRefund);
         } else {
             (bool sent,) =
@@ -227,13 +228,17 @@ contract CoreRelayer is CoreRelayerGovernance {
                 // if refunding fails, pay out full refund to relayer
                 weiToRefund = 0;
             }
+
+            if(success){
+                emit DeliverySuccess(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
+            } else {
+                emit DeliveryFailure(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
+            }
         }
 
 
         // refund the rest to relayer
         msg.sender.call{value: msg.value - weiToRefund - internalInstruction.applicationBudgetTarget - wormhole.messageFee()}("");
-
-        //TODO emit evm event that the delivery happened
     }
 
     //REVISE Consider outputting a VAA which has rewards for every chain to reduce rebalancing complexity
@@ -322,7 +327,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //make sure this delivery is intended for this chain
         require(chainId() == deliveryInstruction.targetChain, "targetChain is not this chain");
 
-        return _executeDelivery(wormhole, deliveryInstruction, targetParams.encodedVMs);
+        return _executeDelivery(wormhole, deliveryInstruction, targetParams.encodedVMs, deliveryVM.hash);
     }
 
     function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
