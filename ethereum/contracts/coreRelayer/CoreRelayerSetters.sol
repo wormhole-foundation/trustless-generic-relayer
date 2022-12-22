@@ -32,8 +32,8 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.provider.wormhole = payable(wh);
     }
 
-    function setGasOracle(address oracle) internal {
-        _state.gasOracle = oracle;
+    function setDefaultRelayProvider(address defaultRelayProvider) internal {
+        _state.defaultRelayProvider = defaultRelayProvider;
     }
 
     function setRegisteredRelayer(uint16 chainId, bytes32 relayerAddress) internal {

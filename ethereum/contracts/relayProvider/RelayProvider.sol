@@ -3,12 +3,13 @@
 
 pragma solidity ^0.8.0;
 
-import "./GasOracleGetters.sol";
-import "./GasOracleSetters.sol";
-import "./GasOracleGovernance.sol";
+import "./RelayProviderGetters.sol";
+import "./RelayProviderSetters.sol";
+import "./RelayProviderGovernance.sol";
+import "../interfaces/IRelayProvider.sol";
 
 //TODO refactor/ rename to provider
-contract GasOracle is GasOracleGovernance {
+contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     
     constructor(uint16 chainId) {
         setOwner(_msgSender());
@@ -16,11 +17,11 @@ contract GasOracle is GasOracleGovernance {
     }
 
 
-    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public view returns (uint256 nativePriceQuote) {
+    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public override view returns (uint256 nativePriceQuote) {
         nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee(chainId);
     }
 
-    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public view returns (uint32 gasAmount) {
+    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public override view returns (uint32 gasAmount) {
         if(computeBudget <= wormholeFee(targetChain)) {
             return 0;
         } else {
@@ -33,42 +34,23 @@ contract GasOracle is GasOracleGovernance {
         }
     }
 
-    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public view returns (uint256 targetAmount) {
+    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public override view returns (uint256 targetAmount) {
         uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
         uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
 
         targetAmount = (sourceAmount * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
     }
 
-    function getRelayerAddress(uint16 targetChain) public view returns (bytes32 whAddress) {
-        return relayerAddress(targetChain);
+    function getRewardAddress(uint16 targetChain) public override view returns (bytes32 whAddress) {
+        return rewardAddress(targetChain);
     }
 
-    struct UpdatePrice {
-        uint16 chainId;
-        uint128 gasPrice;
-        uint128 nativeCurrencyPrice;
+    function getMaximumBudget(uint16 targetChain) public override view returns (uint256 maximumTargetBudget) {
+        return maximumBudget(targetChain);
     }
 
-    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
-        public
-        onlyOwner
-    {
-        require(updateChainId > 0, "updateChainId == 0");
-        require(updateGasPrice > 0, "updateGasPrice == 0");
-        require(updateNativeCurrencyPrice > 0, "updateNativeCurrencyPrice == 0");
-        setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
-    }
 
-    function updatePrices(UpdatePrice[] memory updates) public onlyOwner {
-        uint256 pricesLen = updates.length;
-        for (uint256 i = 0; i < pricesLen;) {
-            updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
-            unchecked {
-                i += 1;
-            }
-        }
-    }
+    
 
     /************
      * HELPER METHODS    

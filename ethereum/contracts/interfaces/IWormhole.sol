@@ -16,23 +16,8 @@ interface IWormhole {
         uint8 guardianIndex;
     }
 
-    struct Header {
-        uint32 guardianSetIndex;
-        Signature[] signatures;
-        bytes32 hash;
-    }
-
-    struct IndexedObservation {
-        // Index of the observation in the batch
-        uint8 index;
-        // Headless VM3 parsed into the VM struct
-        VM vm3;
-    }
-
     struct VM {
-        uint8 version; // version = 1 or 3
-        // The following fields constitute an Observation. For compatibility
-        // reasons we keep the representation inlined.
+        uint8 version;
         uint32 timestamp;
         uint32 nonce;
         uint16 emitterChainId;
@@ -40,61 +25,76 @@ interface IWormhole {
         uint64 sequence;
         uint8 consistencyLevel;
         bytes payload;
-        // End of observation
 
-        // The following fields constitute a Header. For compatibility
-        // reasons we keep the representation inlined.
         uint32 guardianSetIndex;
         Signature[] signatures;
-        // Computed value
+
         bytes32 hash;
     }
 
-    struct VM2 {
-        uint8 version; // version = 2
-        // Inlined Header
-        uint32 guardianSetIndex;
-        Signature[] signatures;
-        // Array of Observation hashes
-        bytes32[] hashes;
-        // Computed batch hash - hash(hash(Observation1), hash(Observation2), ...)
-        bytes32 hash;
-        // Array of observations with prepended version 3
-        bytes[] observations;
+    struct ContractUpgrade {
+        bytes32 module;
+        uint8 action;
+        uint16 chain;
+
+        address newContract;
     }
 
-    event LogMessagePublished(
-        address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel
-    );
+    struct GuardianSetUpgrade {
+        bytes32 module;
+        uint8 action;
+        uint16 chain;
 
-    function publishMessage(uint32 nonce, bytes memory payload, uint8 consistencyLevel)
-        external
-        payable
-        returns (uint64 sequence);
+        GuardianSet newGuardianSet;
+        uint32 newGuardianSetIndex;
+    }
 
-    function parseAndVerifyVM(bytes calldata encodedVM)
-        external
-        view
-        returns (VM memory vm, bool valid, string memory reason);
+    struct SetMessageFee {
+        bytes32 module;
+        uint8 action;
+        uint16 chain;
 
-    function parseAndVerifyBatchVM(bytes calldata encodedVM, bool cache)
-        external
-        returns (VM2 memory vm, bool valid, string memory reason);
+        uint256 messageFee;
+    }
+
+    struct TransferFees {
+        bytes32 module;
+        uint8 action;
+        uint16 chain;
+
+        uint256 amount;
+        bytes32 recipient;
+    }
+
+    struct RecoverChainId {
+        bytes32 module;
+        uint8 action;
+
+        uint256 evmChainId;
+        uint16 newChainId;
+    }
+
+    event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel);
+    event ContractUpgraded(address indexed oldContract, address indexed newContract);
+    event GuardianSetAdded(uint32 indexed index);
+
+    function publishMessage(
+        uint32 nonce,
+        bytes memory payload,
+        uint8 consistencyLevel
+    ) external payable returns (uint64 sequence);
+
+    function initialize() external;
+
+    function parseAndVerifyVM(bytes calldata encodedVM) external view returns (VM memory vm, bool valid, string memory reason);
 
     function verifyVM(VM memory vm) external view returns (bool valid, string memory reason);
 
-    function verifyBatchVM(VM2 memory vm, bool cache) external returns (bool valid, string memory reason);
-
-    function verifySignatures(bytes32 hash, Signature[] memory signatures, GuardianSet memory guardianSet)
-        external
-        pure
-        returns (bool valid, string memory reason);
-
-    function clearBatchCache(bytes32[] memory hashesToClear) external;
+    function verifySignatures(bytes32 hash, Signature[] memory signatures, GuardianSet memory guardianSet) external pure returns (bool valid, string memory reason);
 
     function parseVM(bytes memory encodedVM) external pure returns (VM memory vm);
 
-    function parseBatchVM(bytes memory encodedVM) external pure returns (VM2 memory vm);
+    function quorum(uint numGuardians) external pure returns (uint numSignaturesRequiredForQuorum);
 
     function getGuardianSet(uint32 index) external view returns (GuardianSet memory);
 
@@ -108,9 +108,35 @@ interface IWormhole {
 
     function chainId() external view returns (uint16);
 
+    function isFork() external view returns (bool);
+
     function governanceChainId() external view returns (uint16);
 
     function governanceContract() external view returns (bytes32);
 
     function messageFee() external view returns (uint256);
+
+    function evmChainId() external view returns (uint256);
+
+    function nextSequence(address emitter) external view returns (uint64);
+
+    function parseContractUpgrade(bytes memory encodedUpgrade) external pure returns (ContractUpgrade memory cu);
+
+    function parseGuardianSetUpgrade(bytes memory encodedUpgrade) external pure returns (GuardianSetUpgrade memory gsu);
+
+    function parseSetMessageFee(bytes memory encodedSetMessageFee) external pure returns (SetMessageFee memory smf);
+
+    function parseTransferFees(bytes memory encodedTransferFees) external pure returns (TransferFees memory tf);
+
+    function parseRecoverChainId(bytes memory encodedRecoverChainId) external pure returns (RecoverChainId memory rci);
+
+    function submitContractUpgrade(bytes memory _vm) external;
+
+    function submitSetMessageFee(bytes memory _vm) external;
+
+    function submitNewGuardianSet(bytes memory _vm) external;
+
+    function submitTransferFees(bytes memory _vm) external;
+
+    function submitRecoverChainId(bytes memory _vm) external;
 }

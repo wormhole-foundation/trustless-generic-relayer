@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 
-import "./GasOracleState.sol";
+import "./RelayProviderState.sol";
 
-contract GasOracleSetters is Context, GasOracleState {
-    function setChainId(uint16 oracleChainId) internal {
-        _state.chainId = oracleChainId;
+contract RelayProviderSetters is Context, RelayProviderState {
+    function setChainId(uint16 thisChain) internal {
+        _state.chainId = thisChain;
     }
 
 
@@ -29,9 +29,12 @@ contract GasOracleSetters is Context, GasOracleState {
         _state.wormholeFee[chainId] = wormholeFee;
     }
 
-    //TODO rename to capture that this is the dedicated reward address
-    function setRelayerAddressInternal(uint16 chainId, bytes32 relayerAddress) internal {
-        _state.relayerAddressMap[chainId] = relayerAddress;
+    function setRewardAddressInternal(uint16 chainId, bytes32 rewardAddress) internal {
+        _state.rewardAddressMap[chainId] = rewardAddress;
+    }
+
+    function setMaximumBudget(uint16 targetChainId, uint256 amount) internal {
+        _state.maximumBudget[targetChainId] = amount;
     }
     
     function setPriceInfo(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) internal {

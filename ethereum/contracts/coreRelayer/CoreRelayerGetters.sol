@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/IWormhole.sol";
-import "../interfaces/IGasOracle.sol";
+import "../interfaces/IRelayProvider.sol";
 import "./CoreRelayerStructs.sol";
 
 import "./CoreRelayerState.sol";
@@ -38,21 +38,21 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.registeredRelayers[chain];
     }
 
-    function gasOracle() internal view returns (IGasOracle) {
-        return IGasOracle(_state.gasOracle);
+    function defaultRelayProvider() internal view returns (IRelayProvider) {
+        return IRelayProvider(_state.defaultRelayProvider);
     }
 
-    function getSelectedGasOracle(bytes memory relayerParams) internal view returns (IGasOracle) {
+    function getSelectedRelayProvider(bytes memory relayerParams) internal view returns (IRelayProvider) {
         if(relayerParams.length == 0){
-            return gasOracle();
+            return defaultRelayProvider();
         } else {
-            return gasOracle();
-            //TODO parse relayerParams & instantiate IGasOracle. If that fails, explode.
+            return defaultRelayProvider();
+            //TODO parse relayerParams & instantiate IRelayProvider. If that fails, explode.
         }
     } 
 
-    function gasOracleAddress() public view returns (address) {
-        return _state.gasOracle;
+    function getDefaultRelayProviderAddress() public view returns (address) {
+        return _state.defaultRelayProvider;
     }
 
     function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {

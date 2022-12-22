@@ -8,6 +8,7 @@ import "../libraries/external/BytesLib.sol";
 
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
+import "../interfaces/IRelayProvider.sol";
 
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
@@ -31,7 +32,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return requestMultiforward(container, rolloverChain, nonce, consistencyLevel);
     }
 
-    function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence) {
+    function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable returns (uint64 sequence) {
 
     }
 
@@ -46,7 +47,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it generates a VAA with the encoded DeliveryInstructions
      */
     function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel)
-        public
+        public 
         payable
         returns (uint64 sequence)
     {
@@ -62,8 +63,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, consistencyLevel);
     }
 
-    //TODO this
     /**
+     * TODO correct this comment
      * @dev `forward` queues up a 'send' which will be executed after the present delivery is complete 
      * & uses the gas refund to cover the costs.
      * contract based on user parameters.
@@ -123,8 +124,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         bool foundRolloverChain = false;
 
         for(uint16 i = 0; i < container.requests.length; i++) {
-            IGasOracle selectedOracle = getSelectedGasOracle(container.requests[i].relayParameters);
-            require(selectedOracle.getRelayerAddress(container.requests[i].targetChain) != 0, "Specified relayer does not support the target chain" );
+            IRelayProvider selectedProvider = getSelectedRelayProvider(container.requests[i].relayParameters);
+            require(selectedProvider.getRewardAddress(container.requests[i].targetChain) != 0, "Specified relay provider does not support the target chain" );
             if(container.requests[i].targetChain == rolloverChain) {
                 foundRolloverChain = true;
             }
@@ -153,7 +154,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
             DeliveryRequest memory request = deliveryRequests.requests[i];
 
-            IGasOracle selectedProvider = getSelectedGasOracle(request.relayParameters);
+            IRelayProvider selectedProvider = getSelectedRelayProvider(request.relayParameters);
             uint256 computeOverhead = selectedProvider.quoteEvmDeliveryPrice(request.targetChain, 1);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
@@ -161,9 +162,9 @@ contract CoreRelayer is CoreRelayerGovernance {
                 return(0, false, "Insufficient compute budget specified to cover required overheads");
             } 
 
-            // TODO add function to provider interface to retrieve this on a per-chain basis
-            if(request.applicationBudget > request.computeBudget){
-                return (0, false, "applicationBudget value is larger than allowed");
+            if(selectedProvider.getMaximumBudget(request.targetChain) < selectedProvider.assetConversionAmount(chainId(),
+             request.computeBudget + request.applicationBudget, request.targetChain)){
+                return (0, false, "total requested budget exceeds the maximum");
             }
 
             totalFees = totalFees + request.computeBudget + request.applicationBudget;
@@ -270,7 +271,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     //REVISE Consider outputting a VAA which has rewards for every chain to reduce rebalancing complexity
     function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce)
-        public
+        public 
         payable
         returns (uint64 sequence)
     {
@@ -313,20 +314,20 @@ contract CoreRelayer is CoreRelayerGovernance {
         return registeredRelayer(vm.emitterChainId) == vm.emitterAddress;
     }
 
-    function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
-        return wormhole().parseVM(observation);
+    // function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
+    //     return wormhole().parseVM(observation);
+    // }
+
+    function getDefaultRelayProvider() public view returns (IRelayProvider) {
+        return defaultRelayProvider();
     }
 
-    function getGasOracle() public view returns (IGasOracle) {
-        return gasOracle();
-    }
 
-
-    function redeliverSingle(TargetDeliveryParametersSingle memory targetParams, bytes memory encodedRedeliveryVm) external payable returns (uint64 sequence){
+    function redeliverSingle(TargetDeliveryParametersSingle memory targetParams, bytes memory encodedRedeliveryVm) public payable returns (uint64 sequence){
         
     }
 
-    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable returns (uint64 sequence) {
+    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) public payable returns (uint64 sequence) {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
 

@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-contract GasOracleStorage {
+contract RelayProviderStorage {
 
     struct PriceData {
         uint128 gasPrice;
@@ -18,14 +18,13 @@ contract GasOracleStorage {
         mapping(uint16 => PriceData) data;
         mapping(uint16 => uint32) deliverGasOverhead;
         mapping(uint16 => uint32) wormholeFee;
-
-        //TODO rename to reward addresses or something similar
-        mapping(uint16 => bytes32) relayerAddressMap;
+        mapping(uint16 => uint256) maximumBudget;
+        mapping(uint16 => bytes32) rewardAddressMap;
 
 
     }
 }
 
-contract GasOracleState {
-    GasOracleStorage.State _state;
+contract RelayProviderState {
+    RelayProviderStorage.State _state;
 }
