@@ -56,7 +56,7 @@ contract CoreRelayerStructs {
     //Wire Types
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded;
+        bool sufficientlyFunded; //TODO add to encode&decode
         DeliveryInstruction[] instructions;
     }
 
@@ -93,8 +93,8 @@ contract CoreRelayerStructs {
         uint64 sequence;
     }
 
-    struct ForwardingInstructions {
-        bytes deliveryInstructionsContainer;
+    struct ForwardingRequest {
+        bytes deliveryRequestsContainer;
         uint16 rolloverChain;
         uint32 nonce;
         uint8 consistencyLevel;

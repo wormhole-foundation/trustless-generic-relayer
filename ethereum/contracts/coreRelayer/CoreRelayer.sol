@@ -25,7 +25,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public payable {
-        //TODO adjust to new function args
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
@@ -37,7 +36,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     /**
-     * TODO: Correct this spec
+     * TODO: Correct this comment
      * @dev `multisend` generates a VAA with DeliveryInstructions to be delivered to the specified target
      * contract based on user parameters.
      * it parses the RelayParameters to determine the target chain ID
@@ -51,14 +50,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        //TODO, also in forward
-        //Enforce request correctness, such as maximum gas amounts or unregistered chains
-        //And enforce collect relayer payment and resultant checks
-        sufficientFundsHelper(deliveryRequests, msg.value);
+        (uint256 totalCost, bool isSufficient, string memory cause) = sufficientFundsHelper(deliveryRequests, msg.value);
+        require(isSufficient, cause);
         require(nonce > 0, "nonce must be > 0");
 
         // encode the DeliveryInstructions
-        bytes memory container = convertToEncodedDeliveryInstructions(deliveryRequests);
+        bytes memory container = convertToEncodedDeliveryInstructions(deliveryRequests, true);
 
         // emit delivery message
         IWormhole wormhole = wormhole();
@@ -78,61 +75,80 @@ contract CoreRelayer is CoreRelayerGovernance {
      */
     function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
         require(isContractLocked(), "Can only forward while a delivery is in process.");
-        require(getForwardingInstructions().isValid != true, "Cannot request multiple forwards.");
+        require(getForwardingRequest().isValid != true, "Cannot request multiple forwards.");
 
-        //TODO ensure rollover chain is included in delivery instructions;
+        //We want to catch malformed requests in this function, and only underfunded requests when emitting.
+        verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
 
-        setForwardingInstructions(ForwardingInstructions(convertToEncodedDeliveryInstructions(deliveryRequests), rolloverChain, nonce, consistencyLevel, true));
+        setForwardingRequest(ForwardingRequest(encodeDeliveryRequestsContainer(deliveryRequests), rolloverChain, nonce, consistencyLevel, true));
     }
 
-    function emitForward(uint256 refundAmount) internal returns (uint64 sequence) {
-        // TODO: Fix this
-        /*
-        ForwardingInstructions memory forwardingInstructions = getForwardingInstructions();
-        DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(forwardingInstructions.deliveryInstructionsContainer);
+    function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
+        ForwardingRequest memory forwardingRequest = getForwardingRequest();
+        DeliveryRequestsContainer memory container = decodeDeliveryRequestsContainer(forwardingRequest.deliveryRequestsContainer);
+        
 
         //make sure the refund amount covers the native gas amounts
-        uint256 totalMinimumFees = sufficientFundsHelper(container, refundAmount);
+        (uint256 totalMinimumFees, bool isSufficient,) = sufficientFundsHelper(container, refundAmount);
+        
+        //REVISE consider deducting the cost of these calculations from the refund amount?
 
 
         //find the delivery instruction for the rollover chain
-        uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingInstructions.rolloverChain);
+        uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
 
         //calc how much budget is used by chains other than the rollover chain
-        uint256 rolloverChainCostEstimate = container.instructions[rolloverInstructionIndex].computeBudgetTarget + container.instructions[rolloverInstructionIndex].applicationBudgetTarget;
-        uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate;
-        uint256 rolloverBudget = refundAmount - nonrolloverBudget - container.instructions[rolloverInstructionIndex].applicationBudgetTarget;
+        uint256 rolloverChainCostEstimate = container.requests[rolloverInstructionIndex].computeBudget + container.requests[rolloverInstructionIndex].applicationBudget;
+        //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
+        uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate) - container.requests[rolloverInstructionIndex].applicationBudget;
 
-        //TODO deduct gas cost of this operation from the rollover amount?
 
         //overwrite the gas budget on the rollover chain to the remaining budget amount
-        container.instructions[rolloverInstructionIndex].computeBudgetTarget = rolloverBudget;
+        container.requests[rolloverInstructionIndex].computeBudget = rolloverBudget;
 
-        //emit delivery request message
-        require(forwardingInstructions.nonce > 0, "nonce must be > 0");
-        bytes memory reencoded = convertToEncodedDeliveryInstructions(container);
+        //emit forwarding instruction
+        bytes memory reencoded = convertToEncodedDeliveryInstructions(container, isSufficient);
         IWormhole wormhole = wormhole();
-        sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingInstructions.nonce, reencoded, forwardingInstructions.consistencyLevel);
+        uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingRequest.nonce, reencoded, forwardingRequest.consistencyLevel);
 
         //clear forwarding request from cache
-        clearForwardingInstructions();
-        */
+        clearForwardingRequest();
+
+        return (sequence, isSufficient);
     }
 
-    function findDeliveryIndex(DeliveryInstructionsContainer memory container, uint16 chainId) internal pure returns (uint16 deliveryInstructionIndex) {
-        for(uint16 i = 0; i < container.instructions.length; i++) {
-            if(container.instructions[i].targetChain == chainId) {
-                deliveryInstructionIndex = i;
-                return deliveryInstructionIndex;
+    function verifyForwardingRequest(DeliveryRequestsContainer memory container, uint16 rolloverChain, uint32 nonce) internal view {
+        require(nonce > 0, "nonce must be > 0");
+
+        bool foundRolloverChain = false;
+
+        for(uint16 i = 0; i < container.requests.length; i++) {
+            IGasOracle selectedOracle = getSelectedGasOracle(container.requests[i].relayParameters);
+            require(selectedOracle.getRelayerAddress(container.requests[i].targetChain) != 0, "Specified relayer does not support the target chain" );
+            if(container.requests[i].targetChain == rolloverChain) {
+                foundRolloverChain = true;
             }
         }
+
+        require(foundRolloverChain, "Rollover chain was not included in the forwarding request.");
+    }
+
+    function findDeliveryIndex(DeliveryRequestsContainer memory container, uint16 chainId) internal pure returns (uint16 deliveryRequestIndex) {
+        for(uint16 i = 0; i < container.requests.length; i++) {
+            if(container.requests[i].targetChain == chainId) {
+                deliveryRequestIndex = i;
+                return deliveryRequestIndex;
+            }
+        }
+
+        revert("Required chain not found in the delivery requests"); 
     }
 
     /*
     By the time this function completes, we must be certain that the specified funds are sufficient to cover
     delivery for each one of the deliveryRequests with at least 1 gas on the target chains.
     */
-    function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees) {
+    function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees, bool isSufficient, string memory reason) {
         totalFees = wormhole().messageFee();
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
             DeliveryRequest memory request = deliveryRequests.requests[i];
@@ -141,21 +157,28 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint256 computeOverhead = selectedProvider.quoteEvmDeliveryPrice(request.targetChain, 1);
 
             // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            require(request.computeBudget >= computeOverhead, "Insufficient compute budget specified to cover required overheads");
+            if(request.computeBudget < computeOverhead) {
+                return(0, false, "Insufficient compute budget specified to cover required overheads");
+            } 
 
             // TODO add function to provider interface to retrieve this on a per-chain basis
-            require(request.applicationBudget <= request.computeBudget);
+            if(request.applicationBudget > request.computeBudget){
+                return (0, false, "applicationBudget value is larger than allowed");
+            }
 
             totalFees = totalFees + request.computeBudget + request.applicationBudget;
 
-            require(
-                funds >= totalFees,
-                "Insufficient funds were provided to cover the delivery fees."
-            );
+            if( funds < totalFees ) {
+                return (0, false, "Insufficient funds were provided to cover the delivery fees.");
+            }
 
             //additional sanity checks
-            require(request.targetAddress != bytes32(0), "invalid targetAddress");
+            if (request.targetAddress == bytes32(0)){
+                return (0, false, "invalid targetAddress");
+            } 
         }
+
+        return (totalFees, true, "");
     }
 
     function _executeDelivery(IWormhole wormhole, DeliveryInstruction memory internalInstruction, bytes[] memory encodedVMs, bytes32 deliveryVaaHash)
@@ -217,9 +240,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         // sequence =
         //     wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeDeliveryStatus(status), consistencyLevel());
 
-        if(getForwardingInstructions().isValid) {
-            //TODO make sure emitForward also emits its two events
-            emitForward(weiToRefund);
+        if(getForwardingRequest().isValid) {
+            (sequence, success) = emitForward(weiToRefund);
+            if(success){
+                emit ForwardRequestSuccess(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
+            } else {
+                emit ForwardRequestFailure(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
+            }
         } else {
             (bool sent,) =
                 fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");

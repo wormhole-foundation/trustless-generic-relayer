@@ -27,7 +27,7 @@ contract CoreRelayerStorage {
         // address of the gas oracle on this chain
         address gasOracle;
         // Request which will be forwarded from the current delivery.
-        CoreRelayerStructs.ForwardingInstructions forwardingInstructions;
+        CoreRelayerStructs.ForwardingRequest forwardingRequest;
         // mapping of initialized implementations
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains

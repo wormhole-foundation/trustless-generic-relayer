@@ -40,12 +40,12 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.registeredRelayers[chainId] = relayerAddress;
     }
 
-    function setForwardingInstructions(CoreRelayerStructs.ForwardingInstructions memory instructions) internal {
-        _state.forwardingInstructions = instructions;
+    function setForwardingRequest(CoreRelayerStructs.ForwardingRequest memory request) internal {
+        _state.forwardingRequest = request;
     }
 
-    function clearForwardingInstructions() internal {
-       delete _state.forwardingInstructions; //TODO is this the best way to accomplish this?
+    function clearForwardingRequest() internal {
+       delete _state.forwardingRequest; //TODO is this the best way to accomplish this?
     }
 
     function markAsDelivered(bytes32 deliveryHash) internal {

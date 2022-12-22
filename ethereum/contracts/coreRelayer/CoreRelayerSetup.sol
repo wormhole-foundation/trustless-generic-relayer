@@ -15,8 +15,7 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
         uint16 chainId,
         address wormhole,
         uint8 consistencyLevel,
-        address gasOracle,
-        uint32 evmGasOverhead
+        address gasOracle
     ) public {
         // sanity check initial values
         require(implementation != address(0), "implementation cannot be address(0)");

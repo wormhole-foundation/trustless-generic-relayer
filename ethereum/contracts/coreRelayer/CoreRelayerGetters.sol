@@ -55,8 +55,8 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.gasOracle;
     }
 
-    function getForwardingInstructions() internal view returns (CoreRelayerStructs.ForwardingInstructions memory) {
-        return _state.forwardingInstructions;
+    function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
+        return _state.forwardingRequest;
     }
 
     function isDeliveryCompleted(bytes32 deliveryHash) public view returns (bool) {

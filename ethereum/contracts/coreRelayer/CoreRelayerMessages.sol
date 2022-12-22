@@ -11,14 +11,14 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function convertToEncodedDeliveryInstructions(DeliveryRequestsContainer memory container)
+    function convertToEncodedDeliveryInstructions(DeliveryRequestsContainer memory container, bool isFunded)
         internal
         view
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
-            uint8(1), // sufficiently funded
+            uint8(isFunded? 1: 0), // sufficiently funded
             uint8(container.requests.length) //number of requests in the array
         ); 
         
@@ -35,7 +35,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         IGasOracle selectedGasOracle = getSelectedGasOracle(request.relayParameters);
             newEncoded = abi.encodePacked(
                 encoded,
-               request.targetChain,
+                request.targetChain,
                 request.targetAddress,
                 request.refundAddress);
             newEncoded = abi.encodePacked(newEncoded, 
@@ -258,6 +258,14 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 32;
 
         require(encoded.length == index, "invalid RewardPayout");
+    }
+
+    function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container) internal pure returns(bytes memory) {
+        //TODO this
+    }
+
+    function decodeDeliveryRequestsContainer(bytes memory encoded) internal pure returns (DeliveryRequestsContainer memory) {
+        //TODO this
     }
 
    
