@@ -9,8 +9,7 @@ import "../../interfaces/ITokenBridge.sol";
 import "../../interfaces/IWormholeReceiver.sol";
 import "../../interfaces/ICoreRelayer.sol";
 
-abstract contract Xmint is ERC20, IWormholeReceiver {
-    /*
+contract XmintSpoke is IWormholeReceiver {
     // using BytesLib for bytes;
 
     address owner;
@@ -18,43 +17,44 @@ abstract contract Xmint is ERC20, IWormholeReceiver {
     IWormhole core_bridge;
     ITokenBridge token_bridge;
     ICoreRelayer core_relayer;
-    bytes32 hubContract;
-    uint16 hubContractChain;
+    uint16 hub_contract_chain;
+    bytes32 hub_contract_address;
 
     uint32 nonce = 1;
+    uint8 consistencyLevel = 200;
 
-    //TODO capture in dollars?
-    uint256 SAFE_DELIVERY_GAS_CAPTURE = 1000000000; //Capture 1 million gas for fees
+    uint256 SAFE_DELIVERY_GAS_CAPTURE = 1000000; //Capture 1 million gas for fees
 
     event Log(string indexed str);
 
     constructor(
-        string memory name_,
-        string memory symbol_, 
         address coreBridgeAddress,
         address tokenBridgeAddress,
-        address coreRelayerAddress
-    ) ERC20(name_, symbol_) {
+        address coreRelayerAddress,
+        uint16 hubChain,
+        bytes32 hubContractwhFormat
+    ) {
         owner = msg.sender;
         core_bridge = IWormhole(coreBridgeAddress);
         token_bridge = ITokenBridge(tokenBridgeAddress);
         core_relayer = ICoreRelayer(coreRelayerAddress);
+        hub_contract_chain = hubChain;
+        hub_contract_address = hub_contract_address;
     }
 
     //This function captures native (ETH) tokens from the user, requests a token transfer to the hub contract,
     //And then requests delivery from relayer network.
     function purchaseTokens() public payable {
         //Calculate how many tokens will be required to cover transaction fees.
-        uint256 deliveryFeeBuffer = core_relayer.quoteEvmDeliveryPrice(hubContractChain, SAFE_DELIVERY_GAS_CAPTURE);
+        uint256 deliveryFeeBuffer = core_relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE);
 
-        //require that enough funds were paid to cover the compute budget.
-        require(msg.value > deliveryFeeBuffer);
+        //require that enough funds were paid to cover this transaction and the relay costs
+        require(msg.value > deliveryFeeBuffer + core_bridge.messageFee());
 
-        uint256 bridgeAmount = msg.value -deliveryFeeBuffer;
+        uint256 bridgeAmount = msg.value - deliveryFeeBuffer - core_bridge.messageFee();
 
-        (bool success, bytes memory data) = address(token_bridge).call{value: bridgeAmount}(
-            //TODO why does this function not take a nonce?
-            abi.encodeWithSignature("wrapAndTransferETHWithPayload(unit16,bytes32,uint32,bytes)", hubContractChain, hubContract, nonce, encodeRecipientPayload(toWormholeFormat(msg.sender)))
+        (bool success, bytes memory data) = address(token_bridge).call{value: bridgeAmount + core_bridge.messageFee()}(
+            abi.encodeWithSignature("wrapAndTransferETHWithPayload(unit16,bytes32,uint32,bytes)", hub_contract_chain, hub_contract_address, nonce, abi.encode(core_relayer.toWormholeFormat(msg.sender)))
         );
 
         //Request delivery from the relayer network.
@@ -65,25 +65,34 @@ abstract contract Xmint is ERC20, IWormholeReceiver {
     function receiveWormholeMessages(bytes[] memory vaas) public override {
         //Complete the token bridge transfer
         ITokenBridge.TransferWithPayload memory transferResult = token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
-        //TODO decode recipient, transfer the tokens to them
+        require (transferResult.fromAddress == hub_contract_address && core_bridge.parseVM(vaas[0]).emitterChainId == hub_contract_chain);
+
+        //TODO is the token address the token being transferred, or the origin address?
+        ERC20 token = ERC20(core_relayer.fromWormholeFormat(transferResult.tokenAddress));
+
+        token.transfer(core_relayer.fromWormholeFormat(bytesToBytes32(transferResult.payload, 0)), transferResult.amount);
     }
 
     function requestDelivery() internal {
-        //TODO
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
+            hub_contract_chain, //target chain
+            hub_contract_address, //target address
+            hub_contract_address, //refund address, This will be ignored on the target chain because the intent is to perform a forward
+            core_relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE), //compute budget
+            0, //application budget, should cover wormhole messaging fees (which are currently zero). 
+            new bytes(0) //no overrides
+        );
+
+        core_relayer.requestDelivery(request, nonce, consistencyLevel);
     }
 
-    //TODO move these two function into common file
-    function encodeRecipientPayload(bytes32 whFormatAddress) internal returns (bytes memory payload){
+    function bytesToBytes32(bytes memory b, uint offset) private pure returns (bytes32) {
+        bytes32 out;
 
+        for (uint i = 0; i < 32; i++) {
+            out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+        }
+        return out;
     }
 
-    function decodeRecipientPayload(bytes memory payload) internal returns (bytes32 whFormatAddress){
-
-    }
-
-    //TODO move elsewhere
-    function toWormholeFormat(address native) internal returns (bytes32 whFormatAddress){
-
-    }
-    */
 }
