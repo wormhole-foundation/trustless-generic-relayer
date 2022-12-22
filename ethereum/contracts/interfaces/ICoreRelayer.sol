@@ -37,6 +37,7 @@ interface ICoreRelayer {
 
     function getDefaultRelayProvider() external returns (IGasOracle);
 
+    function setDefaultGasOracle(address gasOracle) external;
 
     struct DeliveryRequestsContainer {
         uint8 payloadID; // payloadID = 1

@@ -16,8 +16,6 @@ contract CoreRelayerStorage {
 
     struct State {
         Provider provider;
-        // number of confirmations for wormhole messages
-        uint8 consistencyLevel;
         // delivery lock for reentrancy protection
         bool contractLock;
         // authority of these contracts
@@ -31,7 +29,7 @@ contract CoreRelayerStorage {
         // mapping of initialized implementations
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains
-        mapping(uint16 => bytes32) registeredRelayers;
+        mapping(uint16 => bytes32) registeredCoreRelayerContract;
         // mapping of delivered relayer VAAs
         mapping(bytes32 => bool) completedDeliveries;
         // mapping of attempted, failed deliveries for a batch

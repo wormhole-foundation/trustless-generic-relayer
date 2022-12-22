@@ -14,7 +14,6 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
         address implementation,
         uint16 chainId,
         address wormhole,
-        uint8 consistencyLevel,
         address gasOracle
     ) public {
         // sanity check initial values
@@ -24,13 +23,13 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
 
         setOwner(_msgSender());
 
-        setConsistencyLevel(consistencyLevel);
-
         setChainId(chainId);
 
         setWormhole(wormhole);
 
         setGasOracle(gasOracle);
+
+        setRegisteredCoreRelayerContract(chainId, bytes32(uint256(uint160(address(this)))));
 
         _upgradeTo(implementation);
 

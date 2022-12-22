@@ -14,10 +14,6 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.owner;
     }
 
-    function consistencyLevel() public view returns (uint8) {
-        return _state.consistencyLevel;
-    }
-
     function pendingOwner() public view returns (address) {
         return _state.pendingOwner;
     }
@@ -34,8 +30,8 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.provider.chainId;
     }
 
-    function registeredRelayer(uint16 chain) public view returns (bytes32) {
-        return _state.registeredRelayers[chain];
+    function registeredCoreRelayerContract(uint16 chain) public view returns (bytes32) {
+        return _state.registeredCoreRelayerContract[chain];
     }
 
     function gasOracle() internal view returns (IGasOracle) {

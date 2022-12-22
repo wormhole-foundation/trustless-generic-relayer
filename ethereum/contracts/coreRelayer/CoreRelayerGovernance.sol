@@ -27,13 +27,13 @@ abstract contract CoreRelayerGovernance is
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event GasOracleUpdated(address indexed oldOracle, address indexed newOracle);
     
-    /// @dev registerChain registers other relayer contracts with this relayer
-    function registerChain(uint16 relayerChainId, bytes32 relayerAddress) public onlyOwner {
-        require(relayerAddress != bytes32(0), "invalid relayer address");
-        require(registeredRelayer(relayerChainId) == bytes32(0), "relayer already registered");
-        require(relayerChainId != 0, "invalid chainId");
+    /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
+    function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
+        require(coreRelayerContractAddress != bytes32(0), "invalid contract address");
+        require(registeredCoreRelayerContract(chainId) == bytes32(0), "contract already registered");
+        require(chainId != 0, "invalid chainId");
 
-        setRegisteredRelayer(relayerChainId, relayerAddress);
+        setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
     }
 
     /// @dev upgrade serves to upgrade contract implementations

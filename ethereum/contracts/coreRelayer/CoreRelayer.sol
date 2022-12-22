@@ -310,7 +310,11 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
-        return registeredRelayer(vm.emitterChainId) == vm.emitterAddress;
+        console.logBytes32(vm.emitterAddress);
+        console.log("above is the emitter address");
+        console.log("should be");
+        console.logBytes32(registeredCoreRelayerContract(vm.emitterChainId));
+        return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
     function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
@@ -363,6 +367,10 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function fromWormholeFormat(bytes32 whFormatAddress) public pure returns(address addr) {
         return address(uint160(uint256(whFormatAddress)));
+    }
+
+    function setDefaultGasOracle(address gasOracle) public onlyOwner {
+        setGasOracle(gasOracle);
     }
 
 

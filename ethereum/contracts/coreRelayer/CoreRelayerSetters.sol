@@ -12,10 +12,6 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.owner = owner_;
     }
 
-    function setConsistencyLevel(uint8 consistencyLevel_) internal {
-        _state.consistencyLevel = consistencyLevel_;
-    }
-
     function setPendingOwner(address newOwner) internal {
         _state.pendingOwner = newOwner;
     }
@@ -36,8 +32,8 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.gasOracle = oracle;
     }
 
-    function setRegisteredRelayer(uint16 chainId, bytes32 relayerAddress) internal {
-        _state.registeredRelayers[chainId] = relayerAddress;
+    function setRegisteredCoreRelayerContract(uint16 chainId, bytes32 relayerAddress) internal {
+        _state.registeredCoreRelayerContract[chainId] = relayerAddress;
     }
 
     function setForwardingRequest(CoreRelayerStructs.ForwardingRequest memory request) internal {
