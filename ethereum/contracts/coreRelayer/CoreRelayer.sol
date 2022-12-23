@@ -380,22 +380,22 @@ contract CoreRelayer is CoreRelayerGovernance {
     function validateRedeliverySingle(RedeliveryByTxHashInstruction memory redeliveryInstruction, DeliveryInstruction memory originalInstruction) internal view returns (DeliveryInstruction memory deliveryInstruction) {
         //All the same checks as delivery single, with a couple additional
 
-        //TODO providers must match on both
+        //providers must match on both
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.relayerAddress);
         require(providerAddress == 
             fromWormholeFormat(originalInstruction.executionParameters.relayerAddress), 
             "The same relay provider must be specified when doing a single VAA redeliver");
 
-        //TODO msg.sender must be the provider
+        //msg.sender must be the provider
         require (msg.sender == providerAddress, "Relay provider differed from the specified address");
 
-        //TODO redelivery must target this chain
+        //redelivery must target this chain
         require (chainId() == redeliveryInstruction.targetChain, "Redelivery request does not target this chain.");
 
-        //TODO original delivery must target this chain
+        //original delivery must target this chain
         require (chainId() == originalInstruction.targetChain, "Original delivery request did not target this chain.");
 
-        //TODO relayer must have covered the necessary funds
+        //relayer must have covered the necessary funds
         require (msg.value >= redeliveryInstruction.newComputeBudgetTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee(), "Msg.value does not cover the necessary budget fees");
 
         //Overwrite compute budget and application budget on the original request and proceed.
