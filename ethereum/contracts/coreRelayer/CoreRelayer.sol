@@ -32,8 +32,27 @@ contract CoreRelayer is CoreRelayerGovernance {
         return requestMultiforward(container, rolloverChain, nonce, consistencyLevel);
     }
 
-    function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) public payable returns (uint64 sequence) {
+    //REVISE consider adding requestMultiRedeliveryByTxHash
+    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+        //cache wormhole
+        IWormhole wormhole = wormhole();
 
+        IRelayProvider provider = getSelectedRelayProvider(request.newRelayParameters);
+        //REVISE, redeliveries are somewhat more expensive than regular deliveries
+        uint256 minimumDeliveryCost = provider.quoteEvmDeliveryPrice(request.targetChain, 1);
+
+        //Make sure msg.value covers the minimum delivery cost to the targetChain
+        require(msg.value >= minimumDeliveryCost, "Insufficient msg.value to cover minimum delivery costs.");
+        //Make sure the msg.value covers the budget they specified, and the wormhole fee of this transaction
+        require(msg.value >= request.newApplicationBudget + request.newComputeBudget + wormhole.messageFee(), "Msg.value does not cover the specified budget");
+        //Make sure the budget does not exceed the maximum for the provider on that chain;
+        require(provider.getMaximumBudget(request.targetChain) > 
+            minimumDeliveryCost + provider.assetConversionAmount(request.sourceChain, request.newApplicationBudget + request.newComputeBudget, request.targetChain), 
+            "Specified budget exceeds the maximum allowed by the provider");
+
+        bytes memory instruction = convertToEncodedRedeliveryByTxHashInstruction(request);
+
+        sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, instruction, consistencyLevel);
     }
 
     /**
@@ -250,6 +269,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             if(success){
                 emit ForwardRequestSuccess(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
             } else {
+                //TODO when there is delivery failure, still send the refund to the refund address
                 emit ForwardRequestFailure(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
             }
         } else {
@@ -331,22 +351,79 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
 
-    function redeliverSingle(TargetDeliveryParametersSingle memory targetParams, bytes memory encodedRedeliveryVm) public payable returns (uint64 sequence){
-        
+    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable returns (uint64 sequence){
+        //cache wormhole
+        IWormhole wormhole = wormhole();
+
+        //validate the original delivery VM
+        (IWormhole.VM memory originalDeliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[targetParams.deliveryIndex]);
+        require(valid, "Invalid VAA at delivery index");
+        require(verifyRelayerVM(originalDeliveryVM), "Original Delivery VM has a invalid emitter");
+
+        //validate the redelivery VM
+        IWormhole.VM memory redeliveryVM;
+        (redeliveryVM, valid, reason) = wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
+        require(valid, "Redelivery VM is invalid");
+        require(verifyRelayerVM(redeliveryVM), "Redelivery VM has an invalid emitter");
+
+        DeliveryInstruction memory instruction = validateRedeliverySingle(decodeRedeliveryByTxHashInstruction(redeliveryVM.payload), decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[targetParams.multisendIndex]);
+
+        //redelivery request cannot have already been attempted
+        require(!isDeliveryCompleted(redeliveryVM.hash));
+
+        //mark redelivery as attempted
+        markAsDelivered(redeliveryVM.hash);
+
+        return _executeDelivery(wormhole, instruction, targetParams.sourceEncodedVMs, originalDeliveryVM.hash);
+    }
+
+    function validateRedeliverySingle(RedeliveryByTxHashInstruction memory redeliveryInstruction, DeliveryInstruction memory originalInstruction) internal view returns (DeliveryInstruction memory deliveryInstruction) {
+        //All the same checks as delivery single, with a couple additional
+
+        //providers must match on both
+        address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.relayerAddress);
+        require(providerAddress == 
+            fromWormholeFormat(originalInstruction.executionParameters.relayerAddress), 
+            "The same relay provider must be specified when doing a single VAA redeliver");
+
+        //msg.sender must be the provider
+        require (msg.sender == providerAddress, "Relay provider differed from the specified address");
+
+        //redelivery must target this chain
+        require (chainId() == redeliveryInstruction.targetChain, "Redelivery request does not target this chain.");
+
+        //original delivery must target this chain
+        require (chainId() == originalInstruction.targetChain, "Original delivery request did not target this chain.");
+
+        //relayer must have covered the necessary funds
+        require (msg.value >= redeliveryInstruction.newComputeBudgetTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee(), "Msg.value does not cover the necessary budget fees");
+
+        //Overwrite compute budget and application budget on the original request and proceed.
+        originalInstruction.computeBudgetTarget = redeliveryInstruction.newComputeBudgetTarget;
+        originalInstruction.applicationBudgetTarget = redeliveryInstruction.newApplicationBudgetTarget;
+        originalInstruction.sourceChain = redeliveryInstruction.rewardChain;
+        originalInstruction.sourceReward = redeliveryInstruction.rewardAmount;
+        originalInstruction.executionParameters = redeliveryInstruction.executionParameters;
+        deliveryInstruction = originalInstruction;
+
     }
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) public payable returns (uint64 sequence) {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
 
-        // validate the deliveryIndex and cache the delivery VAA
+        // validate the deliveryIndex 
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
         require(valid, "Invalid VAA at delivery index");
         require(verifyRelayerVM(deliveryVM), "invalid emitter");
 
+        DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
+        //ensure this is a funded delivery, not a failed forward.
+        require(container.sufficientlyFunded, "This delivery request was not sufficiently funded, and must request redelivery.");
+
         // parse the deliveryVM payload into the DeliveryInstructions struct
         DeliveryInstruction memory deliveryInstruction =
-            decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
+            container.instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
         require(fromWormholeFormat(deliveryInstruction.executionParameters.relayerAddress) == msg.sender, "Specified relayer is not the relayer delivering the message");

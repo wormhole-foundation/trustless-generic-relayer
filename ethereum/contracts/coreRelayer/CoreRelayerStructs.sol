@@ -14,14 +14,14 @@ abstract contract CoreRelayerStructs {
         DeliveryRequest[] requests;
     }
 
-    struct TargetDeliveryParameters {
-        // encoded batchVM to be delivered on the target chain
-        bytes encodedVM;
-        // Index of the delivery VM in a batch
-        uint8 deliveryIndex;
-        uint8 multisendIndex;
-        //uint32 targetCallGasOverride;
-    }
+    // struct TargetDeliveryParameters {
+    //     // encoded batchVM to be delivered on the target chain
+    //     bytes encodedVM;
+    //     // Index of the delivery VM in a batch
+    //     uint8 deliveryIndex;
+    //     uint8 multisendIndex;
+    //     //uint32 targetCallGasOverride;
+    // }
 
     struct TargetDeliveryParametersSingle {
         // encoded batchVM to be delivered on the target chain
@@ -34,6 +34,13 @@ abstract contract CoreRelayerStructs {
         // uint32 targetCallGasOverride;
     }
 
+    struct TargetRedeliveryByTxHashParamsSingle {
+        bytes redeliveryVM;
+        bytes[] sourceEncodedVMs;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
+    }
+
     struct DeliveryRequest {
         uint16 targetChain;
         bytes32 targetAddress;
@@ -41,6 +48,16 @@ abstract contract CoreRelayerStructs {
         uint256 computeBudget;
         uint256 applicationBudget;
         bytes relayParameters;
+    }
+
+    struct RedeliveryByTxHashRequest {
+        uint16 sourceChain;
+        bytes32 sourceTxHash;
+        uint32 sourceNonce; 
+        uint16 targetChain;
+        uint256 newComputeBudget; 
+        uint256 newApplicationBudget;
+        bytes newRelayParameters;
     }
 
     struct RelayParameters {
@@ -77,6 +94,19 @@ abstract contract CoreRelayerStructs {
         bytes32 relayerAddress;
     }
 
+    struct RedeliveryByTxHashInstruction {
+        uint8 payloadId; //2
+        uint16 sourceChain;
+        bytes32 sourceTxHash;
+        uint32 sourceNonce; 
+        uint16 targetChain;
+        uint256 newComputeBudgetTarget; 
+        uint256 newApplicationBudgetTarget;
+        ExecutionParameters executionParameters;
+        uint16 rewardChain;
+        uint256 rewardAmount;
+    }
+
     //End Wire Types
 
 
@@ -110,20 +140,6 @@ abstract contract CoreRelayerStructs {
     //     uint16 fromChain;
     //     uint32 deliveryGasLimit;
     // }
-
-    // TODO: Add single VAA variant
-    struct RedeliveryInstructions {
-        uint8 payloadID; // payloadID = 3;
-        // Hash of the batch to re-deliver
-        bytes32 batchHash;
-        // Point to the original delivery instruction
-        bytes32 emitterAddress;
-        uint64 sequence;
-        // Current number of delivery attempts
-        uint16 deliveryCount;
-        // New Relayer-Specific Parameters
-        bytes relayParameters;
-    }
 
     struct DeliveryStatus {
         uint8 payloadID; // payloadID = 2;
