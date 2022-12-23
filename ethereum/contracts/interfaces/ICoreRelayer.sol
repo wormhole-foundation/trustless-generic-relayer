@@ -45,6 +45,8 @@ interface ICoreRelayer {
 
     function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
 
+    function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
+
     struct DeliveryRequestsContainer {
         uint8 payloadId; // payloadID = 1
         DeliveryRequest[] requests;
@@ -92,6 +94,28 @@ interface ICoreRelayer {
     struct RelayParameters {
         uint8 version; //1
         bytes32 oracleAddressOverride;
+    }
+
+    struct DeliveryInstructionsContainer {
+        uint8 payloadId; //1
+        bool sufficientlyFunded; //TODO add to encode&decode
+        DeliveryInstruction[] instructions;
+    }
+
+    struct DeliveryInstruction {
+        uint16 targetChain;
+        bytes32 targetAddress;
+        bytes32 refundAddress;
+        uint256 computeBudgetTarget;
+        uint256 applicationBudgetTarget;
+        uint256 sourceReward;
+        uint16 sourceChain;
+        ExecutionParameters executionParameters; //Has the gas limit to execute with
+    }
+    struct ExecutionParameters {
+        uint8 version;
+        uint32 gasLimit;
+        bytes32 relayerAddress;
     }
 
 }

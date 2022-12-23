@@ -215,7 +215,7 @@ contract TestRelayProvider is Test {
         // update the prices with reasonable values
         relayProviderGovernance.updatePrices(updates);
 
-         relayProviderGovernance.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
+        relayProviderGovernance.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
         relayProviderGovernance.updateWormholeFee(dstChainId, targetWormholeFee);
 
         // verify price

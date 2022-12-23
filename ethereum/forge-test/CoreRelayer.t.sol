@@ -45,6 +45,39 @@ contract TestCoreRelayer is Test {
         uint8 consistencyLevel;
     }
 
+    IWormhole relayerWormhole;
+    WormholeSimulator relayerWormholeSimulator;
+
+    function setUp() public {
+        WormholeSetup setup = new WormholeSetup();
+
+        // deploy Implementation
+        WormholeImplementation implementation = new WormholeImplementation();
+
+        // set guardian set
+        address[] memory guardians = new address[](1);
+        guardians[0] = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
+
+        // deploy Wormhole
+        relayerWormhole = IWormhole(address(new Wormhole(
+            address(setup),
+            abi.encodeWithSelector(
+                bytes4(keccak256("setup(address,address[],uint16,uint16,bytes32,uint256)")),
+                address(implementation),
+                guardians,
+                2, // wormhole chain id
+                uint16(1), // governance chain id
+                0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
+                block.chainid
+            )
+        )));
+
+        relayerWormholeSimulator = new WormholeSimulator(
+            address(relayerWormhole),
+            uint256(0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0)
+        );
+    }
+
     function setUpWormhole(uint16 chainId) internal returns (IWormhole wormholeContract, WormholeSimulator wormholeSimulator) {
          // deploy Setup
         WormholeSetup setup = new WormholeSetup();
@@ -132,6 +165,8 @@ contract TestCoreRelayer is Test {
         MockRelayerIntegration integration;  
     }
 
+    mapping(uint16 => ICoreRelayer) coreRelayerMap;
+
     function setUpTwoChains(uint16 chain1, uint16 chain2, address relayer) internal returns (Contracts memory source, Contracts memory target) {
         (source.wormhole, source.wormholeSimulator) = setUpWormhole(chain1);
         (target.wormhole, target.wormholeSimulator) = setUpWormhole(chain2);
@@ -145,6 +180,8 @@ contract TestCoreRelayer is Test {
         target.relayProviderGovernance.updateMaximumBudget(chain1, 2**128-1);
         source.coreRelayer = setUpCoreRelayer(chain1, address(target.wormhole), address(source.relayProvider));
         target.coreRelayer = setUpCoreRelayer(chain2, address(target.wormhole), address(target.relayProvider));
+        coreRelayerMap[chain1] = source.coreRelayer;
+        coreRelayerMap[chain2] = target.coreRelayer;
         target.coreRelayer.registerCoreRelayer(chain1, bytes32(uint256(uint160(address(source.coreRelayer)))));
         source.coreRelayer.registerCoreRelayer(chain2, bytes32(uint256(uint160(address(target.coreRelayer)))));
         target.integration = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
@@ -193,14 +230,12 @@ contract TestCoreRelayer is Test {
 
         source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, batchParams.consistencyLevel);
 
-        // record the wormhole message emitted by the relayer contract
-        Vm.Log[] memory entries = vm.getRecordedLogs();
+        address[] memory senders = new address[](2);
+        senders[0] = address(source.integration);
+        senders[1] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID), relayer, address(source.coreRelayer));
 
-        bytes[] memory encodedVMs = new bytes[](2);
-        encodedVMs[0] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[0], SOURCE_CHAIN_ID, address(source.coreRelayer));
-        encodedVMs[1] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[1], SOURCE_CHAIN_ID, address(source.coreRelayer));
-        genericRelayOne(encodedVMs, relayer, target.coreRelayer, target.wormhole);
-        assertTrue(keccak256(deliveryContract.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(message));
+        assertTrue(keccak256(deliveryContract.getMessage()) == keccak256(message));
 
     }
 
@@ -242,38 +277,81 @@ contract TestCoreRelayer is Test {
 
         source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, batchParams.consistencyLevel);
 
-        // record the wormhole message emitted by the relayer contract
-        Vm.Log[] memory entries = vm.getRecordedLogs();
+        address[] memory senders = new address[](2);
+        senders[0] = address(source.integration);
+        senders[1] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID), relayer, address(source.coreRelayer));
 
-        bytes[] memory encodedVMs = new bytes[](2);
-        encodedVMs[0] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[0], SOURCE_CHAIN_ID, address(source.integration));
-        encodedVMs[1] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[1], SOURCE_CHAIN_ID, address(source.coreRelayer));
-        genericRelayOne(encodedVMs, relayer, target.coreRelayer, target.wormhole);
-        assertTrue(keccak256(target.integration.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(message));
+        assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
-        entries = vm.getRecordedLogs();
-        encodedVMs[0] = target.wormholeSimulator.fetchSignedMessageFromLogs(entries[0], TARGET_CHAIN_ID, address(target.coreRelayer));
-        encodedVMs[1] = target.wormholeSimulator.fetchSignedMessageFromLogs(entries[1], TARGET_CHAIN_ID, address(target.coreRelayer));
-        genericRelayOne(encodedVMs, relayer, source.coreRelayer, source.wormhole);
-        assertTrue(keccak256(source.integration.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(bytes("received!")));
+        senders = new address[](2);
+        senders[0] = address(target.integration);
+        senders[1] = address(target.coreRelayer);
+        genericRelayer(signMessages(senders, TARGET_CHAIN_ID), relayer, address(target.coreRelayer));
+
+        assertTrue(keccak256(source.integration.getMessage()) == keccak256(bytes("received!")));
 
 
     }
 
-
-    function genericRelayOne(bytes[] memory encodedVMs, address relayer, ICoreRelayer coreRelayer, IWormhole wormhole) internal {
-        CoreRelayer dummyRelayer = new CoreRelayer();
-        bytes memory payload = wormhole.parseVM(encodedVMs[encodedVMs.length - 1]).payload;
-        CoreRelayerStructs.DeliveryInstructionsContainer memory container = dummyRelayer.decodeDeliveryInstructionsContainer(payload);
-        
-        uint256 budget = 0;
-        for(uint8 i=0; i<encodedVMs.length-1; i++) {
-            budget += container.instructions[i].computeBudgetTarget + container.instructions[i].applicationBudgetTarget;
+    function signMessages(address[] memory senders, uint16 chainId) internal returns (bytes[] memory encodedVMs) {
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        require(senders.length <= entries.length, "Wrong length of senders array");
+        encodedVMs = new bytes[](senders.length);
+        for(uint256 i=0; i<senders.length; i++) {
+            console.log("got here !");
+            encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(entries[i], chainId, senders[i]);
         }
+    }
 
-        vm.deal(relayer, budget);
-        vm.prank(relayer);
-        coreRelayer.deliverSingle{value: budget}(ICoreRelayer.TargetDeliveryParametersSingle(encodedVMs, uint8(encodedVMs.length-1), 0));
+    mapping(uint256 => bool) nonceCompleted; 
+
+    function genericRelayer(bytes[] memory encodedVMs, address relayer, address sourceCoreRelayer) internal {
+        IWormhole.VM[] memory parsed = new IWormhole.VM[](encodedVMs.length);
+        for(uint256 i=0; i<encodedVMs.length; i++) {
+            parsed[i] = relayerWormhole.parseVM(encodedVMs[i]);
+        }
+        for(uint256 i=0; i<encodedVMs.length; i++) {
+            if(!nonceCompleted[parsed[i].nonce]) {
+                nonceCompleted[parsed[i].nonce] = true;
+                uint8 length = 1;
+                for(uint256 j=i+1; j<encodedVMs.length; j++) {
+                    if(parsed[i].nonce == parsed[j].nonce) {
+                        length++;
+                    }
+                }
+                bytes[] memory deliveryInstructions = new bytes[](length);
+                uint8 counter = 0;
+                for(uint256 j=i; j<encodedVMs.length; j++) {
+                    if(parsed[i].nonce == parsed[j].nonce) {
+                        deliveryInstructions[counter] = encodedVMs[j];
+                        counter++;
+                    }
+                }
+                counter = 0;
+                for(uint256 j=i; j<encodedVMs.length; j++) {
+                    if(parsed[i].nonce == parsed[j].nonce) {
+                        if(parsed[j].emitterAddress == bytes32(uint256(uint160(sourceCoreRelayer))) && (parsed[j].emitterChainId == parsed[i].emitterChainId)) {
+                             ICoreRelayer.DeliveryInstructionsContainer memory container = ICoreRelayer(sourceCoreRelayer).getDeliveryInstructionsContainer(parsed[j].payload);
+                             for(uint8 k=0; k<container.instructions.length; k++) {
+                                uint256 budget = container.instructions[k].applicationBudgetTarget + container.instructions[k].computeBudgetTarget;
+                                ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle(deliveryInstructions, counter, k);
+                                vm.deal(relayer, budget);
+                                vm.prank(relayer);
+                                coreRelayerMap[container.instructions[k].targetChain].deliverSingle{value: budget}(package);
+                             }
+                             break;
+                        }
+                        counter += 1;
+                    }
+                }
+
+
+            }
+        }
+        for(uint8 i=0; i<encodedVMs.length; i++) {
+            nonceCompleted[parsed[i].nonce] = false;
+        }
     }
 
     /**

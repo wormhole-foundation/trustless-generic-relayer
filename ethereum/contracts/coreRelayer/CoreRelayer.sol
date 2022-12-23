@@ -315,6 +315,10 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
+        console.log(vm.emitterChainId);
+        console.logBytes32(vm.emitterAddress);
+        console.logBytes32(registeredCoreRelayerContract(vm.emitterChainId));
+        console.log("------");
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
@@ -376,6 +380,10 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) public onlyOwner {
         setRegisteredCoreRelayerContract(chainId, relayerAddress);
+    }
+
+    function getDeliveryInstructionsContainer(bytes memory encoded) public view returns (DeliveryInstructionsContainer memory container) {
+        container = decodeDeliveryInstructionsContainer(encoded);
     }
 
 

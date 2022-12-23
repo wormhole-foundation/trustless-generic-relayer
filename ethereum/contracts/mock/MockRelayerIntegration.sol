@@ -26,6 +26,8 @@ contract MockRelayerIntegration is IWormholeReceiver {
     // map that stores payloads from received VAAs
     mapping(bytes32 => bytes) verifiedPayloads;
 
+    bytes message;
+
     constructor(address _wormholeCore, address _coreRelayer) {
         wormhole = IWormhole(_wormholeCore);
         relayer = ICoreRelayer(_coreRelayer);
@@ -44,7 +46,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
             bool forward = (parsed.payload.toUint8(0) == 1);
             verifiedPayloads[parsed.hash] = parsed.payload.slice(1, parsed.payload.length - 1);
-
+            message = parsed.payload.slice(1, parsed.payload.length - 1);
             
             if(forward) {
                 uint256 computeBudget = relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(parsed.emitterChainId, 500000);
@@ -66,6 +68,10 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
     function getPayload(bytes32 hash) public view returns (bytes memory) {
         return verifiedPayloads[hash];
+    }
+
+    function getMessage() public view returns (bytes memory) {
+        return message;
     }
 
     function clearPayload(bytes32 hash) public {
