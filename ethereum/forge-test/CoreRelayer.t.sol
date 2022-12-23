@@ -76,9 +76,11 @@ contract TestCoreRelayer is Test {
             address(relayerWormhole),
             uint256(0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0)
         );
+
+        setUpChains(5);
     }
 
-    function setUpWormhole(uint16 chainId) internal returns (IWormhole wormholeContract, WormholeSimulator wormholeSimulator) {
+    function setUpWormhole(uint16 chainId) internal returns (IWormhole wormholeContract) {
          // deploy Setup
         WormholeSetup setup = new WormholeSetup();
 
@@ -104,7 +106,7 @@ contract TestCoreRelayer is Test {
         );
 
         // replace Wormhole with the Wormhole Simulator contract (giving access to some nice helper methods for signing)
-        wormholeSimulator = new WormholeSimulator(
+        WormholeSimulator wormholeSimulator = new WormholeSimulator(
             address(wormhole),
             uint256(0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0)
         );
@@ -158,65 +160,76 @@ contract TestCoreRelayer is Test {
 
     struct Contracts {
         IWormhole wormhole;
-        WormholeSimulator wormholeSimulator;
         IRelayProviderImpl relayProviderGovernance;
         IRelayProvider relayProvider;
         ICoreRelayer coreRelayer;     
-        MockRelayerIntegration integration;  
+        MockRelayerIntegration integration; 
+        address relayer;
+        uint16 chainId;
     }
 
-    mapping(uint16 => ICoreRelayer) coreRelayerMap;
+    mapping(uint16 => Contracts) map;
 
-    function setUpTwoChains(uint16 chain1, uint16 chain2, address relayer) internal returns (Contracts memory source, Contracts memory target) {
-        (source.wormhole, source.wormholeSimulator) = setUpWormhole(chain1);
-        (target.wormhole, target.wormholeSimulator) = setUpWormhole(chain2);
-        source.relayProvider = setUpRelayProvider(chain1);
-        target.relayProvider = setUpRelayProvider(chain2);
-        source.relayProviderGovernance = IRelayProviderImpl(address(source.relayProvider));
-        target.relayProviderGovernance = IRelayProviderImpl(address(target.relayProvider));
-        source.relayProviderGovernance.setRewardAddress(chain2, bytes32(uint256(uint160(relayer))));
-        target.relayProviderGovernance.setRewardAddress(chain1, bytes32(uint256(uint160(relayer))));
-        source.relayProviderGovernance.updateMaximumBudget(chain2, 2**128-1);
-        target.relayProviderGovernance.updateMaximumBudget(chain1, 2**128-1);
-        source.coreRelayer = setUpCoreRelayer(chain1, address(target.wormhole), address(source.relayProvider));
-        target.coreRelayer = setUpCoreRelayer(chain2, address(target.wormhole), address(target.relayProvider));
-        coreRelayerMap[chain1] = source.coreRelayer;
-        coreRelayerMap[chain2] = target.coreRelayer;
-        target.coreRelayer.registerCoreRelayer(chain1, bytes32(uint256(uint160(address(source.coreRelayer)))));
-        source.coreRelayer.registerCoreRelayer(chain2, bytes32(uint256(uint160(address(target.coreRelayer)))));
-        target.integration = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
-        source.integration = new MockRelayerIntegration(address(source.wormhole), address(source.coreRelayer));
+
+    function setUpChains(uint16 numChains) internal {
+        for(uint16 i=1; i<=numChains; i++) {
+            Contracts memory mapEntry;
+            mapEntry.wormhole = setUpWormhole(i);
+            mapEntry.relayProvider = setUpRelayProvider(i);
+            mapEntry.relayProviderGovernance =  IRelayProviderImpl(address(mapEntry.relayProvider));
+            mapEntry.coreRelayer = setUpCoreRelayer(i, address(mapEntry.wormhole), address(mapEntry.relayProvider));
+            mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
+            mapEntry.relayer = address(uint160(uint256(keccak256(abi.encodePacked(bytes("relayer"), i)))));
+            mapEntry.chainId = i;
+            map[i] = mapEntry;
+        }
+        uint256 maxBudget = 2**128-1;
+        for(uint16 i=1; i<=numChains; i++) {
+            for(uint16 j=1; j<=numChains; j++) {
+                map[i].relayProviderGovernance.setRewardAddress(j, bytes32(uint256(uint160(map[j].relayer))));
+                map[i].coreRelayer.registerCoreRelayer(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
+                map[i].relayProviderGovernance.updateMaximumBudget(j, maxBudget);
+            }
+        }
+
     }
 
     function within(uint256 a, uint256 b, uint256 c) internal view returns (bool) {
         return (a/b <= c && b/a <= c);
     }
+
+    function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
+        return bytes32(uint256(uint160(addr)));
+    }
+
+    function fromWormholeFormat(bytes32 whFormatAddress) public pure returns(address addr) {
+        return address(uint160(uint256(whFormatAddress)));
+    }
     // This test confirms that the `send` method generates the correct delivery Instructions payload
     // to be delivered on the target chain.
-    function testSend(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message, address relayer, bool forward) public {
+    function testSend(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
         
         standardAssume(gasParams, batchParams);
 
         vm.assume(gasParams.targetGasLimit >= 1000000);
-        vm.assume(relayer != address(0x0));
         //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
         //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
         
-        uint16 SOURCE_CHAIN_ID = 3;
-        uint16 TARGET_CHAIN_ID = 4;
-        // initialize all contracts
+        uint16 SOURCE_CHAIN_ID = 1;
+        uint16 TARGET_CHAIN_ID = 2;
 
-        (Contracts memory source, Contracts memory target) = setUpTwoChains(SOURCE_CHAIN_ID, TARGET_CHAIN_ID, relayer);
-
+        Contracts memory source = map[SOURCE_CHAIN_ID];
+        Contracts memory target = map[TARGET_CHAIN_ID];
 
         // set relayProvider prices
         source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
         source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
-        MockRelayerIntegration deliveryContract = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
-
+        
         // estimate the cost based on the intialized values
         uint256 computeBudget = source.relayProvider.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+
+        
 
         // start listening to events
         vm.recordLogs();
@@ -226,32 +239,31 @@ contract TestCoreRelayer is Test {
 
         // call the send function on the relayer contract
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(deliveryContract)))), bytes32(uint256(uint160(address(0x1)))), computeBudget, 0, bytes(""));
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, toWormholeFormat(address(target.integration)), toWormholeFormat(address(target.integration)), computeBudget, 0, bytes(""));
 
         source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, batchParams.consistencyLevel);
 
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);
         senders[1] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID), relayer, address(source.coreRelayer));
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
 
-        assertTrue(keccak256(deliveryContract.getMessage()) == keccak256(message));
+        assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
     }
 
 
-    function testForward(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message, address relayer, bool forward) public {
+    function testForward(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
         
         standardAssume(gasParams, batchParams);
 
-        vm.assume(gasParams.targetGasLimit >= 1000000);
-        vm.assume(relayer != address(0x0));
-        vm.assume(uint256(1) * gasParams.targetGasPrice * gasParams.targetNativePrice  > uint256(1) * gasParams.sourceGasPrice * gasParams.sourceNativePrice);
-        uint16 SOURCE_CHAIN_ID = 3;
-        uint16 TARGET_CHAIN_ID = 4;
-        // initialize all contracts
+        uint16 SOURCE_CHAIN_ID = 1;
+        uint16 TARGET_CHAIN_ID = 2;
+        Contracts memory source = map[SOURCE_CHAIN_ID];
+        Contracts memory target = map[TARGET_CHAIN_ID];
 
-        (Contracts memory source, Contracts memory target) = setUpTwoChains(SOURCE_CHAIN_ID, TARGET_CHAIN_ID, relayer);
+        vm.assume(gasParams.targetGasLimit >= 1000000);
+        vm.assume(uint256(1) * gasParams.targetGasPrice * gasParams.targetNativePrice  > uint256(1) * gasParams.sourceGasPrice * gasParams.sourceNativePrice);
 
         // set relayProvider prices
         source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
@@ -280,14 +292,16 @@ contract TestCoreRelayer is Test {
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);
         senders[1] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID), relayer, address(source.coreRelayer));
+
+     
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
 
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
         senders = new address[](2);
         senders[0] = address(target.integration);
         senders[1] = address(target.coreRelayer);
-        genericRelayer(signMessages(senders, TARGET_CHAIN_ID), relayer, address(target.coreRelayer));
+        genericRelayer(signMessages(senders, TARGET_CHAIN_ID));
 
         assertTrue(keccak256(source.integration.getMessage()) == keccak256(bytes("received!")));
 
@@ -299,46 +313,50 @@ contract TestCoreRelayer is Test {
         require(senders.length <= entries.length, "Wrong length of senders array");
         encodedVMs = new bytes[](senders.length);
         for(uint256 i=0; i<senders.length; i++) {
-            console.log("got here !");
             encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(entries[i], chainId, senders[i]);
         }
     }
 
     mapping(uint256 => bool) nonceCompleted; 
 
-    function genericRelayer(bytes[] memory encodedVMs, address relayer, address sourceCoreRelayer) internal {
+    function genericRelayer(bytes[] memory encodedVMs) internal {
+        
         IWormhole.VM[] memory parsed = new IWormhole.VM[](encodedVMs.length);
-        for(uint256 i=0; i<encodedVMs.length; i++) {
+        for(uint16 i=0; i<encodedVMs.length; i++) {
             parsed[i] = relayerWormhole.parseVM(encodedVMs[i]);
         }
-        for(uint256 i=0; i<encodedVMs.length; i++) {
+        uint16 chainId = parsed[parsed.length - 1].emitterChainId;
+        Contracts memory contracts = map[chainId];
+
+        for(uint16 i=0; i<encodedVMs.length; i++) {
             if(!nonceCompleted[parsed[i].nonce]) {
                 nonceCompleted[parsed[i].nonce] = true;
                 uint8 length = 1;
-                for(uint256 j=i+1; j<encodedVMs.length; j++) {
+                for(uint16 j=i+1; j<encodedVMs.length; j++) {
                     if(parsed[i].nonce == parsed[j].nonce) {
                         length++;
                     }
                 }
                 bytes[] memory deliveryInstructions = new bytes[](length);
                 uint8 counter = 0;
-                for(uint256 j=i; j<encodedVMs.length; j++) {
+                for(uint16 j=i; j<encodedVMs.length; j++) {
                     if(parsed[i].nonce == parsed[j].nonce) {
                         deliveryInstructions[counter] = encodedVMs[j];
                         counter++;
                     }
                 }
                 counter = 0;
-                for(uint256 j=i; j<encodedVMs.length; j++) {
+                for(uint16 j=i; j<encodedVMs.length; j++) {
                     if(parsed[i].nonce == parsed[j].nonce) {
-                        if(parsed[j].emitterAddress == bytes32(uint256(uint160(sourceCoreRelayer))) && (parsed[j].emitterChainId == parsed[i].emitterChainId)) {
-                             ICoreRelayer.DeliveryInstructionsContainer memory container = ICoreRelayer(sourceCoreRelayer).getDeliveryInstructionsContainer(parsed[j].payload);
+                        if(parsed[j].emitterAddress == toWormholeFormat(address(contracts.coreRelayer)) && (parsed[j].emitterChainId == chainId)) {
+                             ICoreRelayer.DeliveryInstructionsContainer memory container = contracts.coreRelayer.getDeliveryInstructionsContainer(parsed[j].payload);
                              for(uint8 k=0; k<container.instructions.length; k++) {
                                 uint256 budget = container.instructions[k].applicationBudgetTarget + container.instructions[k].computeBudgetTarget;
                                 ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle(deliveryInstructions, counter, k);
-                                vm.deal(relayer, budget);
-                                vm.prank(relayer);
-                                coreRelayerMap[container.instructions[k].targetChain].deliverSingle{value: budget}(package);
+                                uint16 targetChain = container.instructions[k].targetChain;
+                                vm.deal(map[targetChain].relayer, budget);
+                                vm.prank(map[targetChain].relayer);
+                                map[targetChain].coreRelayer.deliverSingle{value: budget}(package);
                              }
                              break;
                         }
