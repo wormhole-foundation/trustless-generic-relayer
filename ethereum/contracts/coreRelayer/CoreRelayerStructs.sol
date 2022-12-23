@@ -73,7 +73,7 @@ abstract contract CoreRelayerStructs {
     //Wire Types
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded; //TODO add to encode&decode
+        bool sufficientlyFunded;
         DeliveryInstruction[] instructions;
     }
 
@@ -130,16 +130,6 @@ abstract contract CoreRelayerStructs {
         uint8 consistencyLevel;
         bool isValid;
     }
-
-    // struct InternalDeliveryParameters {
-    //     IWormhole.VM2 batchVM;
-    //     DeliveryInstruction internalInstruction;
-    //     AllowedEmitterSequence deliveryId;
-    //     uint8 deliveryIndex;
-    //     uint16 deliveryAttempts; //TODO unused?
-    //     uint16 fromChain;
-    //     uint32 deliveryGasLimit;
-    // }
 
     struct DeliveryStatus {
         uint8 payloadID; // payloadID = 2;

@@ -9,11 +9,11 @@ import "../libraries/external/BytesLib.sol";
 
 import "./RelayProviderGetters.sol";
 import "./RelayProviderSetters.sol";
-import "../interfaces/IRelayProviderImpl.sol";
+import "../interfaces/IRelayProviderGovernance.sol";
 
 
 abstract contract RelayProviderGovernance is
-    IRelayProviderImpl,
+    IRelayProviderGovernance,
     RelayProviderGetters,
     RelayProviderSetters,
     ERC1967Upgrade
@@ -48,7 +48,7 @@ abstract contract RelayProviderGovernance is
         setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
     }
 
-    function updatePrices(IRelayProviderImpl.UpdatePrice[] memory updates) public override onlyOwner {
+    function updatePrices(IRelayProviderGovernance.UpdatePrice[] memory updates) public override onlyOwner {
         uint256 pricesLen = updates.length;
         for (uint256 i = 0; i < pricesLen;) {
             updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);

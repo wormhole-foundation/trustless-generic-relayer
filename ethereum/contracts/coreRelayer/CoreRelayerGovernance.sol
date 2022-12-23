@@ -21,7 +21,6 @@ abstract contract CoreRelayerGovernance is
     ERC1967Upgrade
 {
     //TODO convert this upgrade to being managed by guardian VAAs
-    //TODO set default relay provider function, managed by VAAs
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
@@ -96,6 +95,14 @@ abstract contract CoreRelayerGovernance is
         setPendingOwner(address(0));
 
         emit OwnershipTransfered(currentOwner, newOwner);
+    }
+
+    function setDefaultRelayProvider(address relayProvider) public onlyOwner {
+        setRelayProvider(relayProvider);
+    }
+
+    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) public onlyOwner {
+        setRegisteredCoreRelayerContract(chainId, relayerAddress);
     }
 
     modifier onlyOwner() {

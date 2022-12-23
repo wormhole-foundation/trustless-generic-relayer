@@ -109,13 +109,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         ForwardingRequest memory forwardingRequest = getForwardingRequest();
         DeliveryRequestsContainer memory container = decodeDeliveryRequestsContainer(forwardingRequest.deliveryRequestsContainer);
         
-        
+
 
         //make sure the refund amount covers the native gas amounts
-        (uint256 totalMinimumFees, bool isSufficient,) = sufficientFundsHelper(container, refundAmount);
+        (uint256 totalMinimumFees, bool funded, ) = sufficientFundsHelper(container, refundAmount);
         
         //REVISE consider deducting the cost of these calculations from the refund amount?
-
 
         //find the delivery instruction for the rollover chain
         uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
@@ -125,19 +124,19 @@ contract CoreRelayer is CoreRelayerGovernance {
         //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
         uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate) - container.requests[rolloverInstructionIndex].applicationBudget;
 
-
         //overwrite the gas budget on the rollover chain to the remaining budget amount
         container.requests[rolloverInstructionIndex].computeBudget = rolloverBudget;
 
         //emit forwarding instruction
-        bytes memory reencoded = convertToEncodedDeliveryInstructions(container, isSufficient);
+        bytes memory reencoded = convertToEncodedDeliveryInstructions(container, funded);
         IWormhole wormhole = wormhole();
         uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingRequest.nonce, reencoded, forwardingRequest.consistencyLevel);
-
+        
         //clear forwarding request from cache
         clearForwardingRequest();
 
-        return (sequence, isSufficient);
+        return (sequence, funded);
+
     }
 
     function verifyForwardingRequest(DeliveryRequestsContainer memory container, uint16 rolloverChain, uint32 nonce) internal view {
@@ -173,6 +172,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     */
     function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees, bool isSufficient, string memory reason) {
         totalFees = wormhole().messageFee();
+
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
             DeliveryRequest memory request = deliveryRequests.requests[i];
 
@@ -208,21 +208,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         internal
         returns (uint64 sequence)
     {
-        // TODO decide if we want to do this or not
-        // remove the deliveryVM from the array of observations in the batch
-        // bytes[] memory targetObservations = new bytes[](internalParams.batchVM.observations.length - 1);
-        // uint256 lastIndex = 0;
-        // for (uint256 i = 0; i < internalParams.batchVM.observations.length;) {
-        //     if (i != internalParams.deliveryIndex) {
-        //         targetObservations[lastIndex] = internalParams.batchVM.observations[i];
-        //         unchecked {
-        //             lastIndex += 1;
-        //         }
-        //     }
-        //     unchecked {
-        //         i += 1;
-        //     }
-        // }
+        // TODO Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
         require(!isContractLocked(), "reentrant call");
@@ -239,10 +225,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 postGas = gasleft();
 
         // refund unused gas budget
-        //TODO currently in gas units, needs to be converted to wei by multiplying the percentage remaining times the
-        //compute budget
-
-        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) *  internalInstruction.computeBudgetTarget / internalInstruction.executionParameters.gasLimit;
+        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) * internalInstruction.computeBudgetTarget / internalInstruction.executionParameters.gasLimit;
 
         // unlock the contract
         setContractLock(false);
@@ -250,7 +233,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // increment the relayer rewards
         incrementRelayerRewards(msg.sender, internalInstruction.sourceChain, internalInstruction.sourceReward);
 
-        //TODO decide if we want to always emit a VAA, or only when forwarding
+        //TODO decide if we want to always emit a VAA, or only emit a msg when forwarding
         // // emit delivery status message
         // DeliveryStatus memory status = DeliveryStatus({
         //     payloadID: 2,
@@ -269,7 +252,13 @@ contract CoreRelayer is CoreRelayerGovernance {
             if(success){
                 emit ForwardRequestSuccess(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
             } else {
-                //TODO when there is delivery failure, still send the refund to the refund address
+                (bool sent,) =
+                fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
+
+                if (!sent) {
+                    // if refunding fails, pay out full refund to relayer
+                    weiToRefund = 0;
+                 }
                 emit ForwardRequestFailure(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress));
             }
         } else {
@@ -335,16 +324,8 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
-        console.log(vm.emitterChainId);
-        console.logBytes32(vm.emitterAddress);
-        console.logBytes32(registeredCoreRelayerContract(vm.emitterChainId));
-        console.log("------");
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
-
-    // function parseWormholeObservation(bytes memory observation) public view returns (IWormhole.VM memory) {
-    //     return wormhole().parseVM(observation);
-    // }
 
     function getDefaultRelayProvider() public view returns (IRelayProvider) {
         return defaultRelayProvider();
@@ -451,145 +432,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         return address(uint160(uint256(whFormatAddress)));
     }
 
-    function setDefaultRelayProvider(address relayProvider) public onlyOwner {
-        setRelayProvider(relayProvider);
-    }
-
-    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) public onlyOwner {
-        setRegisteredCoreRelayerContract(chainId, relayerAddress);
-    }
+   function makeRelayerParams(uint8 version, address relayProvider) public pure returns(bytes memory relayerParams) {
+        relayerParams = abi.encode(version, bytes32(uint256(uint160(relayProvider))));
+   }
 
     function getDeliveryInstructionsContainer(bytes memory encoded) public view returns (DeliveryInstructionsContainer memory container) {
         container = decodeDeliveryInstructionsContainer(encoded);
     }
 
-
-
-
-
-
-
-
-
-
-    //Batch VAA entrypoints
-
-    /*
-    function redeliver(TargetDeliveryParameters memory targetParams, bytes memory encodedRedeliveryVm)
-        public
-        payable
-        returns (uint64 sequence)
-    {
-        // cache wormhole instance
-        IWormhole wormhole = wormhole();
-
-        // build InternalDeliveryParameters struct to reduce local variable count
-        InternalDeliveryParameters memory internalParams;
-
-        // parse the batch
-        internalParams.batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
-
-        // validate the deliveryIndex and cache the delivery VAA
-        IWormhole.VM memory deliveryVM =
-            parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
-        require(verifyRelayerVM(deliveryVM), "invalid emitter");
-
-        // create the AllowedEmitterSequence for the delivery VAA
-        // TODO this is not a unique key
-        internalParams.deliveryId =
-            AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
-
-        // parse the deliveryVM payload into the DeliveryInstructions struct
-        internalParams.deliveryInstructions =
-            decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
-
-        internalParams.fromChain = deliveryVM.emitterChainId;
-
-        // parse and verify the encoded redelivery message
-        (IWormhole.VM memory redeliveryVm, bool valid, string memory reason) =
-            wormhole.parseAndVerifyVM(encodedRedeliveryVm);
-        require(valid, reason);
-        require(verifyRelayerVM(redeliveryVm), "invalid emitter");
-
-        // parse the RedeliveryInstructions
-        RedeliveryInstructions memory redeliveryInstructions = parseRedeliveryInstructions(redeliveryVm.payload);
-        require(redeliveryInstructions.batchHash == internalParams.batchVM.hash, "invalid batch");
-
-        // check that the redelivery instructions are for the original deliveryVM
-        require(
-            redeliveryInstructions.emitterAddress == internalParams.deliveryId.emitterAddress,
-            "invalid delivery emitter"
-        );
-        require(redeliveryInstructions.sequence == internalParams.deliveryId.sequence, "invalid delivery sequence");
-
-        // override the DeliveryInstruction's relayParams with redelivery relayParams
-        internalParams.deliveryInstructions.relayParameters = redeliveryInstructions.relayParameters;
-
-        // parse the new relayParams
-        // internalParams.relayParams = decodeRelayParameters(redeliveryInstructions.relayParameters);
-
-        // override the target gas if requested by the relayer
-        if (targetParams.targetCallGasOverride > internalParams.relayParams.deliveryGasLimit) {
-            internalParams.relayParams.deliveryGasLimit = targetParams.targetCallGasOverride;
-        }
-
-        // set the remaining values in the InternalDeliveryParameters struct
-        internalParams.deliveryIndex = targetParams.deliveryIndex;
-        internalParams.deliveryAttempts = redeliveryInstructions.deliveryCount;
-
-        return _deliver(wormhole, internalParams);
-    }
-
-
-    /**
-     * @dev `deliver` verifies batch VAAs and forwards the VAAs to a target contract specified in the
-     * DeliveryInstruction VAA.
-     * it locates the DeliveryInstructions VAA in the batch
-     * it checks to see if the batch has been delivered already
-     * it verifies that the delivery instructions were generated by a registered relayer contract
-     * it forwards the array of VAAs in the batch to the target contract by calling the `receiveWormholeMessages` endpoint
-     * it records the specified relayer fees for the caller
-     * it emits a DeliveryStatus message containing the results of the delivery
-     */
-     /*
-    function deliver(TargetDeliveryParameters memory targetParams) public payable returns (uint64 sequence) {
-        // cache wormhole instance
-        IWormhole wormhole = wormhole();
-
-        // build InternalDelivery struct to reduce local variable count
-        InternalDeliveryParameters memory internalParams;
-
-        // parse the batch VAA
-        internalParams.batchVM = wormhole.parseBatchVM(targetParams.encodedVM);
-
-        // validate the deliveryIndex and cache the delivery VAA
-        IWormhole.VM memory deliveryVM =
-            parseWormholeObservation(internalParams.batchVM.observations[targetParams.deliveryIndex]);
-        require(verifyRelayerVM(deliveryVM), "invalid emitter");
-
-        // create the AllowedEmitterSequence for the delivery VAA
-        internalParams.deliveryId =
-            AllowedEmitterSequence({emitterAddress: deliveryVM.emitterAddress, sequence: deliveryVM.sequence});
-
-        // parse the deliveryVM payload into the DeliveryInstructions struct
-        internalParams.internalInstruction =
-            decodeDeliveryPayload(deliveryVM.payload).instructions[targetParams.multisendIndex];
-
-        //calc how much gas to put on the delivery
-        //TODO fix this to reflect the proper wire type
-        internalParams.deliveryGasLimit = internalParams.deliveryGasLimit;
-
-        // override the target gas if requested by the relayer
-        if (targetParams.targetCallGasOverride > internalParams.relayParams.deliveryGasLimit) {
-            internalParams.deliveryGasLimit = targetParams.targetCallGasOverride;
-        }
-
-        // set the remaining values in the InternalDeliveryParameters struct
-        internalParams.deliveryIndex = targetParams.deliveryIndex;
-        internalParams.deliveryAttempts = 0;
-        internalParams.fromChain = deliveryVM.emitterChainId;
-
-        return _deliver(wormhole, internalParams);
-    }
-*/
-}
+  }

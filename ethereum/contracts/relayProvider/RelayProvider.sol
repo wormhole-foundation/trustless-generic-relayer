@@ -8,7 +8,6 @@ import "./RelayProviderSetters.sol";
 import "./RelayProviderGovernance.sol";
 import "../interfaces/IRelayProvider.sol";
 
-//TODO refactor/ rename to provider
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     
     constructor(uint16 chainId) {

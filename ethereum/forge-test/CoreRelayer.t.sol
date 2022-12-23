@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import "../contracts/relayProvider/RelayProvider.sol";
+import {RelayProvider} from "../contracts/relayProvider/RelayProvider.sol";
+import {IRelayProviderGovernance} from "../contracts/interfaces/IRelayProviderGovernance.sol";
 import {ICoreRelayer} from "../contracts/interfaces/ICoreRelayer.sol";
-import "../contracts/coreRelayer/CoreRelayer.sol";
-import "../contracts/coreRelayer/CoreRelayerState.sol";
+import {ICoreRelayerGovernance} from "../contracts/interfaces/ICoreRelayerGovernance.sol";
 import {CoreRelayerSetup} from "../contracts/coreRelayer/CoreRelayerSetup.sol";
 import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImplementation.sol";
 import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
@@ -16,7 +16,6 @@ import {Setup as WormholeSetup} from "../wormhole/ethereum/contracts/Setup.sol";
 import {Implementation as WormholeImplementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
 import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
-
 import {WormholeSimulator} from "./WormholeSimulator.sol";
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
@@ -160,9 +159,10 @@ contract TestCoreRelayer is Test {
 
     struct Contracts {
         IWormhole wormhole;
-        IRelayProviderImpl relayProviderGovernance;
+        IRelayProviderGovernance relayProviderGovernance;
         IRelayProvider relayProvider;
         ICoreRelayer coreRelayer;     
+        ICoreRelayerGovernance coreRelayerGovernance;
         MockRelayerIntegration integration; 
         address relayer;
         uint16 chainId;
@@ -176,8 +176,9 @@ contract TestCoreRelayer is Test {
             Contracts memory mapEntry;
             mapEntry.wormhole = setUpWormhole(i);
             mapEntry.relayProvider = setUpRelayProvider(i);
-            mapEntry.relayProviderGovernance =  IRelayProviderImpl(address(mapEntry.relayProvider));
+            mapEntry.relayProviderGovernance =  IRelayProviderGovernance(address(mapEntry.relayProvider));
             mapEntry.coreRelayer = setUpCoreRelayer(i, address(mapEntry.wormhole), address(mapEntry.relayProvider));
+            mapEntry.coreRelayerGovernance = ICoreRelayerGovernance(address(mapEntry.coreRelayer));
             mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
             mapEntry.relayer = address(uint160(uint256(keccak256(abi.encodePacked(bytes("relayer"), i)))));
             mapEntry.chainId = i;
@@ -187,7 +188,7 @@ contract TestCoreRelayer is Test {
         for(uint16 i=1; i<=numChains; i++) {
             for(uint16 j=1; j<=numChains; j++) {
                 map[i].relayProviderGovernance.setRewardAddress(j, bytes32(uint256(uint160(map[j].relayer))));
-                map[i].coreRelayer.registerCoreRelayer(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
+                map[i].coreRelayerGovernance.registerCoreRelayer(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
                 map[i].relayProviderGovernance.updateMaximumBudget(j, maxBudget);
             }
         }

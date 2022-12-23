@@ -65,12 +65,67 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     // TODO: THIS, it is very similar logic to the appendDeliveryInstruction above
-    function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory instruction) internal pure returns (bytes memory) {
+    function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory request) internal view returns (bytes memory encoded) {
+        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.newRelayParameters);
+
+        encoded = abi.encodePacked(
+            uint8(2), //version payload number
+            uint16(request.sourceChain),
+            bytes32(request.sourceTxHash),
+            uint32(request.sourceNonce),
+            uint16(request.targetChain),
+            selectedRelayProvider.assetConversionAmount(chainId(), request.newComputeBudget, request.targetChain), 
+            selectedRelayProvider.assetConversionAmount(chainId(), request.newApplicationBudget, request.targetChain),
+            uint8(1), //version for ExecutionParameters
+            selectedRelayProvider.quoteTargetEvmGas(request.targetChain, request.newComputeBudget),
+            selectedRelayProvider.getRewardAddress(request.targetChain),             
+            chainId(),
+            request.newComputeBudget + request.newApplicationBudget
+        ); 
+        
         
     }
 
-    function decodeRedeliveryByTxHashInstruction(bytes memory encoded) internal pure returns (RedeliveryByTxHashInstruction memory) {
-        //TODO this
+    function decodeRedeliveryByTxHashInstruction(bytes memory encoded) internal pure returns (RedeliveryByTxHashInstruction memory instruction) {
+
+            uint256 index = 0;
+
+            instruction.payloadId = encoded.toUint8(index);
+            index += 1;
+
+            instruction.sourceChain = encoded.toUint16(index);
+            index += 2;
+
+            instruction.sourceTxHash = encoded.toBytes32(index);
+            index += 32;
+
+            instruction.sourceNonce = encoded.toUint32(index);
+            index += 4;
+
+            instruction.targetChain = encoded.toUint16(index);
+            index += 2;
+
+            instruction.newComputeBudgetTarget = encoded.toUint256(index);
+            index += 32;
+
+            instruction.newApplicationBudgetTarget = encoded.toUint256(index);
+            index += 32;
+
+            instruction.executionParameters.version = encoded.toUint8(index);
+            index += 1;
+
+            instruction.executionParameters.gasLimit = encoded.toUint32(index);
+            index += 4;
+
+            instruction.executionParameters.relayerAddress = encoded.toBytes32(index);
+            index += 32;
+
+            instruction.rewardChain = encoded.toUint16(index);
+            index += 2;
+
+            instruction.rewardAmount = encoded.toUint256(index);
+            index += 32;
+
     }
 
     // TODO: WIP
@@ -140,35 +195,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         return DeliveryInstructionsContainer(payloadId, sufficientlyFunded, instructionArray);
     }
-
-    //TODO update to new relayer params struct
-    /// @dev `decodeRelayParameters` parses encoded relay parameters into the RelayParameters struct
-    // function decodeRelayParameters(bytes memory encoded) public pure returns (RelayParameters memory relayParams) {
-    //     uint256 index = 0;
-
-    //     // version
-    //     relayParams.version = encoded.toUint8(index);
-    //     index += 1;
-    //     require(relayParams.version == 1, "invalid version");
-
-    //     // gas limit
-    //     relayParams.deliveryGasLimit = encoded.toUint32(index);
-    //     index += 4;
-
-    //     // payment made on the source chain
-    //     relayParams.nativePayment = encoded.toUint256(index); //TODO this is a trusted field accepted from the integrator
-    //     index += 32;
-
-    //     require(index == encoded.length, "invalid relay parameters");
-    // }
-
-    // function encodeRelayParameters(uint32 deliveryGasLimit, uint256 nativePayment ) public pure returns (bytes memory relayParams) {
-    //     relayParams = abi.encodePacked(
-    //         uint8(1), // version
-    //         deliveryGasLimit,
-    //         nativePayment //TODO trusted field accepted from the integrator
-    //     );
-    // }
 
     // TODO: WIP
     function parseDeliveryStatus(bytes memory encoded) internal pure returns (DeliveryStatus memory ds) {

@@ -23,11 +23,7 @@ interface ICoreRelayer {
      */
     function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
 
-    //function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64 sequence);
-
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable returns (uint64 sequence);
-
-    //function redeliver(TargetDeliveryParameters memory targetParams, bytes memory encodedRedeliveryVm) external payable returns (uint64 sequence);
 
     function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) external payable returns (uint64 sequence);
 
@@ -40,15 +36,8 @@ interface ICoreRelayer {
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
     function fromWormholeFormat(bytes32 whFormatAddress) external pure returns(address addr);
-
-    //TODO move these into governance
-    function setDefaultRelayProvider(address relayProvider) external;
-
-    //TODO move into governance and rename more explicitly
-    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
     
-    //TODO convenience function to make relayer params, getDefaultRelayParameters(), overrideRelayProvider()
-
+    function makeRelayerParams(uint8 version, address relayProvider) external pure returns(bytes memory relayerParams);
 
     function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
 
@@ -120,7 +109,7 @@ interface ICoreRelayer {
 
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded; //TODO add to encode&decode
+        bool sufficientlyFunded; 
         DeliveryInstruction[] instructions;
     }
 

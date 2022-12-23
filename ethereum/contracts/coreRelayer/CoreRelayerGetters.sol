@@ -8,8 +8,11 @@ import "../interfaces/IRelayProvider.sol";
 import "./CoreRelayerStructs.sol";
 
 import "./CoreRelayerState.sol";
+import "../libraries/external/BytesLib.sol";
 
 contract CoreRelayerGetters is CoreRelayerState {
+    using BytesLib for bytes;
+
     function owner() public view returns (address) {
         return _state.owner;
     }
@@ -42,8 +45,11 @@ contract CoreRelayerGetters is CoreRelayerState {
         if(relayerParams.length == 0){
             return defaultRelayProvider();
         } else {
-            return defaultRelayProvider();
-            //TODO parse relayerParams & instantiate IRelayProvider. If that fails, explode.
+            require(relayerParams.length == 33, "Wrong length of relayerParams");
+            if(relayerParams.toUint8(0) == 0) {
+                return defaultRelayProvider();
+            }
+            return IRelayProvider(address(uint160(uint256(relayerParams.toBytes32(1)))));
         }
     } 
 

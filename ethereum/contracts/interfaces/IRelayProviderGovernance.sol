@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 import "./IRelayProvider.sol";
 
-interface IRelayProviderImpl {
+interface IRelayProviderGovernance {
 
     function setRewardAddress(uint16 targetChain, bytes32 newRewardAddress) external;
 

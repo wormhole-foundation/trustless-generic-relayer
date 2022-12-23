@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "../contracts/relayProvider/RelayProvider.sol";
 import "../contracts/interfaces/IRelayProvider.sol";
-import "../contracts/interfaces/IRelayProviderImpl.sol";
+import "../contracts/interfaces/IRelayProviderGovernance.sol";
 import {Implementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import "forge-std/Test.sol";
 
@@ -14,7 +14,7 @@ contract TestRelayProvider is Test {
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
 
     IRelayProvider internal relayProvider;
-    IRelayProviderImpl internal relayProviderGovernance;
+    IRelayProviderGovernance internal relayProviderGovernance;
 
     function initializeRelayProvider() internal {
    
@@ -24,7 +24,7 @@ contract TestRelayProvider is Test {
         require(relayProviderImplementation.chainId() == TEST_ORACLE_CHAIN_ID, "chainId() != expected");
 
         relayProvider = IRelayProvider(address(relayProviderImplementation));
-        relayProviderGovernance = IRelayProviderImpl(address(relayProviderImplementation));
+        relayProviderGovernance = IRelayProviderGovernance(address(relayProviderImplementation));
     }
 
     function testCannotUpdatePriceWithChainIdZero(uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) public {
@@ -200,13 +200,13 @@ contract TestRelayProvider is Test {
 
         initializeRelayProvider();
 
-        IRelayProviderImpl.UpdatePrice[] memory updates = new IRelayProviderImpl.UpdatePrice[](2);
-        updates[0] = IRelayProviderImpl.UpdatePrice({
+        IRelayProviderGovernance.UpdatePrice[] memory updates = new IRelayProviderGovernance.UpdatePrice[](2);
+        updates[0] = IRelayProviderGovernance.UpdatePrice({
             chainId: TEST_ORACLE_CHAIN_ID,
             gasPrice: srcGasPrice,
             nativeCurrencyPrice: srcNativeCurrencyPrice
         });
-        updates[1] = IRelayProviderImpl.UpdatePrice({
+        updates[1] = IRelayProviderGovernance.UpdatePrice({
             chainId: dstChainId,
             gasPrice: dstGasPrice,
             nativeCurrencyPrice: dstNativeCurrencyPrice
