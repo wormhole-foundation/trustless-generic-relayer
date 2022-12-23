@@ -36,8 +36,8 @@ contract MockRelayerIntegration is IWormholeReceiver {
     function receiveWormholeMessages(bytes[] memory wormholeObservations) public override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
-
         for (uint256 i = 0; i < numObservations - 1;) {
+
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
@@ -48,14 +48,13 @@ contract MockRelayerIntegration is IWormholeReceiver {
             
             if(forward) {
                 uint256 computeBudget = relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(parsed.emitterChainId, 500000);
-                console.log("Compute budget");
-                console.log(computeBudget);
 
-                wormhole.publishMessage{value: wormhole.messageFee()}(1, abi.encodePacked(uint8(0), bytes("received!")), 20);
+                wormhole.publishMessage(1, abi.encodePacked(uint8(0), bytes("received!")), 200);
 
                 ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(parsed.emitterChainId, parsed.emitterAddress, parsed.emitterAddress, computeBudget, 0, bytes(""));
 
-                relayer.requestForward{value: wormhole.messageFee() + computeBudget}(request, parsed.emitterChainId, 1, 20);
+                relayer.requestForward(request, parsed.emitterChainId, 1, 200);
+
             }
 
             

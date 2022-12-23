@@ -144,7 +144,7 @@ contract TestCoreRelayer is Test {
         source.coreRelayer = setUpCoreRelayer(chain1, address(target.wormhole), address(source.gasOracle));
         target.coreRelayer = setUpCoreRelayer(chain2, address(target.wormhole), address(target.gasOracle));
         target.coreRelayer.registerCoreRelayer(chain1, bytes32(uint256(uint160(address(source.coreRelayer)))));
-        source.coreRelayer.registerCoreRelayer(chain1, bytes32(uint256(uint160(address(target.coreRelayer)))));
+        source.coreRelayer.registerCoreRelayer(chain2, bytes32(uint256(uint160(address(target.coreRelayer)))));
         target.integration = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
         source.integration = new MockRelayerIntegration(address(source.wormhole), address(source.coreRelayer));
     }
@@ -238,7 +238,7 @@ contract TestCoreRelayer is Test {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         bytes[] memory encodedVMs = new bytes[](2);
-        encodedVMs[0] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[0], SOURCE_CHAIN_ID, address(source.coreRelayer));
+        encodedVMs[0] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[0], SOURCE_CHAIN_ID, address(source.integration));
         encodedVMs[1] = source.wormholeSimulator.fetchSignedMessageFromLogs(entries[1], SOURCE_CHAIN_ID, address(source.coreRelayer));
         genericRelayOne(encodedVMs, relayer, target.coreRelayer, target.wormhole);
         assertTrue(keccak256(target.integration.getPayload(keccak256(abi.encodePacked(keccak256(encodedVMs[0].slice(72, encodedVMs[0].length-72)))))) == keccak256(message));

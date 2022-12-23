@@ -11,7 +11,7 @@ interface ICoreRelayer {
     */
     function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChainId, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
 
     function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 
@@ -21,7 +21,7 @@ interface ICoreRelayer {
     @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
         the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
      */
-    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
 
     function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64 sequence);
 
@@ -42,7 +42,7 @@ interface ICoreRelayer {
     function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
 
     struct DeliveryRequestsContainer {
-        uint8 payloadID; // payloadID = 1
+        uint8 payloadId; // payloadID = 1
         DeliveryRequest[] requests;
     }
 

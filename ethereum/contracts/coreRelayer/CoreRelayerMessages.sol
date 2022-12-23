@@ -260,12 +260,71 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         require(encoded.length == index, "invalid RewardPayout");
     }
 
-    function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container) internal pure returns(bytes memory) {
-        //TODO this
+    function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container) internal view returns(bytes memory encoded) {
+        encoded = abi.encodePacked(
+            uint8(1), //version payload number
+            uint8(container.requests.length) //number of requests in the array
+        ); 
+        
+        
+        //Append all the messages to the array.
+        for (uint256 i = 0; i < container.requests.length; i++) {
+            DeliveryRequest memory request = container.requests[i];
+
+            encoded = abi.encodePacked(encoded,
+            request.targetChain,
+            request.targetAddress,
+            request.refundAddress,
+            request.computeBudget,
+            request.applicationBudget,
+            request.relayParameters.length > 0 ? request.relayParameters.toUint8(0) : uint8(0),
+            request.relayParameters.length > 0 ? request.relayParameters.toBytes32(1) : bytes32(uint256(uint160(address(0x0)))));
+        }
     }
 
-    function decodeDeliveryRequestsContainer(bytes memory encoded) internal pure returns (DeliveryRequestsContainer memory) {
-        //TODO this
+    function decodeDeliveryRequestsContainer(bytes memory encoded) internal view returns (DeliveryRequestsContainer memory) {
+         uint256 index = 0;
+
+        uint8 payloadId = encoded.toUint8(index);
+        require(payloadId == 1, "invalid payloadId");
+        index += 1;
+        uint8 arrayLen = encoded.toUint8(index);
+        index += 1;
+
+        DeliveryRequest[] memory requestArray = new DeliveryRequest[](arrayLen);
+
+        for (uint8 i = 0; i < arrayLen; i++) {
+            DeliveryRequest memory request;
+
+            // target chain of the delivery request
+            request.targetChain = encoded.toUint16(index);
+            index += 2;
+
+            // target contract address
+            request.targetAddress = encoded.toBytes32(index);
+            index += 32;
+
+            // address to send the refund to
+            request.refundAddress = encoded.toBytes32(index);
+            index += 32;
+
+            request.computeBudget = encoded.toUint256(index);
+            index += 32;
+            
+            request.applicationBudget = encoded.toUint256(index);
+            index += 32;
+
+            request.relayParameters = encoded.slice(index, 33);
+
+            index += 33;
+
+            requestArray[i] = request;
+        }
+
+        require(index == encoded.length, "invalid delivery requests payload");
+
+        return DeliveryRequestsContainer(payloadId, requestArray);
+    
     }
 
    

@@ -10,7 +10,7 @@ contract CoreRelayerStructs {
     //which should be considered untrusted and unmodifiable
 
     struct DeliveryRequestsContainer {
-        uint8 payloadID; // payloadID = 1
+        uint8 payloadId; // payloadID = 1
         DeliveryRequest[] requests;
     }
 

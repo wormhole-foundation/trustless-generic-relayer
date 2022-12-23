@@ -115,7 +115,7 @@ contract MockForwardingIntegration is IWormholeReceiver {
 
         // create the relayer params to call the relayer with
         ICoreRelayer.DeliveryRequestsContainer memory deliveryParams =
-            ICoreRelayer.DeliveryRequestsContainer({payloadID: 1, requests: ixs});
+            ICoreRelayer.DeliveryRequestsContainer({payloadId: 1, requests: ixs});
 
         // call the relayer contract and save the sequence.
         //relayer.forward(deliveryParams, relayerArgs.targetChainId, relayerArgs.nonce, relayerArgs.consistencyLevel);

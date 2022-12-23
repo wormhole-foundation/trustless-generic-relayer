@@ -24,7 +24,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return requestMultidelivery(container, nonce, consistencyLevel);
     }
 
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public payable {
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
@@ -73,19 +73,22 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public  {
         require(isContractLocked(), "Can only forward while a delivery is in process.");
         require(getForwardingRequest().isValid != true, "Cannot request multiple forwards.");
 
         //We want to catch malformed requests in this function, and only underfunded requests when emitting.
         verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
 
-        setForwardingRequest(ForwardingRequest(encodeDeliveryRequestsContainer(deliveryRequests), rolloverChain, nonce, consistencyLevel, true));
+        bytes memory encodedDeliveryRequestsContainer = encodeDeliveryRequestsContainer(deliveryRequests);
+        setForwardingRequest(ForwardingRequest(encodedDeliveryRequestsContainer, rolloverChain, nonce, consistencyLevel, true));
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
+
         ForwardingRequest memory forwardingRequest = getForwardingRequest();
         DeliveryRequestsContainer memory container = decodeDeliveryRequestsContainer(forwardingRequest.deliveryRequestsContainer);
+        
         
 
         //make sure the refund amount covers the native gas amounts
@@ -219,9 +222,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //TODO currently in gas units, needs to be converted to wei by multiplying the percentage remaining times the
         //compute budget
 
-        console.log(internalInstruction.executionParameters.gasLimit);
-        console.log((preGas-postGas));
-        uint256 weiToRefund = internalInstruction.executionParameters.gasLimit - (preGas - postGas);
+        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) *  internalInstruction.computeBudgetTarget / internalInstruction.executionParameters.gasLimit;
 
         // unlock the contract
         setContractLock(false);
@@ -313,10 +314,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
-        console.logBytes32(vm.emitterAddress);
-        console.log("above is the emitter address");
-        console.log("should be");
-        console.logBytes32(registeredCoreRelayerContract(vm.emitterChainId));
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
