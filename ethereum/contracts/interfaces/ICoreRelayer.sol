@@ -13,7 +13,7 @@ interface ICoreRelayer {
 
     function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
 
-    function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
+    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
     function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
@@ -23,13 +23,13 @@ interface ICoreRelayer {
      */
     function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
 
-    function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64 sequence);
+    //function deliver(TargetDeliveryParameters memory targetParams) external payable returns (uint64 sequence);
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable returns (uint64 sequence);
 
-    function redeliver(TargetDeliveryParameters memory targetParams, bytes memory encodedRedeliveryVm) external payable returns (uint64 sequence);
+    //function redeliver(TargetDeliveryParameters memory targetParams, bytes memory encodedRedeliveryVm) external payable returns (uint64 sequence);
 
-    function redeliverSingle(TargetDeliveryParametersSingle memory targetParams, bytes memory encodedRedeliveryVm) external payable returns (uint64 sequence);
+    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) external payable returns (uint64 sequence);
 
     function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
 
@@ -41,9 +41,14 @@ interface ICoreRelayer {
 
     function fromWormholeFormat(bytes32 whFormatAddress) external pure returns(address addr);
 
+    //TODO move these into governance
     function setDefaultRelayProvider(address relayProvider) external;
 
+    //TODO move into governance and rename more explicitly
     function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
+    
+    //TODO convenience function to make relayer params, getDefaultRelayParameters(), overrideRelayProvider()
+
 
     function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
 
@@ -69,6 +74,16 @@ interface ICoreRelayer {
         bytes relayParameters; //Optional
     }
 
+    struct RedeliveryByTxHashRequest {
+        uint16 sourceChain;
+        bytes32 sourceTxHash;
+        uint32 sourceNonce; 
+        uint16 targetChain;
+        uint256 newComputeBudget; 
+        uint256 newApplicationBudget;
+        bytes newRelayParameters;
+    }
+
     struct TargetDeliveryParameters {
         // encoded batchVM to be delivered on the target chain
         bytes encodedVM;
@@ -89,6 +104,13 @@ interface ICoreRelayer {
         uint8 multisendIndex;
         // Optional gasOverride which can be supplied by the relayer
        // uint32 targetCallGasOverride;
+    }
+
+    struct TargetRedeliveryByTxHashParamsSingle {
+        bytes redeliveryVM;
+        bytes[] sourceEncodedVMs;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
     }
 
     struct RelayParameters {
