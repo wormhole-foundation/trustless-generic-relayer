@@ -25,10 +25,13 @@ contract GasOracle is GasOracleGovernance {
             return 0;
         } else {
             uint256 remainder = computeBudget - wormholeFee(targetChain);
-            uint256 gas = (remainder / computeGasCost(targetChain, 1));
+            uint256 gas = remainder * nativeCurrencyPrice(chainId()) / nativeCurrencyPrice(targetChain) / gasPrice(targetChain);
+
             if(gas <= deliverGasOverhead(targetChain)) {
                 return 0;
             }
+
+            if(gas - deliverGasOverhead(targetChain) >= 2 ** 32) return uint32(2 ** 32 - 1);
             return uint32(gas - deliverGasOverhead(targetChain));
         }
     }

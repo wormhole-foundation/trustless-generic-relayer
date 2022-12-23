@@ -218,6 +218,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         // refund unused gas budget
         //TODO currently in gas units, needs to be converted to wei by multiplying the percentage remaining times the
         //compute budget
+
+        console.log(internalInstruction.executionParameters.gasLimit);
+        console.log((preGas-postGas));
         uint256 weiToRefund = internalInstruction.executionParameters.gasLimit - (preGas - postGas);
 
         // unlock the contract
@@ -344,13 +347,13 @@ contract CoreRelayer is CoreRelayerGovernance {
             decodeDeliveryInstructionsContainer(deliveryVM.payload).instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
-        require(fromWormholeFormat(deliveryInstruction.executionParameters.relayerAddress) == msg.sender);
+        require(fromWormholeFormat(deliveryInstruction.executionParameters.relayerAddress) == msg.sender, "Specified relayer is not the relayer delivering the message");
 
         //make sure relayer passed in sufficient funds
-        require(msg.value >= deliveryInstruction.computeBudgetTarget + deliveryInstruction.applicationBudgetTarget);
+        require(msg.value >= deliveryInstruction.computeBudgetTarget + deliveryInstruction.applicationBudgetTarget, "Relayer did not pass in sufficient funds");
 
         //make sure this has not already been delivered
-        require(!isDeliveryCompleted(deliveryVM.hash));
+        require(!isDeliveryCompleted(deliveryVM.hash), "delivery is already completed");
 
         //mark as delivered, so it can't be reattempted
         markAsDelivered(deliveryVM.hash);
@@ -373,7 +376,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         setGasOracle(gasOracle);
     }
 
+    function getDefaultRelayProvider() public returns (IGasOracle) {
+        return IGasOracle(getGasOracle());
+    }
 
+    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) public onlyOwner {
+        setRegisteredCoreRelayerContract(chainId, relayerAddress);
+    }
 
 
 

@@ -11,7 +11,7 @@ interface ICoreRelayer {
     */
     function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
-    function requestForward(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChainId, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
 
     function requestRedelivery(bytes32 transactionHash, uint32 originalNonce, uint256 newComputeBudget, uint256 newNativeBudget, uint32 nonce, uint8 consistencyLevel, bytes memory relayParameters) external payable returns (uint64 sequence);
 
@@ -38,6 +38,8 @@ interface ICoreRelayer {
     function getDefaultRelayProvider() external returns (IGasOracle);
 
     function setDefaultGasOracle(address gasOracle) external;
+
+    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
 
     struct DeliveryRequestsContainer {
         uint8 payloadID; // payloadID = 1
