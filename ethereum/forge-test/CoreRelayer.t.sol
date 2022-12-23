@@ -34,10 +34,10 @@ contract TestCoreRelayer is Test {
     struct GasParameters {
         uint32 evmGasOverhead;
         uint32 targetGasLimit;
-        uint128 targetGasPrice;
-        uint128 targetNativePrice;
-        uint128 sourceGasPrice;
-        uint128 sourceNativePrice;
+        uint64 targetGasPrice;
+        uint64 targetNativePrice;
+        uint64 sourceGasPrice;
+        uint64 sourceNativePrice;
     }
 
     struct VMParams {
@@ -111,6 +111,8 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.targetNativePrice > 0 && gasParams.targetNativePrice < halfMaxUint128);
         vm.assume(gasParams.sourceGasPrice > 0 && gasParams.sourceGasPrice < halfMaxUint128);
         vm.assume(gasParams.sourceNativePrice > 0 && gasParams.sourceNativePrice < halfMaxUint128);
+        vm.assume(gasParams.sourceNativePrice  < halfMaxUint128 / gasParams.sourceGasPrice );
+        vm.assume(gasParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice );
         vm.assume(batchParams.nonce > 0);
         vm.assume(batchParams.consistencyLevel > 0);
     }
@@ -149,6 +151,9 @@ contract TestCoreRelayer is Test {
         source.integration = new MockRelayerIntegration(address(source.wormhole), address(source.coreRelayer));
     }
 
+    function within(uint256 a, uint256 b, uint256 c) internal view returns (bool) {
+        return (a/b <= c && b/a <= c);
+    }
     // This test confirms that the `send` method generates the correct delivery Instructions payload
     // to be delivered on the target chain.
     function testSend(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message, address relayer, bool forward) public {
@@ -157,6 +162,8 @@ contract TestCoreRelayer is Test {
 
         vm.assume(gasParams.targetGasLimit >= 1000000);
         vm.assume(relayer != address(0x0));
+        //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
+        //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
         
         uint16 SOURCE_CHAIN_ID = 3;
         uint16 TARGET_CHAIN_ID = 4;
@@ -164,9 +171,10 @@ contract TestCoreRelayer is Test {
 
         (Contracts memory source, Contracts memory target) = setUpTwoChains(SOURCE_CHAIN_ID, TARGET_CHAIN_ID, relayer);
 
+
         // set relayProvider prices
-        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, 32443536, 376997664);
-        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, 13461357, 987654356);
+        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         MockRelayerIntegration deliveryContract = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
 
@@ -201,9 +209,9 @@ contract TestCoreRelayer is Test {
         
         standardAssume(gasParams, batchParams);
 
-        vm.assume(gasParams.targetGasLimit >= 5000000);
+        vm.assume(gasParams.targetGasLimit >= 1000000);
         vm.assume(relayer != address(0x0));
-        
+        vm.assume(uint256(1) * gasParams.targetGasPrice * gasParams.targetNativePrice  > uint256(1) * gasParams.sourceGasPrice * gasParams.sourceNativePrice);
         uint16 SOURCE_CHAIN_ID = 3;
         uint16 TARGET_CHAIN_ID = 4;
         // initialize all contracts
@@ -211,10 +219,10 @@ contract TestCoreRelayer is Test {
         (Contracts memory source, Contracts memory target) = setUpTwoChains(SOURCE_CHAIN_ID, TARGET_CHAIN_ID, relayer);
 
         // set relayProvider prices
-        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, 32443536, 376997664);
-        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, 13461357, 987654356);
-        target.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, 92443536, 376997664);
-        target.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, 33461357, 987654356);
+        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+        target.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        target.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         
 
