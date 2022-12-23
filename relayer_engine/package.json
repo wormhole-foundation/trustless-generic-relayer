@@ -5,13 +5,15 @@
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "build": "tsc",
     "watch": "tsc --watch",
     "start": "ts-node src/main.ts"
   },
   "dependencies": {
-    "@certusone/wormhole-sdk": "^0.9.0",
-    "@wormhole-foundation/relayer-engine": "github:wormhole-foundation/relayer-engine"
+    "@certusone/wormhole-sdk": "^0.9.6",
+    "@wormhole-foundation/relayer-engine": "file:../../relayer-engine",
+    "lodash": "^4.17.21"
   },
   "author": "Chase Moran",
   "license": "ISC",
