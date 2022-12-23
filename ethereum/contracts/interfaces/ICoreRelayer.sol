@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
-import "./IGasOracle.sol";
+import "./IRelayProvider.sol";
 
 interface ICoreRelayer {
     
@@ -35,9 +35,13 @@ interface ICoreRelayer {
 
     function collectRewards(bytes memory encodedVm) external;
 
-    function getDefaultRelayProvider() external returns (IGasOracle);
+    function getDefaultRelayProvider() external returns (IRelayProvider);
 
-    function setDefaultGasOracle(address gasOracle) external;
+    function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
+
+    function fromWormholeFormat(bytes32 whFormatAddress) external pure returns(address addr);
+
+    function setDefaultRelayProvider(address relayProvider) external;
 
     function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
 

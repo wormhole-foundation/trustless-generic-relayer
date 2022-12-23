@@ -3,8 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-//TODO refactor to IRelayProvider
-interface IGasOracle {
+interface IRelayProvider {
 
     /**
      * @dev `quoteEvmDeliveryPrice` returns the amount in wei that must be paid to the core relayer contract 
@@ -22,23 +21,8 @@ interface IGasOracle {
 
     function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
 
-    function getRelayerAddress(uint16 targetChain) external view returns (bytes32 whAddress);
+    function getRewardAddress(uint16 targetChain) external view returns (bytes32 whAddress);
 
-    function setRelayerAddress(uint16 targetChain, bytes32 newRelayerAddress) external;
+    function getMaximumBudget(uint16 targetChain) external view returns (uint256 maximumTargetBudget);
 
-    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) external;
-
-    struct UpdatePrice {
-        uint16 chainId;
-        uint128 gasPrice;
-        uint128 nativeCurrencyPrice;
-    }
-
-    function updatePrices(UpdatePrice[] memory updates) external;
-
-    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) external;
-
-    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) external;
-
-    //TODO add applicationBudget helper calculation function
 }

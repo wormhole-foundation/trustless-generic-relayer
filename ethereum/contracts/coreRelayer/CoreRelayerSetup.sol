@@ -14,12 +14,12 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
         address implementation,
         uint16 chainId,
         address wormhole,
-        address gasOracle
+        address defaultRelayProvider
     ) public {
         // sanity check initial values
         require(implementation != address(0), "implementation cannot be address(0)");
         require(wormhole != address(0), "wormhole cannot be address(0)");
-        require(gasOracle != address(0), "gasOracle cannot be address(0)");
+        require(defaultRelayProvider != address(0), "default relay provider cannot be address(0)");
 
         setOwner(_msgSender());
 
@@ -27,7 +27,7 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
 
         setWormhole(wormhole);
 
-        setGasOracle(gasOracle);
+        setRelayProvider(defaultRelayProvider);
 
         setRegisteredCoreRelayerContract(chainId, bytes32(uint256(uint160(address(this)))));
 

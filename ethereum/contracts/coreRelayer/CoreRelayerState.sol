@@ -22,8 +22,8 @@ contract CoreRelayerStorage {
         address owner;
         // intermediate state when transfering contract ownership
         address pendingOwner;
-        // address of the gas oracle on this chain
-        address gasOracle;
+        // address of the default relay provider on this chain
+        address defaultRelayProvider;
         // Request which will be forwarded from the current delivery.
         CoreRelayerStructs.ForwardingRequest forwardingRequest;
         // mapping of initialized implementations

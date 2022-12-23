@@ -32,21 +32,21 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request) internal view returns (bytes memory newEncoded) {
-        IGasOracle selectedGasOracle = getSelectedGasOracle(request.relayParameters);
+        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.relayParameters);
             newEncoded = abi.encodePacked(
                 encoded,
                 request.targetChain,
                 request.targetAddress,
                 request.refundAddress);
             newEncoded = abi.encodePacked(newEncoded, 
-                selectedGasOracle.assetConversionAmount(chainId(), request.computeBudget, request.targetChain), 
-                selectedGasOracle.assetConversionAmount(chainId(), request.applicationBudget, request.targetChain),
+                selectedRelayProvider.assetConversionAmount(chainId(), request.computeBudget, request.targetChain), 
+                selectedRelayProvider.assetConversionAmount(chainId(), request.applicationBudget, request.targetChain),
                 request.computeBudget + request.applicationBudget,
                 chainId());
             newEncoded = abi.encodePacked(newEncoded, 
                 uint8(1), //version for ExecutionParameters
-                selectedGasOracle.quoteTargetEvmGas(request.targetChain, request.computeBudget),
-                selectedGasOracle.getRelayerAddress(request.targetChain));
+                selectedRelayProvider.quoteTargetEvmGas(request.targetChain, request.computeBudget),
+                selectedRelayProvider.getRewardAddress(request.targetChain));
     }
 
 

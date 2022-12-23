@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IWormhole.sol";
 
-import "./GasOracleState.sol";
+import "./RelayProviderState.sol";
 
-contract GasOracleGetters is GasOracleState {
+contract RelayProviderGetters is RelayProviderState {
 
     function chainId() public view returns (uint16) {
         return _state.chainId;
@@ -25,13 +25,17 @@ contract GasOracleGetters is GasOracleState {
         return _state.deliverGasOverhead[targetChainId];
     }
 
+    function maximumBudget(uint16 targetChainId) public view returns (uint256) {
+        return _state.maximumBudget[targetChainId];
+    }
+
     function wormholeFee(uint16 targetChainId) public view returns (uint32) {
         return _state.wormholeFee[targetChainId];
     }
 
-    function relayerAddress(uint16 targetChainId) public view returns (bytes32) {
-        require(_state.relayerAddressMap[targetChainId] != bytes32(0), "No permissioned relayer address");
-        return _state.relayerAddressMap[targetChainId];
+    function rewardAddress(uint16 targetChainId) public view returns (bytes32) {
+        require(_state.rewardAddressMap[targetChainId] != bytes32(0), "No configured address");
+        return _state.rewardAddressMap[targetChainId];
     }
 
     function owner() public view returns (address) {

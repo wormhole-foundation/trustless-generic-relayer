@@ -7,38 +7,64 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 import "../libraries/external/BytesLib.sol";
 
-import "./GasOracleGetters.sol";
-import "./GasOracleSetters.sol";
+import "./RelayProviderGetters.sol";
+import "./RelayProviderSetters.sol";
+import "../interfaces/IRelayProviderImpl.sol";
 
 
-abstract contract GasOracleGovernance is
-    GasOracleGetters,
-    GasOracleSetters,
+abstract contract RelayProviderGovernance is
+    IRelayProviderImpl,
+    RelayProviderGetters,
+    RelayProviderSetters,
     ERC1967Upgrade
 {
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event PermissionedRelayerAddressUpdated(uint16 chainId, bytes32 indexed newAddress);
+    event RewardAddressUpdated(uint16 chainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
 
-    function setRelayerAddress(uint16 chainId, bytes32 newRelayerAddress) public onlyOwner {
-        setRelayerAddressInternal(chainId, newRelayerAddress);
-        emit PermissionedRelayerAddressUpdated(chainId, newRelayerAddress);
+    function setRewardAddress(uint16 chainId, bytes32 newAddress) public override onlyOwner {
+        setRewardAddressInternal(chainId, newAddress);
+        emit RewardAddressUpdated(chainId, newAddress);
     }
 
-    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {
+    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public override onlyOwner {
         uint32 currentGasOverhead = deliverGasOverhead(chainId);
         setDeliverGasOverhead(chainId, newGasOverhead);
         emit DeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
     }
 
-    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public onlyOwner {
+    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public override onlyOwner {
         setWormholeFee(chainId, newWormholeFee);
     }
 
+    function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
+        public override
+        onlyOwner
+    {
+        require(updateChainId > 0, "updateChainId == 0");
+        require(updateGasPrice > 0, "updateGasPrice == 0");
+        require(updateNativeCurrencyPrice > 0, "updateNativeCurrencyPrice == 0");
+        setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
+    }
+
+    function updatePrices(IRelayProviderImpl.UpdatePrice[] memory updates) public override onlyOwner {
+        uint256 pricesLen = updates.length;
+        for (uint256 i = 0; i < pricesLen;) {
+            updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) public override onlyOwner {
+        setMaximumBudget(targetChainId, maximumTotalBudget);
+    }
+
     /// @dev upgrade serves to upgrade contract implementations
-    function upgrade(uint16 gasOracleChainId, address newImplementation) public onlyOwner {
-        require(gasOracleChainId == chainId(), "wrong chain id");
+    function upgrade(uint16 relayProviderChainId, address newImplementation) public onlyOwner {
+        require(relayProviderChainId == chainId(), "wrong chain id");
 
         address currentImplementation = _getImplementation();
 

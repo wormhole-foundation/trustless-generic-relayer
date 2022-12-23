@@ -21,11 +21,11 @@ abstract contract CoreRelayerGovernance is
     ERC1967Upgrade
 {
     //TODO convert this upgrade to being managed by guardian VAAs
-    //TODO set default gas oracle function, managed by VAAs
+    //TODO set default relay provider function, managed by VAAs
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event GasOracleUpdated(address indexed oldOracle, address indexed newOracle);
+    event RelayProviderUpdated(address indexed oldDefaultRelayProvider, address indexed newDefaultRelayProvider);
     
     /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
     function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
@@ -53,17 +53,17 @@ abstract contract CoreRelayerGovernance is
     }
 
 
-    /// @dev updateGasOracleContract changes the contract address for the gasOracle
-    function updateGasOracleContract(uint16 thisRelayerChainId, address newGasOracleAddress) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "wrong chain id");
-        require(newGasOracleAddress != address(0), "new gasOracle address cannot be address(0)");
+    /// @dev updateRelayProviderContract changes the contract address for the RelayProvider
+    function updateDefaultRelayProviderContract(uint16 thisChainId, address newRelayProviderAddress) public onlyOwner {
+        require(thisChainId == chainId(), "wrong chain id");
+        require(newRelayProviderAddress != address(0), "new RelayProvider address cannot be address(0)");
 
-        // cache the current gas oracle address
-        address currentGasOracle = gasOracleAddress();
+        // cache the current defaultRelayProvider address
+        address currentRelayProvider = getDefaultRelayProviderAddress();
 
-        setGasOracle(newGasOracleAddress);
+        setRelayProvider(newRelayProviderAddress);
 
-        emit GasOracleUpdated(currentGasOracle, newGasOracleAddress);
+        emit RelayProviderUpdated(currentRelayProvider, newRelayProviderAddress);
     }
 
     /**

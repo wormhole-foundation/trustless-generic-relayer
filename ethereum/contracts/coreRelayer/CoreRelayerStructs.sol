@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IWormhole.sol";
 
-contract CoreRelayerStructs {
+abstract contract CoreRelayerStructs {
     //This first group of structs are external facing API objects,
     //which should be considered untrusted and unmodifiable
 
@@ -45,7 +45,7 @@ contract CoreRelayerStructs {
 
     struct RelayParameters {
         uint8 version; //1
-        bytes32 oracleAddressOverride;
+        bytes32 providerAddressOverride;
     }
 
     //Below this are internal structs
@@ -101,15 +101,15 @@ contract CoreRelayerStructs {
         bool isValid;
     }
 
-    struct InternalDeliveryParameters {
-        IWormhole.VM2 batchVM;
-        DeliveryInstruction internalInstruction;
-        AllowedEmitterSequence deliveryId;
-        uint8 deliveryIndex;
-        uint16 deliveryAttempts; //TODO unused?
-        uint16 fromChain;
-        uint32 deliveryGasLimit;
-    }
+    // struct InternalDeliveryParameters {
+    //     IWormhole.VM2 batchVM;
+    //     DeliveryInstruction internalInstruction;
+    //     AllowedEmitterSequence deliveryId;
+    //     uint8 deliveryIndex;
+    //     uint16 deliveryAttempts; //TODO unused?
+    //     uint16 fromChain;
+    //     uint32 deliveryGasLimit;
+    // }
 
     // TODO: Add single VAA variant
     struct RedeliveryInstructions {

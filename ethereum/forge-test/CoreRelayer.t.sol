@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../contracts/gasOracle/GasOracle.sol";
+import "../contracts/relayProvider/RelayProvider.sol";
 import {ICoreRelayer} from "../contracts/interfaces/ICoreRelayer.sol";
 import "../contracts/coreRelayer/CoreRelayer.sol";
 import "../contracts/coreRelayer/CoreRelayerState.sol";
@@ -11,7 +11,7 @@ import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImp
 import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
 import {CoreRelayerMessages} from "../contracts/coreRelayer/CoreRelayerMessages.sol";
 import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
-import {IGasOracle} from "../contracts/interfaces/IGasOracle.sol";
+import {IRelayProvider} from "../contracts/interfaces/IRelayProvider.sol";
 import {Setup as WormholeSetup} from "../wormhole/ethereum/contracts/Setup.sol";
 import {Implementation as WormholeImplementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
@@ -20,7 +20,6 @@ import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
 import {WormholeSimulator} from "./WormholeSimulator.sol";
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
-import {MockForwardingIntegration} from "../contracts/mock/MockForwardingIntegration.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 
 import "forge-std/Test.sol";
@@ -80,11 +79,11 @@ contract TestCoreRelayer is Test {
         wormholeContract = IWormhole(wormholeSimulator.wormhole());
     }
 
-    function setUpGasOracle(uint16 chainId) internal returns (IGasOracle gasOracle) {
-        gasOracle = IGasOracle(address(new GasOracle(chainId)));
+    function setUpRelayProvider(uint16 chainId) internal returns (IRelayProvider relayProvider) {
+        relayProvider = IRelayProvider(address(new RelayProvider(chainId)));
     }
  
-    function setUpCoreRelayer(uint16 chainId, address wormhole, address defaultGasOracle) internal returns (ICoreRelayer coreRelayer) {
+    function setUpCoreRelayer(uint16 chainId, address wormhole, address defaultRelayProvider) internal returns (ICoreRelayer coreRelayer) {
         
         CoreRelayerSetup coreRelayerSetup = new CoreRelayerSetup();
         CoreRelayerImplementation coreRelayerImplementation = new CoreRelayerImplementation();
@@ -95,16 +94,12 @@ contract TestCoreRelayer is Test {
                 address(coreRelayerImplementation),
                 chainId,
                 wormhole,
-                defaultGasOracle
+                defaultRelayProvider
             )
         );
 
         coreRelayer = ICoreRelayer(address(myCoreRelayer));
 
-    }
-
-    function setUpForward(address wormhole, CoreRelayer coreRelayer) internal returns (IWormholeReceiver forwardingContract) {
-        forwardingContract = new MockForwardingIntegration(wormhole, address(coreRelayer));
     }
 
 
@@ -129,7 +124,8 @@ contract TestCoreRelayer is Test {
     struct Contracts {
         IWormhole wormhole;
         WormholeSimulator wormholeSimulator;
-        IGasOracle gasOracle;
+        IRelayProviderImpl relayProviderGovernance;
+        IRelayProvider relayProvider;
         ICoreRelayer coreRelayer;     
         MockRelayerIntegration integration;  
     }
@@ -137,12 +133,16 @@ contract TestCoreRelayer is Test {
     function setUpTwoChains(uint16 chain1, uint16 chain2, address relayer) internal returns (Contracts memory source, Contracts memory target) {
         (source.wormhole, source.wormholeSimulator) = setUpWormhole(chain1);
         (target.wormhole, target.wormholeSimulator) = setUpWormhole(chain2);
-        source.gasOracle = setUpGasOracle(chain1);
-        target.gasOracle = setUpGasOracle(chain2);
-        source.gasOracle.setRelayerAddress(chain2, bytes32(uint256(uint160(relayer))));
-        target.gasOracle.setRelayerAddress(chain1, bytes32(uint256(uint160(relayer))));
-        source.coreRelayer = setUpCoreRelayer(chain1, address(target.wormhole), address(source.gasOracle));
-        target.coreRelayer = setUpCoreRelayer(chain2, address(target.wormhole), address(target.gasOracle));
+        source.relayProvider = setUpRelayProvider(chain1);
+        target.relayProvider = setUpRelayProvider(chain2);
+        source.relayProviderGovernance = IRelayProviderImpl(address(source.relayProvider));
+        target.relayProviderGovernance = IRelayProviderImpl(address(target.relayProvider));
+        source.relayProviderGovernance.setRewardAddress(chain2, bytes32(uint256(uint160(relayer))));
+        target.relayProviderGovernance.setRewardAddress(chain1, bytes32(uint256(uint160(relayer))));
+        source.relayProviderGovernance.updateMaximumBudget(chain2, 2**128-1);
+        target.relayProviderGovernance.updateMaximumBudget(chain1, 2**128-1);
+        source.coreRelayer = setUpCoreRelayer(chain1, address(target.wormhole), address(source.relayProvider));
+        target.coreRelayer = setUpCoreRelayer(chain2, address(target.wormhole), address(target.relayProvider));
         target.coreRelayer.registerCoreRelayer(chain1, bytes32(uint256(uint160(address(source.coreRelayer)))));
         source.coreRelayer.registerCoreRelayer(chain2, bytes32(uint256(uint160(address(target.coreRelayer)))));
         target.integration = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
@@ -164,14 +164,14 @@ contract TestCoreRelayer is Test {
 
         (Contracts memory source, Contracts memory target) = setUpTwoChains(SOURCE_CHAIN_ID, TARGET_CHAIN_ID, relayer);
 
-        // set gasOracle prices
-        source.gasOracle.updatePrice(TARGET_CHAIN_ID, 32443536, 376997664);
-        source.gasOracle.updatePrice(SOURCE_CHAIN_ID, 13461357, 987654356);
+        // set relayProvider prices
+        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, 32443536, 376997664);
+        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, 13461357, 987654356);
 
         MockRelayerIntegration deliveryContract = new MockRelayerIntegration(address(target.wormhole), address(target.coreRelayer));
 
         // estimate the cost based on the intialized values
-        uint256 computeBudget = source.gasOracle.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 computeBudget = source.relayProvider.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
 
         // start listening to events
         vm.recordLogs();
@@ -210,16 +210,16 @@ contract TestCoreRelayer is Test {
 
         (Contracts memory source, Contracts memory target) = setUpTwoChains(SOURCE_CHAIN_ID, TARGET_CHAIN_ID, relayer);
 
-        // set gasOracle prices
-        source.gasOracle.updatePrice(TARGET_CHAIN_ID, 32443536, 376997664);
-        source.gasOracle.updatePrice(SOURCE_CHAIN_ID, 13461357, 987654356);
-        target.gasOracle.updatePrice(TARGET_CHAIN_ID, 92443536, 376997664);
-        target.gasOracle.updatePrice(SOURCE_CHAIN_ID, 33461357, 987654356);
+        // set relayProvider prices
+        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, 32443536, 376997664);
+        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, 13461357, 987654356);
+        target.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, 92443536, 376997664);
+        target.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, 33461357, 987654356);
 
         
 
         // estimate the cost based on the intialized values
-        uint256 computeBudget = source.gasOracle.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 computeBudget = source.relayProvider.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
 
         // start listening to events
         vm.recordLogs();

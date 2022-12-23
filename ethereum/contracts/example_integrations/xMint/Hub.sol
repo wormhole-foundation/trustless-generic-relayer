@@ -10,8 +10,7 @@ import "../../interfaces/IWormholeReceiver.sol";
 import "../../interfaces/ICoreRelayer.sol";
 
 
-abstract contract Xmint is ERC20, IWormholeReceiver {
-    /*
+contract XmintHub is ERC20, IWormholeReceiver {
     //using BytesLib for bytes;
 
     mapping(uint16 => bytes32) trustedContracts;
@@ -21,6 +20,9 @@ abstract contract Xmint is ERC20, IWormholeReceiver {
     ITokenBridge token_bridge;
     ICoreRelayer core_relayer;
     uint32 nonce = 1;
+    uint8 consistencyLevel = 200;
+
+    uint256 SAFE_DELIVERY_GAS_CAPTURE = 5000000; //Capture 500k gas for fees
 
     event Log(string indexed str);
 
@@ -41,7 +43,6 @@ abstract contract Xmint is ERC20, IWormholeReceiver {
         This function is used to add spoke contract deployments into the trusted addresses of this
         contract.
     */
-    /*
     function registerApplicationContracts(uint16 chainId, bytes32 emitterAddr) public {
         require(msg.sender == owner, "Only owner can register new chains!");
         trustedContracts[chainId] = emitterAddr;
@@ -60,55 +61,66 @@ abstract contract Xmint is ERC20, IWormholeReceiver {
         require(transferResult.fromAddress == trustedContracts[fromChain]);
         
         //Calculate how many tokens to mint for the user
-        //TODO is transferResult already normalized, or does the normalization have to happen here?
-        //TODO is token address the origin mint or the local mint?
-        uint256 mintAmount = calculateMintAmount(transferResult.amount, toNativeAddress(transferResult.tokenAddress));
+        //TODO is tokenAddress the origin address or the local foreign address?
+        uint256 mintAmount = calculateMintAmount(transferResult.amount, core_relayer.fromWormholeFormat(transferResult.tokenAddress)); 
 
         //Mint tokens to this contract
         _mint(address(this), mintAmount);
 
-        //Bridge the tokens back to the remote contract, noting intended recipient.
-        bridgeTokens(fromChain, decodeRecipientPayload(transferResult.payload), mintAmount);
+        //Bridge the tokens back to the spoke contract, maintaining the intendedRecipient, which is inside the payload.
+        bridgeTokens(fromChain, transferResult.payload, mintAmount);
 
-        //Request delivery from the relayer network.
-        requestForward(fromChain, decodeRecipientPayload(transferResult.payload));
-        *
+        //Request delivery from the relayer network
+        requestForward(fromChain, bytesToBytes32(transferResult.payload, 0));
+    }
+
+    function bridgeTokens(uint16 remoteChain, bytes memory payload, uint256 amount) internal {
+        (bool success, bytes memory data) = address(token_bridge).call{value: amount + core_bridge.messageFee()}(
+
+            //token, amount, receipientChain, recipientAddress, nonce, payload
+            abi.encodeWithSignature("transferTokensWithPayload(address,uint256,uint16,bytes32,nonce,bytes memory)", 
+            address(this), amount, remoteChain, trustedContracts[remoteChain], nonce, payload)
+
+        );
+    }
+
+    function requestForward(uint16 targetChain, bytes32 intendedRecipient) internal {
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
+            targetChain, //target chain
+            trustedContracts[targetChain], //target address
+            intendedRecipient, //refund address. All remaining funds will be returned to the user now
+            core_relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(targetChain, SAFE_DELIVERY_GAS_CAPTURE), //compute budget
+            0, //application budget, should cover any additional fees encountered during execution (which are all zero for this usecase). 
+            new bytes(0) //no overrides
+        );
+
+        core_relayer.requestDelivery(request, nonce, consistencyLevel);
+    }
+
+    //This function calculates how many tokens should be minted to the end user based on how much
+    //money they sent to this contract.
+    function calculateMintAmount(uint256 paymentAmount, address paymentToken) internal returns (uint256 mintAmount) {
+        //Because this is a toy example, we will mint them 1 token regardless of what token they paid with
+        // or how much they paid.
+        return 1 * 10^18;
     }
 
     //This function allows you to purchase tokens from the Hub chain. Because this is all on the Hub chain, 
     // there's no need for relaying.
     function purchaseLocal() internal {
-
+        //TODO this
     }
 
     function mintLocal() internal {
-
+        //TODO this
     }
 
-    function encodeRecipientPayload(bytes memory encoded) internal returns (bytes32 whFormatAddress){
+    function bytesToBytes32(bytes memory b, uint offset) private pure returns (bytes32) {
+        bytes32 out;
 
+        for (uint i = 0; i < 32; i++) {
+            out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+        }
+        return out;
     }
-
-    function decodeRecipientPayload(bytes memory whFormatAddress) internal returns (bytes32 encoded){
-
-    }
-
-    function toNativeAddress(bytes32 whFormatAddress) internal returns (address) {
-
-    } 
-
-    function bridgeTokens(uint16 remoteChain, bytes32 intendedRecipient, uint256 amount) internal {
-
-    }
-
-    function requestForward(uint16 targetChain, bytes32 intendedRecipient) internal {
-    }
-
-    //This function calculates how many tokens should be minted to the end user based on how much
-    //money they sent to this contract.
-    function calculateMintAmount(uint256 inputAmount, address inputToken) internal returns (uint256 mintAmount) {
-        //Because this is a toy example, we will mint them 1 token regardless of what token they paid with
-        // or how much they paid.
-        return 1 * 10^18;
-    }*/
 }
