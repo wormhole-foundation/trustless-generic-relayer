@@ -31,15 +31,19 @@ interface ICoreRelayer {
 
     function collectRewards(bytes memory encodedVm) external;
 
-    function getDefaultRelayProvider() external returns (IRelayProvider);
-
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
     function fromWormholeFormat(bytes32 whFormatAddress) external pure returns(address addr);
+
+    function getDefaultRelayProvider() external returns (IRelayProvider);
     
     function getDefaultRelayParams() external pure returns(bytes memory relayParams);
 
-    function makeRelayerParams(address relayProvider) external pure returns(bytes memory relayerParams);
+    function makeRelayerParams(IRelayProvider provider) external pure returns(bytes memory relayerParams);
+
+    function quoteDeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 deliveryQuote);
+
+    function quoteRedeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 redeliveryQuote);
 
     function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
 

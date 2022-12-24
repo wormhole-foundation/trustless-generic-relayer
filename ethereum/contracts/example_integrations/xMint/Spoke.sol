@@ -23,7 +23,7 @@ contract XmintSpoke is IWormholeReceiver {
     uint32 nonce = 1;
     uint8 consistencyLevel = 200;
 
-    uint256 SAFE_DELIVERY_GAS_CAPTURE = 1000000; //Capture 1 million gas for fees
+    uint32 SAFE_DELIVERY_GAS_CAPTURE = 1000000; //Capture 1 million gas for fees
 
     event Log(string indexed str);
 
@@ -46,7 +46,7 @@ contract XmintSpoke is IWormholeReceiver {
     //And then requests delivery from relayer network.
     function purchaseTokens() public payable {
         //Calculate how many tokens will be required to cover transaction fees.
-        uint256 deliveryFeeBuffer = core_relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE);
+        uint256 deliveryFeeBuffer = core_relayer.quoteDeliveryGasComputeBudget(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
 
         //require that enough funds were paid to cover this transaction and the relay costs
         require(msg.value > deliveryFeeBuffer + core_bridge.messageFee());
@@ -74,16 +74,19 @@ contract XmintSpoke is IWormholeReceiver {
     }
 
     function requestDelivery() internal {
+        uint256 computeBudget = core_relayer.quoteDeliveryGasComputeBudget(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 applicationBudget = 0;
+
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
             hub_contract_chain, //target chain
             hub_contract_address, //target address
             hub_contract_address, //refund address, This will be ignored on the target chain because the intent is to perform a forward
-            core_relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE), //compute budget
-            0, //application budget, should cover wormhole messaging fees (which are currently zero). 
-            new bytes(0) //no overrides
+            computeBudget, //compute budget
+            applicationBudget, //application budget, not needed in this case. 
+            core_relayer.getDefaultRelayParams() //no overrides
         );
 
-        core_relayer.requestDelivery(request, nonce, consistencyLevel);
+        core_relayer.requestDelivery{value: computeBudget + applicationBudget}(request, nonce, consistencyLevel);
     }
 
     function bytesToBytes32(bytes memory b, uint offset) private pure returns (bytes32) {

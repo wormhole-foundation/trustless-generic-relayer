@@ -20,12 +20,18 @@ abstract contract RelayProviderGovernance is
 {
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event RewardAddressUpdated(uint16 chainId, bytes32 indexed newAddress);
+    event RewardAddressUpdated(address indexed newAddress);
+    event DeliveryAddressUpdated(uint16 indexed targetChainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
 
-    function setRewardAddress(uint16 chainId, bytes32 newAddress) public onlyOwner {
-        setRewardAddressInternal(chainId, newAddress);
-        emit RewardAddressUpdated(chainId, newAddress);
+    function updateRewardAddress(address newAddress) public onlyOwner {
+        setRewardAddress(newAddress);
+        emit RewardAddressUpdated(newAddress);
+    }
+
+    function updateDeliveryAddress(uint16 targetChain, bytes32 newAddress) public onlyOwner {
+        setDeliveryAddress(targetChain, newAddress);
+        emit DeliveryAddressUpdated(targetChain, newAddress);
     }
 
     function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {

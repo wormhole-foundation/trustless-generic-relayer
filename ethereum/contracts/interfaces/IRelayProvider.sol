@@ -5,24 +5,25 @@ pragma solidity ^0.8.0;
 
 interface IRelayProvider {
 
-    /**
-     * @dev `quoteEvmDeliveryPrice` returns the amount in wei that must be paid to the core relayer contract 
-     * in order to request delivery of a batch of messages to chainId with a sufficient computeBudget to cover
-     * the specified gasLimit.
-     */
-    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) external view returns (uint256 nativePriceQuote);
+    
+    function quoteDeliveryOverhead(uint16 targetChain) external view returns (uint256 deliveryOverhead);
 
-    /**
-    * @dev this is the inverse of "quoteEvmDeliveryPrice". 
-    * Given a computeBudget (denominated in the wei of this chain), and a target chain, this function returns the maximum
-    * amount of gas on the target chain this compute budget will cover.
-    */
-    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) external view returns (uint32 gasAmount);
+    function quoteRedeliveryOverhead(uint16 targetChain) external view returns (uint256 redeliveryOverhead);
 
-    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
+    function quoteGasPrice(uint16 targetChain) external view returns (uint256 gasPriceSource);
 
-    function getRewardAddress(uint16 targetChain) external view returns (bytes32 whAddress);
+    //This function must be invertible in order to be considered compliant.
+    //I.E quoteAssetConversion(targetChain, quoteAssetConversion(sourceChain, sourceAmount, targetChain), sourceChain) == sourceAmount;
+    function quoteAssetConversion(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
 
-    function getMaximumBudget(uint16 targetChain) external view returns (uint256 maximumTargetBudget);
+    //In order to be compliant, this must return an amount larger than both
+    // quoteDeliveryOverhead(targetChain) and quoteRedeliveryOverhead(targetChain)
+    function quoteMaximumBudget(uint16 targetChain) external view returns (uint256 maximumTargetBudget);
+
+    //If this returns 0, the targetChain will be considered unsupported.
+    //Otherwise, the delivery on the target chain (msg.sender) must equal this address.
+    function getDeliveryAddress(uint16 targetChain) external view returns (bytes32 whAddress);
+
+    function getRewardAddress() external view returns (address rewardAddress);
 
 }

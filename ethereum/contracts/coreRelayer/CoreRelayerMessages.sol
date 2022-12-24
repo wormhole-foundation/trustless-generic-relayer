@@ -11,44 +11,6 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    function convertToEncodedDeliveryInstructions(DeliveryRequestsContainer memory container, bool isFunded)
-        internal
-        view
-        returns (bytes memory encoded)
-    {
-        encoded = abi.encodePacked(
-            uint8(1), //version payload number
-            uint8(isFunded? 1: 0), // sufficiently funded
-            uint8(container.requests.length) //number of requests in the array
-        ); 
-        
-        //Append all the messages to the array.
-        for (uint256 i = 0; i < container.requests.length; i++) {
-
-            encoded = appendDeliveryInstruction(encoded, container.requests[i]);
-            
-
-        }
-    }
-
-    function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request) internal view returns (bytes memory newEncoded) {
-        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.relayParameters);
-            newEncoded = abi.encodePacked(
-                encoded,
-                request.targetChain,
-                request.targetAddress,
-                request.refundAddress);
-            newEncoded = abi.encodePacked(newEncoded, 
-                selectedRelayProvider.assetConversionAmount(chainId(), request.computeBudget, request.targetChain), 
-                selectedRelayProvider.assetConversionAmount(chainId(), request.applicationBudget, request.targetChain),
-                request.computeBudget + request.applicationBudget,
-                chainId());
-            newEncoded = abi.encodePacked(newEncoded, 
-                uint8(1), //version for ExecutionParameters
-                selectedRelayProvider.quoteTargetEvmGas(request.targetChain, request.computeBudget),
-                selectedRelayProvider.getRewardAddress(request.targetChain));
-    }
-
     // function encodeDeliveryStatus(DeliveryStatus memory ds) internal pure returns (bytes memory) {
     //     require(ds.payloadID == 2, "invalid DeliveryStatus");
     //     return abi.encodePacked(
@@ -60,27 +22,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     //         ds.deliverySuccess ? uint8(1) : uint8(0)
     //     );
     // }
-
-    function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory request) internal view returns (bytes memory encoded) {
-        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.newRelayParameters);
-
-        encoded = abi.encodePacked(
-            uint8(2), //version payload number
-            uint16(request.sourceChain),
-            bytes32(request.sourceTxHash),
-            uint32(request.sourceNonce),
-            uint16(request.targetChain),
-            selectedRelayProvider.assetConversionAmount(chainId(), request.newComputeBudget, request.targetChain), 
-            selectedRelayProvider.assetConversionAmount(chainId(), request.newApplicationBudget, request.targetChain),
-            uint8(1), //version for ExecutionParameters
-            selectedRelayProvider.quoteTargetEvmGas(request.targetChain, request.newComputeBudget),
-            selectedRelayProvider.getRewardAddress(request.targetChain),             
-            chainId(),
-            request.newComputeBudget + request.newApplicationBudget
-        ); 
-        
-        
-    }
 
     function decodeRedeliveryByTxHashInstruction(bytes memory encoded) internal pure returns (RedeliveryByTxHashInstruction memory instruction) {
 
@@ -101,7 +42,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.targetChain = encoded.toUint16(index);
             index += 2;
 
-            instruction.newComputeBudgetTarget = encoded.toUint256(index);
+            instruction.newMaximumRefundTarget = encoded.toUint256(index);
             index += 32;
 
             instruction.newApplicationBudgetTarget = encoded.toUint256(index);
@@ -113,13 +54,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.executionParameters.gasLimit = encoded.toUint32(index);
             index += 4;
 
-            instruction.executionParameters.relayerAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instruction.rewardChain = encoded.toUint16(index);
-            index += 2;
-
-            instruction.rewardAmount = encoded.toUint256(index);
+            instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
             index += 32;
 
     }
@@ -163,17 +98,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.refundAddress = encoded.toBytes32(index);
             index += 32;
 
-            instruction.computeBudgetTarget = encoded.toUint256(index);
+            instruction.maximumRefundTarget = encoded.toUint256(index);
             index += 32;
 
             instruction.applicationBudgetTarget = encoded.toUint256(index);
             index += 32;
-
-            instruction.sourceReward = encoded.toUint256(index);
-            index += 32;
-
-            instruction.sourceChain = encoded.toUint16(index);
-            index += 2;
 
             instruction.executionParameters.version = encoded.toUint8(index);
             index += 1;
@@ -181,7 +110,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.executionParameters.gasLimit = encoded.toUint32(index);
             index += 4;
 
-            instruction.executionParameters.relayerAddress = encoded.toBytes32(index);
+            instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
             index += 32;
 
             instructionArray[i] = instruction;

@@ -9,41 +9,36 @@ import "../interfaces/IRelayProvider.sol";
 
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     
-    function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public override view returns (uint256 nativePriceQuote) {
-        nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee(chainId);
+    function quoteDeliveryOverhead(uint16 targetChain) public override view returns (uint256 nativePriceQuote) {
+        nativePriceQuote = computeGasCost(targetChain, deliverGasOverhead(targetChain)) + wormholeFee(targetChain);
     }
 
-    function quoteTargetEvmGas(uint16 targetChain, uint256 computeBudget ) public override view returns (uint32 gasAmount) {
-        if(computeBudget <= wormholeFee(targetChain)) {
-            return 0;
-        } else {
-            uint256 remainder = computeBudget - wormholeFee(targetChain);
-            uint256 gas = remainder * nativeCurrencyPrice(chainId()) / nativeCurrencyPrice(targetChain) / gasPrice(targetChain);
-
-            if(gas <= deliverGasOverhead(targetChain)) {
-                return 0;
-            }
-
-            if(gas - deliverGasOverhead(targetChain) >= 2 ** 32) return uint32(2 ** 32 - 1);
-            return uint32(gas - deliverGasOverhead(targetChain));
-        }
+    function quoteRedeliveryOverhead(uint16 targetChain) public override view returns (uint256 nativePriceQuote) {
+        nativePriceQuote = computeGasCost(targetChain, deliverGasOverhead(targetChain)) + wormholeFee(targetChain);
     }
 
-    function assetConversionAmount(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public override view returns (uint256 targetAmount) {
+    function quoteGasPrice(uint16 targetChain) public override view returns (uint256 gasPrice) {
+        computeGasCost(targetChain, uint256(1));
+    }
+
+    function quoteAssetConversion(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public override view returns (uint256 targetAmount) {
         uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
         uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
 
         targetAmount = (sourceAmount * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
     }
 
-    function getRewardAddress(uint16 targetChain) public override view returns (bytes32 whAddress) {
-        return rewardAddress(targetChain);
-    }
-
-    function getMaximumBudget(uint16 targetChain) public override view returns (uint256 maximumTargetBudget) {
+    function quoteMaximumBudget(uint16 targetChain) public override view returns (uint256 maximumTargetBudget) {
         return maximumBudget(targetChain);
     }
 
+    function getDeliveryAddress(uint16 targetChain) public override view returns (bytes32 whAddress) {
+        return deliveryAddress(targetChain);
+    }
+
+    function getRewardAddress() public override view returns (address) {
+        return rewardAddress();
+    }
 
     
 

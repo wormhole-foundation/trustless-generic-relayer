@@ -45,8 +45,11 @@ contract RelayProviderGetters is RelayProviderState {
         return _state.wormholeFee[targetChainId];
     }
 
-    function rewardAddress(uint16 targetChainId) public view returns (bytes32) {
-        require(_state.rewardAddressMap[targetChainId] != bytes32(0), "No configured address");
-        return _state.rewardAddressMap[targetChainId];
+    function rewardAddress() public view returns (address) {
+        return _state.rewardAddress;
+    }
+
+    function deliveryAddress(uint16 targetChain) public view returns (bytes32 whFormatAddress) {
+        return _state.deliveryAddressMap[targetChain];
     }
 }

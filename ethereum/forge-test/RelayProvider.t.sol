@@ -123,7 +123,7 @@ contract TestRelayProvider is Test {
 
         // you shall not pass
         vm.expectRevert("srcNativeCurrencyPrice == 0");
-        relayProvider.quoteEvmDeliveryPrice(dstChainId, 1);
+        relayProvider.quoteDeliveryOverhead(dstChainId);
     }
 
     function testCannotGetPriceBeforeUpdateDstPrice(
@@ -146,7 +146,7 @@ contract TestRelayProvider is Test {
 
         // you shall not pass
         vm.expectRevert("dstNativeCurrencyPrice == 0");
-        relayProvider.quoteEvmDeliveryPrice(dstChainId, 1);
+        relayProvider.quoteDeliveryOverhead(dstChainId);
     }
 
     function testUpdatePrice(
@@ -179,7 +179,8 @@ contract TestRelayProvider is Test {
 
         // verify price
         uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;
-        require(relayProvider.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "relayProvider.quoteEvmDeliveryPrice(...) != expected");
+        uint256 readValues = relayProvider.quoteDeliveryOverhead(dstChainId) + relayProvider.quoteGasPrice(dstChainId) * gasLimit;
+        require(readValues == expected, "relayProvider.quotePrices != expected");
     }
 
     struct UpdatePrice {
@@ -230,6 +231,7 @@ contract TestRelayProvider is Test {
 
         // verify price
         uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;
-        require(relayProvider.quoteEvmDeliveryPrice(dstChainId, gasLimit) == expected, "relayProvider.quoteEvmDeliveryPrice(...) != expected");
+        uint256 readValues = relayProvider.quoteDeliveryOverhead(dstChainId) + relayProvider.quoteGasPrice(dstChainId) * gasLimit;
+        require(readValues== expected, "relayProvider.quotePrices != expected");
     }
 }

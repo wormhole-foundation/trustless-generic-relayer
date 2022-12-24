@@ -199,7 +199,7 @@ contract TestCoreRelayer is Test {
         uint256 maxBudget = 2**128-1;
         for(uint16 i=1; i<=numChains; i++) {
             for(uint16 j=1; j<=numChains; j++) {
-                map[i].relayProvider.setRewardAddress(j, bytes32(uint256(uint160(map[j].relayer))));
+                map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].coreRelayerGovernance.registerCoreRelayer(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
             }
@@ -240,7 +240,7 @@ contract TestCoreRelayer is Test {
 
         
         // estimate the cost based on the intialized values
-        uint256 computeBudget = source.relayProvider.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 computeBudget = source.coreRelayer.quoteDeliveryGasComputeBudget(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
 
         
 
@@ -287,7 +287,7 @@ contract TestCoreRelayer is Test {
         
 
         // estimate the cost based on the intialized values
-        uint256 computeBudget = source.relayProvider.quoteEvmDeliveryPrice(TARGET_CHAIN_ID, gasParams.targetGasLimit);
+        uint256 computeBudget = source.coreRelayer.quoteDeliveryGasComputeBudget(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
 
         // start listening to events
         vm.recordLogs();

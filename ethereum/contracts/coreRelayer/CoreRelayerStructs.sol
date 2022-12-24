@@ -81,17 +81,15 @@ abstract contract CoreRelayerStructs {
         uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
-        uint256 computeBudgetTarget;
+        uint256 maximumRefundTarget;
         uint256 applicationBudgetTarget;
-        uint256 sourceReward;
-        uint16 sourceChain;
         ExecutionParameters executionParameters; //Has the gas limit to execute with
     }
 
     struct ExecutionParameters {
         uint8 version;
         uint32 gasLimit;
-        bytes32 relayerAddress;
+        bytes32 providerDeliveryAddress;
     }
 
     struct RedeliveryByTxHashInstruction {
@@ -100,11 +98,9 @@ abstract contract CoreRelayerStructs {
         bytes32 sourceTxHash;
         uint32 sourceNonce; 
         uint16 targetChain;
-        uint256 newComputeBudgetTarget; 
+        uint256 newMaximumRefundTarget; 
         uint256 newApplicationBudgetTarget;
         ExecutionParameters executionParameters;
-        uint16 rewardChain;
-        uint256 rewardAmount;
     }
 
     //End Wire Types

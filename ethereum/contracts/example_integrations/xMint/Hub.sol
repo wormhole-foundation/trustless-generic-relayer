@@ -22,7 +22,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
     uint32 nonce = 1;
     uint8 consistencyLevel = 200;
 
-    uint256 SAFE_DELIVERY_GAS_CAPTURE = 5000000; //Capture 500k gas for fees
+    uint32 SAFE_DELIVERY_GAS_CAPTURE = 5000000; //Capture 500k gas for fees
 
     event Log(string indexed str);
 
@@ -85,16 +85,19 @@ contract XmintHub is ERC20, IWormholeReceiver {
     }
 
     function requestForward(uint16 targetChain, bytes32 intendedRecipient) internal {
+        uint256 computeBudget = core_relayer.quoteDeliveryGasComputeBudget(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 applicationBudget = 0;
+
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
             targetChain, //target chain
             trustedContracts[targetChain], //target address
             intendedRecipient, //refund address. All remaining funds will be returned to the user now
-            core_relayer.getDefaultRelayProvider().quoteEvmDeliveryPrice(targetChain, SAFE_DELIVERY_GAS_CAPTURE), //compute budget
-            0, //application budget, should cover any additional fees encountered during execution (which are all zero for this usecase). 
-            new bytes(0) //no overrides
+            computeBudget, //compute budget
+            applicationBudget, //application budget, not needed in this case. 
+            core_relayer.getDefaultRelayParams() //no overrides
         );
 
-        core_relayer.requestDelivery(request, nonce, consistencyLevel);
+        core_relayer.requestDelivery{value: computeBudget + applicationBudget}(request, nonce, consistencyLevel); 
     }
 
     //This function calculates how many tokens should be minted to the end user based on how much

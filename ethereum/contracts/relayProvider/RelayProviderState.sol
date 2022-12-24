@@ -21,7 +21,8 @@ contract RelayProviderStorage {
         mapping(uint16 => uint32) deliverGasOverhead;
         mapping(uint16 => uint32) wormholeFee;
         mapping(uint16 => uint256) maximumBudget;
-        mapping(uint16 => bytes32) rewardAddressMap;
+        mapping(uint16 => bytes32) deliveryAddressMap;
+        address rewardAddress;
 
 
     }

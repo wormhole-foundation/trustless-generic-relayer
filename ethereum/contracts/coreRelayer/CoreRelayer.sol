@@ -33,25 +33,32 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
-        //cache wormhole
-        IWormhole wormhole = wormhole();
-
         IRelayProvider provider = getSelectedRelayProvider(request.newRelayParameters);
-        //REVISE, redeliveries are somewhat more expensive than regular deliveries, capture higher overhead?
-        uint256 minimumDeliveryCost = provider.quoteEvmDeliveryPrice(request.targetChain, 1);
 
-        //Make sure msg.value covers the minimum delivery cost to the targetChain
-        require(msg.value >= minimumDeliveryCost, "Insufficient msg.value to cover minimum delivery costs.");
-        //Make sure the msg.value covers the budget they specified, and the wormhole fee of this transaction
-        require(msg.value >= request.newApplicationBudget + request.newComputeBudget + wormhole.messageFee(), "Msg.value does not cover the specified budget");
-        //Make sure the budget does not exceed the maximum for the provider on that chain;
-        require(provider.getMaximumBudget(request.targetChain) > 
-            minimumDeliveryCost + provider.assetConversionAmount(request.sourceChain, request.newApplicationBudget + request.newComputeBudget, request.targetChain), 
-            "Specified budget exceeds the maximum allowed by the provider");
+        (uint256 requestFee, uint256 maximumRefund, uint256 applicationBudgetTarget, bool isSufficient, string memory reason)= 
+            verifyFunding(provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget);
+        require(isSufficient, reason);
+        uint256 totalFee = requestFee + wormhole().messageFee();
 
-        bytes memory instruction = convertToEncodedRedeliveryByTxHashInstruction(request);
+        //Make sure the msg.value covers the budget they specified
+        require(msg.value >= totalFee, "Msg.value does not cover the specified budget");
 
-        sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, instruction, consistencyLevel);
+        emitRedelivery(request, nonce, consistencyLevel, applicationBudgetTarget, maximumRefund, provider);
+    }
+
+    function emitRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel, uint256 applicationBudgetTarget, uint256 maximumRefund, IRelayProvider provider) internal returns (uint64 sequence) {
+
+        bytes memory instruction = convertToEncodedRedeliveryByTxHashInstruction(
+            request, 
+            applicationBudgetTarget, 
+            maximumRefund, 
+            calculateTargetGasRedeliveryAmount(request.targetChain, request.newComputeBudget, provider)
+        );
+
+        sequence = wormhole().publishMessage{value: wormhole().messageFee()}(nonce, instruction, consistencyLevel);
+
+        //Send the delivery fees to the specified address of the provider.
+        provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
     }
 
     /**
@@ -145,7 +152,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         for(uint16 i = 0; i < container.requests.length; i++) {
             IRelayProvider selectedProvider = getSelectedRelayProvider(container.requests[i].relayParameters);
-            require(selectedProvider.getRewardAddress(container.requests[i].targetChain) != 0, "Specified relay provider does not support the target chain" );
+            require(selectedProvider.getDeliveryAddress(container.requests[i].targetChain) != 0, "Specified relay provider does not support the target chain" );
             if(container.requests[i].targetChain == rolloverChain) {
                 foundRolloverChain = true;
             }
@@ -176,31 +183,50 @@ contract CoreRelayer is CoreRelayerGovernance {
             DeliveryRequest memory request = deliveryRequests.requests[i];
 
             IRelayProvider selectedProvider = getSelectedRelayProvider(request.relayParameters);
-            uint256 computeOverhead = selectedProvider.quoteEvmDeliveryPrice(request.targetChain, 1);
+            
+            (uint256 requestFee, uint256 applicationBudgetTarget, uint256 maximumReund, bool isSufficient, string memory reason) =
+                verifyFunding(selectedProvider, chainId(), request.targetChain, request.computeBudget, request.applicationBudget);
 
-            // estimate relay cost and check to see if the user sent enough eth to cover the relay
-            if(request.computeBudget < computeOverhead) {
-                return(0, false, "Insufficient compute budget specified to cover required overheads");
-            } 
-
-            if(selectedProvider.getMaximumBudget(request.targetChain) < selectedProvider.assetConversionAmount(chainId(),
-             request.computeBudget + request.applicationBudget, request.targetChain)){
-                return (0, false, "total requested budget exceeds the maximum");
+            if(!isSufficient){
+                return (0, false, reason);
             }
 
-            totalFees = totalFees + request.computeBudget + request.applicationBudget;
+            totalFees = totalFees + requestFee;
 
             if( funds < totalFees ) {
                 return (0, false, "Insufficient funds were provided to cover the delivery fees.");
             }
-
-            //additional sanity checks
-            if (request.targetAddress == bytes32(0)){
-                return (0, false, "invalid targetAddress");
-            } 
         }
 
         return (totalFees, true, "");
+    }
+
+    function verifyFunding(IRelayProvider provider, uint16 sourceChain, uint16 targetChain, uint256 computeBudgetSource, uint256 applicationBudgetSource) 
+        internal view returns(uint256 requestFee, uint256 applicationBudgetTarget, uint256 maximumRefund, bool isSufficient, string memory reason){
+        requestFee = computeBudgetSource + applicationBudgetSource;
+        applicationBudgetTarget = provider.quoteAssetConversion(sourceChain, applicationBudgetSource, targetChain);
+        uint256 overheadFeeSource = provider.quoteRedeliveryOverhead(targetChain);
+        uint256 overheadBudgetTarget = provider.quoteAssetConversion(sourceChain, overheadFeeSource,targetChain);
+        maximumRefund = calculateTargetRedeliveryMaximumRefund(targetChain, computeBudgetSource, provider);
+        uint256 totalBudgetTarget = maximumRefund + overheadBudgetTarget + applicationBudgetTarget;
+
+        //Make sure the computeBudget covers the minimum delivery cost to the targetChain
+        if(computeBudgetSource < overheadFeeSource){
+            isSufficient = false;
+            reason = "Insufficient msg.value to cover minimum delivery costs.";
+        }
+
+        //Make sure the budget does not exceed the maximum for the provider on that chain;
+        else if(provider.quoteMaximumBudget(targetChain) < totalBudgetTarget){
+            isSufficient = false;
+            reason = "Specified budget exceeds the maximum allowed by the provider"; 
+        }
+
+        else {
+            isSufficient = true;
+            reason = ""; 
+        }
+
     }
 
     function _executeDelivery(IWormhole wormhole, DeliveryInstruction memory internalInstruction, bytes[] memory encodedVMs, bytes32 deliveryVaaHash)
@@ -224,14 +250,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 postGas = gasleft();
 
         // refund unused gas budget
-        //TODO fix this, delivery overhead is not subtracted from the delivery calculation
-        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) * internalInstruction.computeBudgetTarget / internalInstruction.executionParameters.gasLimit;
+        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
 
         // unlock the contract
         setContractLock(false);
-
-        // increment the relayer rewards
-        incrementRelayerRewards(msg.sender, internalInstruction.sourceChain, internalInstruction.sourceReward);
 
         //REVISE decide if we want to always emit a VAA, or only emit a msg when forwarding
         // // emit delivery status message
@@ -279,49 +301,49 @@ contract CoreRelayer is CoreRelayerGovernance {
 
 
         // refund the rest to relayer
-        msg.sender.call{value: msg.value - weiToRefund - internalInstruction.applicationBudgetTarget - wormhole.messageFee()}("");
+        msg.sender.call{value: msg.value - weiToRefund - internalInstruction.applicationBudgetTarget - (getForwardingRequest().isValid ? wormhole.messageFee() : 0)}("");
     }
 
-    //REVISE Consider outputting a VAA which has rewards for every chain to reduce rebalancing complexity
-    function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce)
-        public 
-        payable
-        returns (uint64 sequence)
-    {
-        uint256 amount = relayerRewards(msg.sender, rewardChain);
+    //REVISE, consider implementing this system into the RelayProvider. 
+    // function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce)
+    //     public 
+    //     payable
+    //     returns (uint64 sequence)
+    // {
+    //     uint256 amount = relayerRewards(msg.sender, rewardChain);
 
-        require(amount > 0, "no current accrued rewards");
+    //     require(amount > 0, "no current accrued rewards");
 
-        resetRelayerRewards(msg.sender, rewardChain);
+    //     resetRelayerRewards(msg.sender, rewardChain);
 
-        sequence = wormhole().publishMessage{value: msg.value}(
-            nonce,
-            encodeRewardPayout(
-                RewardPayout({
-                    payloadID: 100,
-                    fromChain: chainId(),
-                    chain: rewardChain,
-                    amount: amount,
-                    receiver: receiver
-                })
-            ),
-            20 //REVISE encode finality
-        );
-    }
+    //     sequence = wormhole().publishMessage{value: msg.value}(
+    //         nonce,
+    //         encodeRewardPayout(
+    //             RewardPayout({
+    //                 payloadID: 100,
+    //                 fromChain: chainId(),
+    //                 chain: rewardChain,
+    //                 amount: amount,
+    //                 receiver: receiver
+    //             })
+    //         ),
+    //         20 //REVISE encode finality
+    //     );
+    // }
     
 
-    function collectRewards(bytes memory encodedVm) public {
-        (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVm);
+    // function collectRewards(bytes memory encodedVm) public {
+    //     (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVm);
 
-        require(valid, reason);
-        require(verifyRelayerVM(vm), "invalid emitter");
+    //     require(valid, reason);
+    //     require(verifyRelayerVM(vm), "invalid emitter");
 
-        RewardPayout memory payout = parseRewardPayout(vm.payload);
+    //     RewardPayout memory payout = parseRewardPayout(vm.payload);
 
-        require(payout.chain == chainId());
+    //     require(payout.chain == chainId());
 
-        payable(address(uint160(uint256(payout.receiver)))).transfer(payout.amount);
-    }
+    //     payable(address(uint160(uint256(payout.receiver)))).transfer(payout.amount);
+    // }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
@@ -362,9 +384,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         //All the same checks as delivery single, with a couple additional
 
         //providers must match on both
-        address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.relayerAddress);
+        address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
         require(providerAddress == 
-            fromWormholeFormat(originalInstruction.executionParameters.relayerAddress), 
+            fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress), 
             "The same relay provider must be specified when doing a single VAA redeliver");
 
         //msg.sender must be the provider
@@ -377,13 +399,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         require (chainId() == originalInstruction.targetChain, "Original delivery request did not target this chain.");
 
         //relayer must have covered the necessary funds
-        require (msg.value >= redeliveryInstruction.newComputeBudgetTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee(), "Msg.value does not cover the necessary budget fees");
+        require (msg.value >= redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee(), "Msg.value does not cover the necessary budget fees");
 
         //Overwrite compute budget and application budget on the original request and proceed.
-        originalInstruction.computeBudgetTarget = redeliveryInstruction.newComputeBudgetTarget;
+        originalInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
         originalInstruction.applicationBudgetTarget = redeliveryInstruction.newApplicationBudgetTarget;
-        originalInstruction.sourceChain = redeliveryInstruction.rewardChain;
-        originalInstruction.sourceReward = redeliveryInstruction.rewardAmount;
         originalInstruction.executionParameters = redeliveryInstruction.executionParameters;
         deliveryInstruction = originalInstruction;
 
@@ -407,10 +427,10 @@ contract CoreRelayer is CoreRelayerGovernance {
             container.instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
-        require(fromWormholeFormat(deliveryInstruction.executionParameters.relayerAddress) == msg.sender, "Specified relayer is not the relayer delivering the message");
+        require(fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) == msg.sender, "Specified relayer is not the relayer delivering the message");
 
         //make sure relayer passed in sufficient funds
-        require(msg.value >= deliveryInstruction.computeBudgetTarget + deliveryInstruction.applicationBudgetTarget, "Relayer did not pass in sufficient funds");
+        require(msg.value >= deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee(), "Relayer did not pass in sufficient funds");
 
         //make sure this has not already been delivered
         require(!isDeliveryCompleted(deliveryVM.hash), "delivery is already completed");
@@ -436,13 +456,125 @@ contract CoreRelayer is CoreRelayerGovernance {
         return new bytes(0);
     }
 
-    function makeRelayerParams(address relayProvider) public pure returns(bytes memory relayerParams) {
+    function makeRelayerParams(IRelayProvider provider) public pure returns(bytes memory relayerParams) {
         //current version is just 1,
-        relayerParams = abi.encode(1, toWormholeFormat(relayProvider));
+        relayerParams = abi.encode(1, toWormholeFormat(address(provider)));
     }
 
     function getDeliveryInstructionsContainer(bytes memory encoded) public view returns (DeliveryInstructionsContainer memory container) {
         container = decodeDeliveryInstructionsContainer(encoded);
+    }
+
+    /**
+        Given a targetChain, computeBudget, and a relay provider, this function calculates what the gas limit of the delivery transaction
+        should be.
+    */
+    function calculateTargetGasDeliveryAmount(uint16 targetChain, uint256 computeBudget, IRelayProvider provider) internal view returns (uint32 gasAmount) {
+        IWormhole wormhole = wormhole();
+        if(computeBudget <= wormhole.messageFee() + provider.quoteDeliveryOverhead(targetChain)) {
+            return 0;
+        } else {
+            uint256 remainder = computeBudget - wormhole.messageFee()  - provider.quoteDeliveryOverhead(targetChain);
+            uint256 gas = remainder / provider.quoteGasPrice(targetChain);
+
+            if(gas >= 2 ** 32) return uint32(2 ** 32 - 1);
+            return uint32(gas);
+        }
+    }
+
+    function calculateTargetDeliveryMaximumRefund(uint16 targetChain, uint256 computeBudget, IRelayProvider provider) internal view returns (uint256 maximumRefund) {
+        uint256 remainder = computeBudget - provider.quoteDeliveryOverhead(targetChain);
+        maximumRefund = provider.quoteAssetConversion(chainId(), remainder, targetChain);
+    }
+
+    /**
+        Given a targetChain, computeBudget, and a relay provider, this function calculates what the gas limit of the redelivery transaction
+        should be.
+    */
+    function calculateTargetGasRedeliveryAmount(uint16 targetChain, uint256 computeBudget, IRelayProvider provider) internal view returns (uint32 gasAmount) {
+        IWormhole wormhole = wormhole();
+        if(computeBudget <= wormhole.messageFee() + provider.quoteRedeliveryOverhead(targetChain)) {
+            return 0;
+        } else {
+            uint256 remainder = computeBudget - wormhole.messageFee() - provider.quoteRedeliveryOverhead(targetChain);
+            uint256 gas = remainder / provider.quoteGasPrice(targetChain);
+
+            if(gas >= 2 ** 32) return uint32(2 ** 32 - 1);
+            return uint32(gas);
+        }
+    }
+
+    function calculateTargetRedeliveryMaximumRefund(uint16 targetChain, uint256 computeBudget, IRelayProvider provider) internal view returns (uint256 maximumRefund) {
+        uint256 remainder = computeBudget - provider.quoteRedeliveryOverhead(targetChain);
+        maximumRefund = provider.quoteAssetConversion(chainId(), remainder, targetChain);
+    }
+
+    function quoteGasDeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider provider) public view returns (uint256 deliveryQuote){
+        return provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain)) + wormhole().messageFee();
+    }
+
+    function quoteGasRedeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider provider) public view returns (uint256 redeliveryQuote){
+        return provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain)) + wormhole().messageFee();
+    }
+
+    function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory request,
+            uint256 applicationBudgetTarget, 
+            uint256 maximumRefund, 
+            uint32 gasLimit) internal view returns (bytes memory encoded) {
+        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.newRelayParameters);
+
+        encoded = abi.encodePacked(
+            uint8(2), //version payload number
+            uint16(request.sourceChain),
+            bytes32(request.sourceTxHash),
+            uint32(request.sourceNonce),
+            uint16(request.targetChain));
+        encoded = abi.encodePacked(
+            encoded,
+            maximumRefund, 
+            applicationBudgetTarget,
+            uint8(1), //version for ExecutionParameters
+            gasLimit,
+            selectedRelayProvider.getDeliveryAddress(request.targetChain)
+        ); 
+        
+        
+    }
+
+    function convertToEncodedDeliveryInstructions(DeliveryRequestsContainer memory container, bool isFunded)
+        internal
+        view
+        returns (bytes memory encoded)
+    {
+        encoded = abi.encodePacked(
+            uint8(1), //version payload number
+            uint8(isFunded? 1: 0), // sufficiently funded
+            uint8(container.requests.length) //number of requests in the array
+        ); 
+        
+        //Append all the messages to the array.
+        for (uint256 i = 0; i < container.requests.length; i++) {
+
+            encoded = appendDeliveryInstruction(encoded, container.requests[i]);
+            
+
+        }
+    }
+
+    function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request) internal view returns (bytes memory newEncoded) {
+        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.relayParameters);
+            newEncoded = abi.encodePacked(
+                encoded,
+                request.targetChain,
+                request.targetAddress,
+                request.refundAddress);
+            newEncoded = abi.encodePacked(newEncoded, 
+                calculateTargetDeliveryMaximumRefund(request.targetChain, request.computeBudget, selectedRelayProvider), 
+                selectedRelayProvider.quoteAssetConversion(chainId(), request.applicationBudget, request.targetChain));
+            newEncoded = abi.encodePacked(newEncoded, 
+                uint8(1), //version for ExecutionParameters
+                calculateTargetGasDeliveryAmount(request.targetChain, request.computeBudget, selectedRelayProvider),
+                selectedRelayProvider.getDeliveryAddress(request.targetChain));
     }
 
   }
