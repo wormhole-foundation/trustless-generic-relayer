@@ -2,8 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+import {IRelayProvider} from "../contracts/interfaces/IRelayProvider.sol";
 import {RelayProvider} from "../contracts/relayProvider/RelayProvider.sol";
-import {IRelayProviderGovernance} from "../contracts/interfaces/IRelayProviderGovernance.sol";
+import {RelayProviderSetup} from "../contracts/relayProvider/RelayProviderSetup.sol";
+import {RelayProviderImplementation} from "../contracts/relayProvider/RelayProviderImplementation.sol";
+import {RelayProviderProxy} from "../contracts/relayProvider/RelayProviderProxy.sol";
+import {RelayProviderMessages} from "../contracts/relayProvider/RelayProviderMessages.sol";
+import {RelayProviderStructs} from "../contracts/relayProvider/RelayProviderStructs.sol";
 import {ICoreRelayer} from "../contracts/interfaces/ICoreRelayer.sol";
 import {ICoreRelayerGovernance} from "../contracts/interfaces/ICoreRelayerGovernance.sol";
 import {CoreRelayerSetup} from "../contracts/coreRelayer/CoreRelayerSetup.sol";
@@ -11,7 +16,6 @@ import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImp
 import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
 import {CoreRelayerMessages} from "../contracts/coreRelayer/CoreRelayerMessages.sol";
 import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
-import {IRelayProvider} from "../contracts/interfaces/IRelayProvider.sol";
 import {Setup as WormholeSetup} from "../wormhole/ethereum/contracts/Setup.sol";
 import {Implementation as WormholeImplementation} from "../wormhole/ethereum/contracts/Implementation.sol";
 import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
@@ -113,8 +117,19 @@ contract TestCoreRelayer is Test {
         wormholeContract = IWormhole(wormholeSimulator.wormhole());
     }
 
-    function setUpRelayProvider(uint16 chainId) internal returns (IRelayProvider relayProvider) {
-        relayProvider = IRelayProvider(address(new RelayProvider(chainId)));
+    function setUpRelayProvider(uint16 chainId) internal returns (RelayProvider relayProvider) {
+        RelayProviderSetup relayProviderSetup = new RelayProviderSetup();
+        RelayProviderImplementation relayProviderImplementation = new RelayProviderImplementation();
+        RelayProviderProxy myRelayProvider = new RelayProviderProxy(
+            address(relayProviderSetup),
+            abi.encodeWithSelector(
+                bytes4(keccak256("setup(address,uint16)")),
+                address(relayProviderImplementation),
+                chainId
+            )
+        );
+
+        relayProvider = RelayProvider(address(myRelayProvider));
     }
  
     function setUpCoreRelayer(uint16 chainId, address wormhole, address defaultRelayProvider) internal returns (ICoreRelayer coreRelayer) {
@@ -133,7 +148,6 @@ contract TestCoreRelayer is Test {
         );
 
         coreRelayer = ICoreRelayer(address(myCoreRelayer));
-
     }
 
 
@@ -159,8 +173,7 @@ contract TestCoreRelayer is Test {
 
     struct Contracts {
         IWormhole wormhole;
-        IRelayProviderGovernance relayProviderGovernance;
-        IRelayProvider relayProvider;
+        RelayProvider relayProvider;
         ICoreRelayer coreRelayer;     
         ICoreRelayerGovernance coreRelayerGovernance;
         MockRelayerIntegration integration; 
@@ -176,7 +189,6 @@ contract TestCoreRelayer is Test {
             Contracts memory mapEntry;
             mapEntry.wormhole = setUpWormhole(i);
             mapEntry.relayProvider = setUpRelayProvider(i);
-            mapEntry.relayProviderGovernance =  IRelayProviderGovernance(address(mapEntry.relayProvider));
             mapEntry.coreRelayer = setUpCoreRelayer(i, address(mapEntry.wormhole), address(mapEntry.relayProvider));
             mapEntry.coreRelayerGovernance = ICoreRelayerGovernance(address(mapEntry.coreRelayer));
             mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
@@ -187,9 +199,9 @@ contract TestCoreRelayer is Test {
         uint256 maxBudget = 2**128-1;
         for(uint16 i=1; i<=numChains; i++) {
             for(uint16 j=1; j<=numChains; j++) {
-                map[i].relayProviderGovernance.setRewardAddress(j, bytes32(uint256(uint160(map[j].relayer))));
+                map[i].relayProvider.setRewardAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].coreRelayerGovernance.registerCoreRelayer(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
-                map[i].relayProviderGovernance.updateMaximumBudget(j, maxBudget);
+                map[i].relayProvider.updateMaximumBudget(j, maxBudget);
             }
         }
 
@@ -223,8 +235,8 @@ contract TestCoreRelayer is Test {
         Contracts memory target = map[TARGET_CHAIN_ID];
 
         // set relayProvider prices
-        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         
         // estimate the cost based on the intialized values
@@ -267,10 +279,10 @@ contract TestCoreRelayer is Test {
         vm.assume(uint256(1) * gasParams.targetGasPrice * gasParams.targetNativePrice  > uint256(1) * gasParams.sourceGasPrice * gasParams.sourceNativePrice);
 
         // set relayProvider prices
-        source.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        source.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
-        target.relayProviderGovernance.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        target.relayProviderGovernance.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+        target.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        target.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
         
 

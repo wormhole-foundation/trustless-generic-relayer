@@ -9,11 +9,11 @@ import "../libraries/external/BytesLib.sol";
 
 import "./RelayProviderGetters.sol";
 import "./RelayProviderSetters.sol";
-import "../interfaces/IRelayProviderGovernance.sol";
+import "./RelayProviderStructs.sol";
+
 
 
 abstract contract RelayProviderGovernance is
-    IRelayProviderGovernance,
     RelayProviderGetters,
     RelayProviderSetters,
     ERC1967Upgrade
@@ -23,23 +23,23 @@ abstract contract RelayProviderGovernance is
     event RewardAddressUpdated(uint16 chainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
 
-    function setRewardAddress(uint16 chainId, bytes32 newAddress) public override onlyOwner {
+    function setRewardAddress(uint16 chainId, bytes32 newAddress) public onlyOwner {
         setRewardAddressInternal(chainId, newAddress);
         emit RewardAddressUpdated(chainId, newAddress);
     }
 
-    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public override onlyOwner {
+    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {
         uint32 currentGasOverhead = deliverGasOverhead(chainId);
         setDeliverGasOverhead(chainId, newGasOverhead);
         emit DeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
     }
 
-    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public override onlyOwner {
+    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public onlyOwner {
         setWormholeFee(chainId, newWormholeFee);
     }
 
     function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
-        public override
+        public
         onlyOwner
     {
         require(updateChainId > 0, "updateChainId == 0");
@@ -48,7 +48,7 @@ abstract contract RelayProviderGovernance is
         setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
     }
 
-    function updatePrices(IRelayProviderGovernance.UpdatePrice[] memory updates) public override onlyOwner {
+    function updatePrices(RelayProviderStructs.UpdatePrice[] memory updates) public onlyOwner {
         uint256 pricesLen = updates.length;
         for (uint256 i = 0; i < pricesLen;) {
             updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
@@ -58,7 +58,7 @@ abstract contract RelayProviderGovernance is
         }
     }
 
-    function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) public override onlyOwner {
+    function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) public onlyOwner {
         setMaximumBudget(targetChainId, maximumTotalBudget);
     }
 

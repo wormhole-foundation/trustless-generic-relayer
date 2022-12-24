@@ -49,22 +49,18 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
                 selectedRelayProvider.getRewardAddress(request.targetChain));
     }
 
+    // function encodeDeliveryStatus(DeliveryStatus memory ds) internal pure returns (bytes memory) {
+    //     require(ds.payloadID == 2, "invalid DeliveryStatus");
+    //     return abi.encodePacked(
+    //         uint8(2), // payloadID = 2
+    //         ds.batchHash,
+    //         ds.emitterAddress,
+    //         ds.sequence,
+    //         ds.deliveryCount,
+    //         ds.deliverySuccess ? uint8(1) : uint8(0)
+    //     );
+    // }
 
-
-
-    function encodeDeliveryStatus(DeliveryStatus memory ds) internal pure returns (bytes memory) {
-        require(ds.payloadID == 2, "invalid DeliveryStatus");
-        return abi.encodePacked(
-            uint8(2), // payloadID = 2
-            ds.batchHash,
-            ds.emitterAddress,
-            ds.sequence,
-            ds.deliveryCount,
-            ds.deliverySuccess ? uint8(1) : uint8(0)
-        );
-    }
-
-    // TODO: THIS, it is very similar logic to the appendDeliveryInstruction above
     function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory request) internal view returns (bytes memory encoded) {
         IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.newRelayParameters);
 
@@ -196,34 +192,32 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         return DeliveryInstructionsContainer(payloadId, sufficientlyFunded, instructionArray);
     }
 
-    // TODO: WIP
-    function parseDeliveryStatus(bytes memory encoded) internal pure returns (DeliveryStatus memory ds) {
-        uint256 index = 0;
+    // function parseDeliveryStatus(bytes memory encoded) internal pure returns (DeliveryStatus memory ds) {
+    //     uint256 index = 0;
 
-        ds.payloadID = encoded.toUint8(index);
-        index += 1;
+    //     ds.payloadID = encoded.toUint8(index);
+    //     index += 1;
 
-        require(ds.payloadID == 2, "invalid DeliveryStatus");
+    //     require(ds.payloadID == 2, "invalid DeliveryStatus");
 
-        ds.batchHash = encoded.toBytes32(index);
-        index += 32;
+    //     ds.batchHash = encoded.toBytes32(index);
+    //     index += 32;
 
-        ds.emitterAddress = encoded.toBytes32(index);
-        index += 32;
+    //     ds.emitterAddress = encoded.toBytes32(index);
+    //     index += 32;
 
-        ds.sequence = encoded.toUint64(index);
-        index += 8;
+    //     ds.sequence = encoded.toUint64(index);
+    //     index += 8;
 
-        ds.deliveryCount = encoded.toUint16(index);
-        index += 2;
+    //     ds.deliveryCount = encoded.toUint16(index);
+    //     index += 2;
 
-        ds.deliverySuccess = encoded.toUint8(index) != 0;
-        index += 1;
+    //     ds.deliverySuccess = encoded.toUint8(index) != 0;
+    //     index += 1;
 
-        require(encoded.length == index, "invalid DeliveryStatus");
-    }
+    //     require(encoded.length == index, "invalid DeliveryStatus");
+    // }
 
-    // TODO: WIP
     function parseRewardPayout(bytes memory encoded) internal pure returns (RewardPayout memory rp) {
         uint256 index = 0;
 

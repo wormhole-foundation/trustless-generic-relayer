@@ -15,6 +15,8 @@ contract RelayProviderStorage {
         address owner;
         address pendingOwner;
 
+        mapping(address => bool) initializedImplementations;
+
         mapping(uint16 => PriceData) data;
         mapping(uint16 => uint32) deliverGasOverhead;
         mapping(uint16 => uint32) wormholeFee;

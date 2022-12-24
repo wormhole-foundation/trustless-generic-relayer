@@ -3,19 +3,12 @@
 
 pragma solidity ^0.8.0;
 
-import "./RelayProviderGetters.sol";
-import "./RelayProviderSetters.sol";
 import "./RelayProviderGovernance.sol";
+import "./RelayProviderStructs.sol";
 import "../interfaces/IRelayProvider.sol";
 
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     
-    constructor(uint16 chainId) {
-        setOwner(_msgSender());
-        setChainId(chainId);
-    }
-
-
     function quoteEvmDeliveryPrice(uint16 chainId, uint256 gasLimit) public override view returns (uint256 nativePriceQuote) {
         nativePriceQuote = computeGasCost(chainId, gasLimit + deliverGasOverhead(chainId)) + wormholeFee(chainId);
     }

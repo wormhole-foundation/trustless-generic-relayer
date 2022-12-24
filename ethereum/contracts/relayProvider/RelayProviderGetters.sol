@@ -9,6 +9,18 @@ import "./RelayProviderState.sol";
 
 contract RelayProviderGetters is RelayProviderState {
 
+    function owner() public view returns (address) {
+        return _state.owner;
+    }
+
+    function pendingOwner() public view returns (address) {
+        return _state.pendingOwner;
+    }
+
+    function isInitialized(address impl) public view returns (bool) {
+        return _state.initializedImplementations[impl];
+    }
+
     function chainId() public view returns (uint16) {
         return _state.chainId;
     }
@@ -36,13 +48,5 @@ contract RelayProviderGetters is RelayProviderState {
     function rewardAddress(uint16 targetChainId) public view returns (bytes32) {
         require(_state.rewardAddressMap[targetChainId] != bytes32(0), "No configured address");
         return _state.rewardAddressMap[targetChainId];
-    }
-
-    function owner() public view returns (address) {
-        return _state.owner;
-    }
-
-    function pendingOwner() public view returns (address) {
-        return _state.pendingOwner;
     }
 }

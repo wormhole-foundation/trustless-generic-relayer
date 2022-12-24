@@ -2,10 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import "../contracts/relayProvider/RelayProvider.sol";
 import "../contracts/interfaces/IRelayProvider.sol";
-import "../contracts/interfaces/IRelayProviderGovernance.sol";
-import {Implementation} from "../wormhole/ethereum/contracts/Implementation.sol";
+import "../contracts/relayProvider/RelayProvider.sol";
+import "../contracts/relayProvider/RelayProviderSetup.sol";
+import "../contracts/relayProvider/RelayProviderImplementation.sol";
+import "../contracts/relayProvider/RelayProviderProxy.sol";
+import "../contracts/relayProvider/RelayProviderMessages.sol";
+import  "../contracts/relayProvider/RelayProviderStructs.sol";
 import "forge-std/Test.sol";
 
 import "forge-std/console.sol";
@@ -13,18 +16,25 @@ import "forge-std/console.sol";
 contract TestRelayProvider is Test {
     uint16 constant TEST_ORACLE_CHAIN_ID = 2;
 
-    IRelayProvider internal relayProvider;
-    IRelayProviderGovernance internal relayProviderGovernance;
+    RelayProvider internal relayProvider;
 
     function initializeRelayProvider() internal {
-   
-        RelayProvider relayProviderImplementation = new RelayProvider(TEST_ORACLE_CHAIN_ID);
 
-        require(relayProviderImplementation.owner() == address(this), "owner() != expected");
-        require(relayProviderImplementation.chainId() == TEST_ORACLE_CHAIN_ID, "chainId() != expected");
+        RelayProviderSetup relayProviderSetup = new RelayProviderSetup();
+        RelayProviderImplementation relayProviderImplementation = new RelayProviderImplementation();
+        RelayProviderProxy myRelayProvider = new RelayProviderProxy(
+            address(relayProviderSetup),
+            abi.encodeWithSelector(
+                bytes4(keccak256("setup(address,uint16)")),
+                address(relayProviderImplementation),
+                TEST_ORACLE_CHAIN_ID
+            )
+        );
 
-        relayProvider = IRelayProvider(address(relayProviderImplementation));
-        relayProviderGovernance = IRelayProviderGovernance(address(relayProviderImplementation));
+        relayProvider = RelayProvider(address(myRelayProvider));
+
+        require(relayProvider.owner() == address(this), "owner() != expected");
+        require(relayProvider.chainId() == TEST_ORACLE_CHAIN_ID, "chainId() != expected");
     }
 
     function testCannotUpdatePriceWithChainIdZero(uint128 updateGasPrice, uint128 updateNativeCurrencyPrice) public {
@@ -35,7 +45,7 @@ contract TestRelayProvider is Test {
 
         // you shall not pass
         vm.expectRevert("updateChainId == 0");
-        relayProviderGovernance.updatePrice(
+        relayProvider.updatePrice(
             0, // updateChainId
             updateGasPrice,
             updateNativeCurrencyPrice
@@ -50,7 +60,7 @@ contract TestRelayProvider is Test {
 
         // you shall not pass
         vm.expectRevert("updateGasPrice == 0");
-        relayProviderGovernance.updatePrice(
+        relayProvider.updatePrice(
             updateChainId,
             0, // updateGasPrice == 0
             updateNativeCurrencyPrice
@@ -65,7 +75,7 @@ contract TestRelayProvider is Test {
 
         // you shall not pass
         vm.expectRevert("updateNativeCurrencyPrice == 0");
-        relayProviderGovernance.updatePrice(
+        relayProvider.updatePrice(
             updateChainId,
             updateGasPrice,
             0 // updateNativeCurrencyPrice == 0
@@ -91,7 +101,7 @@ contract TestRelayProvider is Test {
         // you shall not pass
         vm.prank(oracleOwner);
         vm.expectRevert("owner() != _msgSender()");
-        relayProviderGovernance.updatePrice(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
+        relayProvider.updatePrice(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
     }
 
     function testCannotGetPriceBeforeUpdateSrcPrice(
@@ -109,7 +119,7 @@ contract TestRelayProvider is Test {
         initializeRelayProvider();
 
         // update the price with reasonable values
-        relayProviderGovernance.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
+        relayProvider.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
 
         // you shall not pass
         vm.expectRevert("srcNativeCurrencyPrice == 0");
@@ -132,7 +142,7 @@ contract TestRelayProvider is Test {
 
         // update the price with reasonable values
         //vm.prank(relayProvider.owner());
-        relayProviderGovernance.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
+        relayProvider.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
 
         // you shall not pass
         vm.expectRevert("dstNativeCurrencyPrice == 0");
@@ -161,11 +171,11 @@ contract TestRelayProvider is Test {
         initializeRelayProvider();
 
         // update the prices with reasonable values
-        relayProviderGovernance.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
-        relayProviderGovernance.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
+        relayProvider.updatePrice(dstChainId, dstGasPrice, dstNativeCurrencyPrice);
+        relayProvider.updatePrice(TEST_ORACLE_CHAIN_ID, srcGasPrice, srcNativeCurrencyPrice);
 
-        relayProviderGovernance.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
-        relayProviderGovernance.updateWormholeFee(dstChainId, targetWormholeFee);
+        relayProvider.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
+        relayProvider.updateWormholeFee(dstChainId, targetWormholeFee);
 
         // verify price
         uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;
@@ -200,23 +210,23 @@ contract TestRelayProvider is Test {
 
         initializeRelayProvider();
 
-        IRelayProviderGovernance.UpdatePrice[] memory updates = new IRelayProviderGovernance.UpdatePrice[](2);
-        updates[0] = IRelayProviderGovernance.UpdatePrice({
+        RelayProviderStructs.UpdatePrice[] memory updates = new RelayProviderStructs.UpdatePrice[](2);
+        updates[0] = RelayProviderStructs.UpdatePrice({
             chainId: TEST_ORACLE_CHAIN_ID,
             gasPrice: srcGasPrice,
             nativeCurrencyPrice: srcNativeCurrencyPrice
         });
-        updates[1] = IRelayProviderGovernance.UpdatePrice({
+        updates[1] = RelayProviderStructs.UpdatePrice({
             chainId: dstChainId,
             gasPrice: dstGasPrice,
             nativeCurrencyPrice: dstNativeCurrencyPrice
         });
 
         // update the prices with reasonable values
-        relayProviderGovernance.updatePrices(updates);
+        relayProvider.updatePrices(updates);
 
-        relayProviderGovernance.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
-        relayProviderGovernance.updateWormholeFee(dstChainId, targetWormholeFee);
+        relayProvider.updateDeliverGasOverhead(dstChainId, deliverGasOverhead);
+        relayProvider.updateWormholeFee(dstChainId, targetWormholeFee);
 
         // verify price
         uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;

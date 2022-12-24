@@ -8,17 +8,20 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./RelayProviderState.sol";
 
 contract RelayProviderSetters is Context, RelayProviderState {
+    function setOwner(address owner_) internal {
+        _state.owner = owner_;
+    }
+
+    function setPendingOwner(address newOwner) internal {
+        _state.pendingOwner = newOwner;
+    }
+
+    function setInitialized(address implementation) internal {
+        _state.initializedImplementations[implementation] = true;
+    }
+
     function setChainId(uint16 thisChain) internal {
         _state.chainId = thisChain;
-    }
-
-
-    function setOwner(address owner) internal {
-        _state.owner = owner;
-    }
-
-    function setPendingOwner(address pendingOwner) internal {
-        _state.pendingOwner = pendingOwner;
     }
 
     function setDeliverGasOverhead(uint16 chainId, uint32 deliverGasOverhead) internal {

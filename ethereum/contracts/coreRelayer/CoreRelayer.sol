@@ -8,7 +8,6 @@ import "../libraries/external/BytesLib.sol";
 
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
-import "../interfaces/IRelayProvider.sol";
 
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
@@ -38,7 +37,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormhole wormhole = wormhole();
 
         IRelayProvider provider = getSelectedRelayProvider(request.newRelayParameters);
-        //REVISE, redeliveries are somewhat more expensive than regular deliveries
+        //REVISE, redeliveries are somewhat more expensive than regular deliveries, capture higher overhead?
         uint256 minimumDeliveryCost = provider.quoteEvmDeliveryPrice(request.targetChain, 1);
 
         //Make sure msg.value covers the minimum delivery cost to the targetChain
@@ -208,7 +207,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         internal
         returns (uint64 sequence)
     {
-        // TODO Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
+        //REVISE Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
         require(!isContractLocked(), "reentrant call");
@@ -225,6 +224,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 postGas = gasleft();
 
         // refund unused gas budget
+        //TODO fix this, delivery overhead is not subtracted from the delivery calculation
         uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) * internalInstruction.computeBudgetTarget / internalInstruction.executionParameters.gasLimit;
 
         // unlock the contract
@@ -233,7 +233,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // increment the relayer rewards
         incrementRelayerRewards(msg.sender, internalInstruction.sourceChain, internalInstruction.sourceReward);
 
-        //TODO decide if we want to always emit a VAA, or only emit a msg when forwarding
+        //REVISE decide if we want to always emit a VAA, or only emit a msg when forwarding
         // // emit delivery status message
         // DeliveryStatus memory status = DeliveryStatus({
         //     payloadID: 2,
@@ -432,9 +432,14 @@ contract CoreRelayer is CoreRelayerGovernance {
         return address(uint160(uint256(whFormatAddress)));
     }
 
-   function makeRelayerParams(uint8 version, address relayProvider) public pure returns(bytes memory relayerParams) {
-        relayerParams = abi.encode(version, bytes32(uint256(uint160(relayProvider))));
-   }
+    function getDefaultRelayParams() public pure returns(bytes memory relayParams) {
+        return new bytes(0);
+    }
+
+    function makeRelayerParams(address relayProvider) public pure returns(bytes memory relayerParams) {
+        //current version is just 1,
+        relayerParams = abi.encode(1, toWormholeFormat(relayProvider));
+    }
 
     function getDeliveryInstructionsContainer(bytes memory encoded) public view returns (DeliveryInstructionsContainer memory container) {
         container = decodeDeliveryInstructionsContainer(encoded);
