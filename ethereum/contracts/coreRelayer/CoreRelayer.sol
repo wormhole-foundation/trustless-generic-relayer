@@ -44,6 +44,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(msg.value >= totalFee, "Msg.value does not cover the specified budget");
 
         emitRedelivery(request, nonce, consistencyLevel, applicationBudgetTarget, maximumRefund, provider);
+
+        
+        //Send the delivery fees to the specified address of the provider.
+        provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
     }
 
     function emitRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel, uint256 applicationBudgetTarget, uint256 maximumRefund, IRelayProvider provider) internal returns (uint64 sequence) {
@@ -56,9 +60,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
 
         sequence = wormhole().publishMessage{value: wormhole().messageFee()}(nonce, instruction, consistencyLevel);
-
-        //Send the delivery fees to the specified address of the provider.
-        provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
     }
 
     /**
@@ -86,6 +87,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         // emit delivery message
         IWormhole wormhole = wormhole();
         sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, consistencyLevel);
+
+        //TODO pay out the rewards to the providers
     }
 
     /**
@@ -108,6 +111,8 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         bytes memory encodedDeliveryRequestsContainer = encodeDeliveryRequestsContainer(deliveryRequests);
         setForwardingRequest(ForwardingRequest(encodedDeliveryRequestsContainer, rolloverChain, nonce, consistencyLevel, true));
+
+        //TODO pay out the rewards to the providers
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
@@ -115,8 +120,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         ForwardingRequest memory forwardingRequest = getForwardingRequest();
         DeliveryRequestsContainer memory container = decodeDeliveryRequestsContainer(forwardingRequest.deliveryRequestsContainer);
         
-
-
         //make sure the refund amount covers the native gas amounts
         (uint256 totalMinimumFees, bool funded, ) = sufficientFundsHelper(container, refundAmount);
         
