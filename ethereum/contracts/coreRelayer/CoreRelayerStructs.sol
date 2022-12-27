@@ -124,7 +124,6 @@ abstract contract CoreRelayerStructs {
         bytes deliveryRequestsContainer;
         uint16 rolloverChain;
         uint32 nonce;
-        uint8 consistencyLevel;
         uint256 msgValue;
         bool isValid;
     }

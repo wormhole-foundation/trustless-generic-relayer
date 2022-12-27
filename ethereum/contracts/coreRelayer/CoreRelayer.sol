@@ -72,7 +72,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel)
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, IRelayProvider provider)
         public 
         payable
         returns (uint64 sequence)
@@ -86,9 +86,11 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // emit delivery message
         IWormhole wormhole = wormhole();
-        sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, consistencyLevel);
+        sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, provider.getConsistencyLevel());
 
-        //TODO pay out the rewards to the providers
+        //pay fee to provider
+        IRelayProvider(deliveryRequests.relayProviderAddress).getRewardAddress().call{value: msg.value - wormhole.messageFee()}("");
+
     }
 
     /**
@@ -102,7 +104,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public  {
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public payable {
         require(isContractLocked(), "Can only forward while a delivery is in process.");
         require(getForwardingRequest().isValid != true, "Cannot request multiple forwards.");
 
@@ -110,20 +112,21 @@ contract CoreRelayer is CoreRelayerGovernance {
         verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
 
         bytes memory encodedDeliveryRequestsContainer = encodeDeliveryRequestsContainer(deliveryRequests);
-        setForwardingRequest(ForwardingRequest(encodedDeliveryRequestsContainer, rolloverChain, nonce, consistencyLevel, true));
-
-        //TODO pay out the rewards to the providers
+        setForwardingRequest(ForwardingRequest(encodedDeliveryRequestsContainer, rolloverChain, nonce, msg.value, true));
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
 
         ForwardingRequest memory forwardingRequest = getForwardingRequest();
         DeliveryRequestsContainer memory container = decodeDeliveryRequestsContainer(forwardingRequest.deliveryRequestsContainer);
+
+        //Add any additional funds which were passed in to the refund amount
+        refundAmount = refundAmount + forwardingRequest.msgValue;
         
         //make sure the refund amount covers the native gas amounts
         (uint256 totalMinimumFees, bool funded, ) = sufficientFundsHelper(container, refundAmount);
         
-        //REVISE consider deducting the cost of these calculations from the refund amount?
+        //REVISE consider deducting the cost of this process from the refund amount?
 
         //find the delivery instruction for the rollover chain
         uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
@@ -138,8 +141,14 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //emit forwarding instruction
         bytes memory reencoded = convertToEncodedDeliveryInstructions(container, funded);
+        IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
         IWormhole wormhole = wormhole();
-        uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingRequest.nonce, reencoded, forwardingRequest.consistencyLevel);
+        uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingRequest.nonce, reencoded, provider.getConsistencyLevel());
+
+        // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
+        if(funded) {
+            provider.call{value: refundAmount}("");
+        }
         
         //clear forwarding request from cache
         clearForwardingRequest();
