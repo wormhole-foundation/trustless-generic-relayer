@@ -173,6 +173,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container) internal view returns(bytes memory encoded) {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
+            address(container.relayProviderAddress),
             uint8(container.requests.length) //number of requests in the array
         ); 
         
@@ -198,8 +199,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint8 payloadId = encoded.toUint8(index);
         require(payloadId == 1, "invalid payloadId");
         index += 1;
+        address relayProviderAddress = encoded.toAddress(index);
+        index += 20;
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
+
 
         DeliveryRequest[] memory requestArray = new DeliveryRequest[](arrayLen);
 
@@ -233,7 +237,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         require(index == encoded.length, "invalid delivery requests payload");
 
-        return DeliveryRequestsContainer(payloadId, requestArray);
+        return DeliveryRequestsContainer(payloadId, relayProviderAddress,  requestArray);
     
     }
 

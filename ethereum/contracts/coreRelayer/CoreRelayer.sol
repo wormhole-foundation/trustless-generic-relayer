@@ -17,23 +17,22 @@ contract CoreRelayer is CoreRelayerGovernance {
     event ForwardRequestFailure(bytes32 deliveryVaaHash, address recipientContract);
     event ForwardRequestSuccess(bytes32 deliveryVaaHash, address recipientContract);
 
-    function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
+    function requestDelivery(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider) public payable returns (uint64 sequence) {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
-        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
-        return requestMultidelivery(container, nonce, consistencyLevel);
+        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, address(provider), requests);
+        return requestMultidelivery(container, nonce, provider.getConsistencyLevel());
     }
 
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public {
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider) public {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
-        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, requests);
-        return requestMultiforward(container, rolloverChain, nonce, consistencyLevel);
+        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, address(provider), requests);
+        return requestMultiforward(container, rolloverChain, nonce, provider.getConsistencyLevel());
     }
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
-    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel) public payable returns (uint64 sequence) {
-        IRelayProvider provider = getSelectedRelayProvider(request.newRelayParameters);
+    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider) public payable returns (uint64 sequence) {
 
         (uint256 requestFee, uint256 maximumRefund, uint256 applicationBudgetTarget, bool isSufficient, string memory reason)= 
             verifyFunding(provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget);
@@ -43,7 +42,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //Make sure the msg.value covers the budget they specified
         require(msg.value >= totalFee, "Msg.value does not cover the specified budget");
 
-        emitRedelivery(request, nonce, consistencyLevel, applicationBudgetTarget, maximumRefund, provider);
+        emitRedelivery(request, nonce, provider.getConsistencyLevel(), applicationBudgetTarget, maximumRefund, provider);
 
         
         //Send the delivery fees to the specified address of the provider.
@@ -56,7 +55,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             request, 
             applicationBudgetTarget, 
             maximumRefund, 
-            calculateTargetGasRedeliveryAmount(request.targetChain, request.newComputeBudget, provider)
+            calculateTargetGasRedeliveryAmount(request.targetChain, request.newComputeBudget, provider),
+            provider
         );
 
         sequence = wormhole().publishMessage{value: wormhole().messageFee()}(nonce, instruction, consistencyLevel);
@@ -152,9 +152,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         require(nonce > 0, "nonce must be > 0");
 
         bool foundRolloverChain = false;
+        IRelayProvider selectedProvider = IRelayProvider(container.relayProviderAddress);
 
         for(uint16 i = 0; i < container.requests.length; i++) {
-            IRelayProvider selectedProvider = getSelectedRelayProvider(container.requests[i].relayParameters);
             require(selectedProvider.getDeliveryAddress(container.requests[i].targetChain) != 0, "Specified relay provider does not support the target chain" );
             if(container.requests[i].targetChain == rolloverChain) {
                 foundRolloverChain = true;
@@ -181,14 +181,13 @@ contract CoreRelayer is CoreRelayerGovernance {
     */
     function sufficientFundsHelper(DeliveryRequestsContainer memory deliveryRequests, uint256 funds) internal view returns (uint256 totalFees, bool isSufficient, string memory reason) {
         totalFees = wormhole().messageFee();
+        IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
 
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
             DeliveryRequest memory request = deliveryRequests.requests[i];
 
-            IRelayProvider selectedProvider = getSelectedRelayProvider(request.relayParameters);
-            
             (uint256 requestFee, uint256 applicationBudgetTarget, uint256 maximumReund, bool isSufficient, string memory reason) =
-                verifyFunding(selectedProvider, chainId(), request.targetChain, request.computeBudget, request.applicationBudget);
+                verifyFunding(provider, chainId(), request.targetChain, request.computeBudget, request.applicationBudget);
 
             if(!isSufficient){
                 return (0, false, reason);
@@ -520,11 +519,25 @@ contract CoreRelayer is CoreRelayerGovernance {
         return provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain)) + wormhole().messageFee();
     }
 
+    //If the integrator pays at least nativeQuote, they should receive at least targetAmount as their application budget
+    function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) public override view returns (uint256 nativeQuote) {
+        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
+        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
+
+        targetAmount = (sourceAmount - (sourceAmount * provider.getBufferAmount(sourceChain, targetChain) / 10^6) * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
+    }
+
+    //This should invert quoteAssetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
+    //quoteAssetConversion.
+    function convertApplicationBudgetAmount(uint256 sourceAmount, IRelayProvider provider) internal pure returns (uint256 targetAmount) {
+
+    }
+
     function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory request,
             uint256 applicationBudgetTarget, 
             uint256 maximumRefund, 
-            uint32 gasLimit) internal view returns (bytes memory encoded) {
-        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.newRelayParameters);
+            uint32 gasLimit,
+            IRelayProvider provider) internal view returns (bytes memory encoded) {
 
         encoded = abi.encodePacked(
             uint8(2), //version payload number
@@ -538,7 +551,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             applicationBudgetTarget,
             uint8(1), //version for ExecutionParameters
             gasLimit,
-            selectedRelayProvider.getDeliveryAddress(request.targetChain)
+            provider.getDeliveryAddress(request.targetChain)
         ); 
         
         
@@ -558,26 +571,25 @@ contract CoreRelayer is CoreRelayerGovernance {
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.requests.length; i++) {
 
-            encoded = appendDeliveryInstruction(encoded, container.requests[i]);
+            encoded = appendDeliveryInstruction(encoded, container.requests[i], IRelayProvider(container.relayProviderAddress));
             
 
         }
     }
 
-    function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request) internal view returns (bytes memory newEncoded) {
-        IRelayProvider selectedRelayProvider = getSelectedRelayProvider(request.relayParameters);
+    function appendDeliveryInstruction(bytes memory encoded, DeliveryRequest memory request, IRelayProvider provider) internal view returns (bytes memory newEncoded) {
             newEncoded = abi.encodePacked(
                 encoded,
                 request.targetChain,
                 request.targetAddress,
                 request.refundAddress);
             newEncoded = abi.encodePacked(newEncoded, 
-                calculateTargetDeliveryMaximumRefund(request.targetChain, request.computeBudget, selectedRelayProvider), 
-                selectedRelayProvider.quoteAssetConversion(chainId(), request.applicationBudget, request.targetChain));
+                calculateTargetDeliveryMaximumRefund(request.targetChain, request.computeBudget, provider), 
+                provider.quoteAssetConversion(chainId(), request.applicationBudget, request.targetChain));
             newEncoded = abi.encodePacked(newEncoded, 
                 uint8(1), //version for ExecutionParameters
-                calculateTargetGasDeliveryAmount(request.targetChain, request.computeBudget, selectedRelayProvider),
-                selectedRelayProvider.getDeliveryAddress(request.targetChain));
+                calculateTargetGasDeliveryAmount(request.targetChain, request.computeBudget, provider),
+                provider.getDeliveryAddress(request.targetChain));
     }
 
   }

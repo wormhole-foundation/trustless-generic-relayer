@@ -41,17 +41,17 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IRelayProvider(_state.defaultRelayProvider);
     }
 
-    function getSelectedRelayProvider(bytes memory relayerParams) internal view returns (IRelayProvider) {
-        if(relayerParams.length == 0){
-            return defaultRelayProvider();
-        } else {
-            require(relayerParams.length == 33, "Wrong length of relayerParams");
-            if(relayerParams.toUint8(0) == 0) {
-                return defaultRelayProvider();
-            }
-            return IRelayProvider(address(uint160(uint256(relayerParams.toBytes32(1)))));
-        }
-    } 
+    // function getSelectedRelayProvider(bytes memory relayerParams) internal view returns (IRelayProvider) {
+    //     if(relayerParams.length == 0){
+    //         return defaultRelayProvider();
+    //     } else {
+    //         require(relayerParams.length == 33, "Wrong length of relayerParams");
+    //         if(relayerParams.toUint8(0) == 0) {
+    //             return defaultRelayProvider();
+    //         }
+    //         return IRelayProvider(address(uint160(uint256(relayerParams.toBytes32(1)))));
+    //     }
+    // } 
 
     function getDefaultRelayProviderAddress() public view returns (address) {
         return _state.defaultRelayProvider;

@@ -11,6 +11,7 @@ abstract contract CoreRelayerStructs {
 
     struct DeliveryRequestsContainer {
         uint8 payloadId; // payloadID = 1
+        address relayProviderAddress;
         DeliveryRequest[] requests;
     }
 
@@ -124,6 +125,7 @@ abstract contract CoreRelayerStructs {
         uint16 rolloverChain;
         uint32 nonce;
         uint8 consistencyLevel;
+        uint256 msgValue;
         bool isValid;
     }
 

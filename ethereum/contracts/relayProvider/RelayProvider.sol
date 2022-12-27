@@ -21,13 +21,6 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         computeGasCost(targetChain, uint256(1));
     }
 
-    function quoteAssetConversion(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) public override view returns (uint256 targetAmount) {
-        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
-        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
-
-        targetAmount = (sourceAmount * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
-    }
-
     function quoteMaximumBudget(uint16 targetChain) public override view returns (uint256 maximumTargetBudget) {
         return maximumBudget(targetChain);
     }
@@ -38,6 +31,10 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
 
     function getRewardAddress() public override view returns (address) {
         return rewardAddress();
+    }
+
+    function getConsistencyLevel() public override view returns (uint8 consistencyLevel) {
+        return 200; //REVISE consider adding state variable for this
     }
 
     

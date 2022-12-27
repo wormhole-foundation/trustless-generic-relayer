@@ -9,27 +9,27 @@ interface ICoreRelayer {
     /**
     * @dev This is the basic function for requesting delivery
     */
-    function requestDelivery(DeliveryRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestDelivery(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider) external payable returns (uint64 sequence);
 
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce , IRelayProvider provider) external payable;
 
-    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce , IRelayProvider provider) external payable returns (uint64 sequence);
 
-    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, uint8 consistencyLevel) external payable returns (uint64 sequence);
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, IRelayProvider provider) external payable returns (uint64 sequence);
 
     /**
     @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
         the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
      */
-    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) external;
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce , IRelayProvider provider) external payable;
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable returns (uint64 sequence);
 
     function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) external payable returns (uint64 sequence);
 
-    function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
+    // function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
 
-    function collectRewards(bytes memory encodedVm) external;
+    // function collectRewards(bytes memory encodedVm) external;
 
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
@@ -39,16 +39,17 @@ interface ICoreRelayer {
     
     function getDefaultRelayParams() external pure returns(bytes memory relayParams);
 
-    function makeRelayerParams(IRelayProvider provider) external pure returns(bytes memory relayerParams);
-
     function quoteDeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 deliveryQuote);
 
     function quoteRedeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 redeliveryQuote);
+
+    function quoteAssetConversion(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) external pure returns (uint256 nativeQuote);
 
     function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
 
     struct DeliveryRequestsContainer {
         uint8 payloadId; // payloadID = 1
+        address relayProviderAddress;
         DeliveryRequest[] requests;
     }
 
@@ -108,10 +109,9 @@ interface ICoreRelayer {
         uint8 multisendIndex;
     }
 
-    struct RelayParameters {
-        uint8 version; //1
-        bytes32 oracleAddressOverride;
-    }
+    //REVISE consider removing this, or keeping for future compatibility
+    // struct RelayParameters {
+    // }
 
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
