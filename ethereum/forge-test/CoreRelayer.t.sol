@@ -45,7 +45,6 @@ contract TestCoreRelayer is Test {
 
     struct VMParams {
         uint32 nonce;
-        uint8 consistencyLevel;
     }
 
     IWormhole relayerWormhole;
@@ -162,7 +161,6 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.sourceNativePrice  < halfMaxUint128 / gasParams.sourceGasPrice );
         vm.assume(gasParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice );
         vm.assume(batchParams.nonce > 0);
-        vm.assume(batchParams.consistencyLevel > 0);
     }
 
 
@@ -248,13 +246,13 @@ contract TestCoreRelayer is Test {
         vm.recordLogs();
 
         // send an arbitrary wormhole message to be relayed
-        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(0), message), batchParams.consistencyLevel);
+        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(0), message), 200);
 
         // call the send function on the relayer contract
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, toWormholeFormat(address(target.integration)), toWormholeFormat(address(target.integration)), computeBudget, 0, bytes(""));
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, toWormholeFormat(address(target.integration)), toWormholeFormat(address(target.integration)), computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
 
-        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, batchParams.consistencyLevel);
+        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, source.relayProvider);
 
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);
@@ -294,13 +292,13 @@ contract TestCoreRelayer is Test {
 
         // send an arbitrary wormhole message to be relayed
         vm.prank(address(source.integration));
-        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(1), message), batchParams.consistencyLevel);
+        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(1), message), 200);
 
         // call the send function on the relayer contract
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(target.integration)))), bytes32(uint256(uint160(address(0x1)))), computeBudget, 0, bytes(""));
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(target.integration)))), bytes32(uint256(uint160(address(0x1)))), computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
 
-        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, batchParams.consistencyLevel);
+        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, source.relayProvider);
 
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);

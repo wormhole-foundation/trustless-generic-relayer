@@ -21,14 +21,14 @@ contract CoreRelayer is CoreRelayerGovernance {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, address(provider), requests);
-        return requestMultidelivery(container, nonce, provider.getConsistencyLevel());
+        return requestMultidelivery(container, nonce);
     }
 
     function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider) public {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, address(provider), requests);
-        return requestMultiforward(container, rolloverChain, nonce, provider.getConsistencyLevel());
+        return requestMultiforward(container, rolloverChain, nonce);
     }
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
@@ -72,7 +72,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, IRelayProvider provider)
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce)
         public 
         payable
         returns (uint64 sequence)
@@ -86,10 +86,12 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // emit delivery message
         IWormhole wormhole = wormhole();
+        IRelayProvider provider =  IRelayProvider(deliveryRequests.relayProviderAddress);
+
         sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, provider.getConsistencyLevel());
 
         //pay fee to provider
-        IRelayProvider(deliveryRequests.relayProviderAddress).getRewardAddress().call{value: msg.value - wormhole.messageFee()}("");
+        provider.getRewardAddress().call{value: msg.value - wormhole.messageFee()}("");
 
     }
 
@@ -104,7 +106,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce, uint8 consistencyLevel) public payable {
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce) public payable {
         require(isContractLocked(), "Can only forward while a delivery is in process.");
         require(getForwardingRequest().isValid != true, "Cannot request multiple forwards.");
 
@@ -141,13 +143,13 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //emit forwarding instruction
         bytes memory reencoded = convertToEncodedDeliveryInstructions(container, funded);
-        IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
+        IRelayProvider provider = IRelayProvider(container.relayProviderAddress);
         IWormhole wormhole = wormhole();
         uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(forwardingRequest.nonce, reencoded, provider.getConsistencyLevel());
 
         // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
         if(funded) {
-            provider.call{value: refundAmount}("");
+            address(provider).call{value: refundAmount}("");
         }
         
         //clear forwarding request from cache
@@ -529,17 +531,18 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     //If the integrator pays at least nativeQuote, they should receive at least targetAmount as their application budget
-    function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) public override view returns (uint256 nativeQuote) {
-        uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(sourceChain);
-        uint256 dstNativeCurrencyPrice = nativeCurrencyPrice(targetChain);
-
-        targetAmount = (sourceAmount - (sourceAmount * provider.getBufferAmount(sourceChain, targetChain) / 10^6) * srcNativeCurrencyPrice /  dstNativeCurrencyPrice); 
+    function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) public view returns (uint256 nativeQuote) {
+        uint256 sourceAmount = provider.quoteAssetConversion(targetChain, targetAmount, chainId());
+        (uint16 buffer, uint16 denominator) = provider.assetConversionBuffer(chainId(), targetChain);
+        nativeQuote = (sourceAmount * (denominator + buffer) + denominator - 1) / denominator; 
     }
 
-    //This should invert quoteAssetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
-    //quoteAssetConversion.
-    function convertApplicationBudgetAmount(uint256 sourceAmount, IRelayProvider provider) internal pure returns (uint256 targetAmount) {
-
+    //This should invert quoteApplicationBudgetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
+    //quoteApplicationBudgetFee.
+    function convertApplicationBudgetAmount(uint256 sourceAmount, uint16 targetChain, IRelayProvider provider) internal view returns (uint256 targetAmount) {
+        uint256 amount = provider.quoteAssetConversion(chainId(), sourceAmount, targetChain);
+        (uint16 buffer, uint16 denominator) = provider.assetConversionBuffer(chainId(), targetChain);
+        targetAmount = amount * denominator / (denominator + buffer); 
     }
 
     function convertToEncodedRedeliveryByTxHashInstruction(RedeliveryByTxHashRequest memory request,

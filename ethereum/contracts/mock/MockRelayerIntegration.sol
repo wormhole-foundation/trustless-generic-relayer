@@ -53,9 +53,9 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
                 wormhole.publishMessage(1, abi.encodePacked(uint8(0), bytes("received!")), 200);
 
-                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(parsed.emitterChainId, parsed.emitterAddress, parsed.emitterAddress, computeBudget, 0, bytes(""));
+                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(parsed.emitterChainId, parsed.emitterAddress, parsed.emitterAddress, computeBudget, 0, relayer.getDefaultRelayParams());
 
-                relayer.requestForward(request, parsed.emitterChainId, 1, 200);
+                relayer.requestForward(request, parsed.emitterChainId, 1, relayer.getDefaultRelayProvider());
 
             }
 

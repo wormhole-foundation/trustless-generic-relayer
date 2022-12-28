@@ -167,6 +167,7 @@ contract TestRelayProvider is Test {
         vm.assume(dstNativeCurrencyPrice > 0);
         vm.assume(srcGasPrice > 0);
         vm.assume(srcNativeCurrencyPrice > 0);
+        vm.assume(dstGasPrice * srcNativeCurrencyPrice >= dstNativeCurrencyPrice);
 
         initializeRelayProvider();
 
@@ -180,6 +181,8 @@ contract TestRelayProvider is Test {
         // verify price
         uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice) * (uint64(gasLimit) + deliverGasOverhead)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice + targetWormholeFee ;
         uint256 readValues = relayProvider.quoteDeliveryOverhead(dstChainId) + relayProvider.quoteGasPrice(dstChainId) * gasLimit;
+        console.log(expected);
+        console.log(readValues);
         require(readValues == expected, "relayProvider.quotePrices != expected");
     }
 
@@ -208,6 +211,7 @@ contract TestRelayProvider is Test {
         vm.assume(dstNativeCurrencyPrice > 0);
         vm.assume(srcGasPrice > 0);
         vm.assume(srcNativeCurrencyPrice > 0);
+        vm.assume(dstGasPrice >= dstNativeCurrencyPrice/srcNativeCurrencyPrice);
 
         initializeRelayProvider();
 
