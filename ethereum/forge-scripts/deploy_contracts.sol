@@ -6,7 +6,11 @@ import "forge-std/Script.sol";
 
 import {Migrations} from "wormhole/ethereum/contracts/Migrations.sol";
 import {IWormhole} from "contracts/interfaces/IWormhole.sol";
-import {GasOracle} from "contracts/gasOracle/GasOracle.sol";
+import {RelayProvider} from "contracts/relayProvider/RelayProvider.sol";
+import {RelayProviderSetup} from "contracts/relayProvider/RelayProviderSetup.sol";
+import {RelayProviderImplementation} from "contracts/relayProvider/RelayProviderImplementation.sol";
+import {RelayProviderProxy} from "contracts/relayProvider/RelayProviderProxy.sol";
+import {CoreRelayer} from "contracts/coreRelayer/CoreRelayer.sol";
 import {CoreRelayerSetup} from "contracts/coreRelayer/CoreRelayerSetup.sol";
 import {CoreRelayerImplementation} from "contracts/coreRelayer/CoreRelayerImplementation.sol";
 import {CoreRelayerProxy} from "contracts/coreRelayer/CoreRelayerProxy.sol";
@@ -14,12 +18,35 @@ import {MockRelayerIntegration} from "contracts/mock/MockRelayerIntegration.sol"
 
 import "forge-std/console.sol";
 
+//Goal deploy all necessary contracts to one chain
+
+//Initialize our wallet & RPC provider
+//Initialize our Wormhole object
+
+//Step 1: Deploy RelayProvider
+// Deploy Contracts
+// Call setup
+// Set Reward Address, set delivery address, set delivergasoverhead, set price table, set maximum budget
+
+//Step 2: Deploy CoreRelayer
+// Deploy Contracts
+// Call setup
+// later: register all core relayers with eachother
+
+//Step 3: Deploy xMint
+// Deploy Hub if hubchain, deploy spoke if spoke chain
+// call setup
+
+
+
 contract ContractScript is Script {
     Migrations migrations;
     IWormhole wormhole;
 
     // GasOracle
-    GasOracle gasOracle;
+    RelayProviderSetup relayProviderSetup;
+    RelayProviderImplementation relayProviderImplementation;
+    RelayProviderProxy relayProviderProxy;
 
     // CoreRelayer
     CoreRelayerSetup coreRelayerSetup;
@@ -29,17 +56,37 @@ contract ContractScript is Script {
     // MockRelayerIntegration
     MockRelayerIntegration mockRelayerIntegration;
 
+    address TILT_WORMHOLE_ADDRESS = 0xC89Ce4735882C9F0f0FE26686c53074E09B0D550;
+    address TILT_MIGRATION_ADDRESS = 0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab;
+    bool isTilt = false;
+    uint16 chainId = 2;
+    address wormholeAddress;
+
     function setUp() public {
-        migrations = Migrations(0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab);
-        wormhole = IWormhole(0xC89Ce4735882C9F0f0FE26686c53074E09B0D550);
+
     }
 
-    function deployGasOracle() public {
-        // deploy GasOracle
-        gasOracle = new GasOracle(address(wormhole));
+    function deployRelayProvider() public {
+        // first Setup
+        relayProviderSetup = new RelayProviderSetup();
+
+        // next Implementation
+        relayProviderImplementation = new RelayProviderImplementation();
+
+        // setup Proxy using Implementation
+        relayProviderProxy = new RelayProviderProxy(
+            address(relayProviderSetup),
+            abi.encodeWithSelector(
+                bytes4(keccak256("setup(address,uint16)")),
+                address(relayProviderImplementation),
+                wormhole.chainId()
+            )
+        );
 
         // following is used just to roll to the next block
-        migrations.setCompleted(69);
+        if(isTilt) {
+            migrations.setCompleted(69);
+        }
     }
 
     function deployCoreRelayer() public {
@@ -53,40 +100,90 @@ contract ContractScript is Script {
         coreRelayerProxy = new CoreRelayerProxy(
             address(coreRelayerSetup),
             abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,uint16,address,uint8,address,uint32)")),
+                bytes4(keccak256("setup(address,uint16,address,address)")),
                 address(coreRelayerImplementation),
                 wormhole.chainId(),
                 address(wormhole),
-                uint8(1), // consistencyLevel
-                address(gasOracle),
-                uint32(0) // EVMGasOverhead
+                address(relayProviderProxy)
             )
         );
 
         // following is used just to roll to the next block
-        migrations.setCompleted(69);
+        if(isTilt){
+            migrations.setCompleted(69);
+        }
     }
 
-    function deployMockRelayerIntegration() public {
-        // deploy the mock integration contract
-        mockRelayerIntegration = new MockRelayerIntegration(
-            address(wormhole),
-            address(coreRelayerProxy)
-        );
+    function configureRelayProvider() public {
+        address currentAddress = address(this);
+        RelayProvider provider = RelayProvider(address(relayProviderProxy));
+        CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
+
+        //Set Reward Address,
+        provider.updateRewardAddress(currentAddress);
+
+        uint16[] memory chains;
+
+
+        //set delivery address,
+        if(isTilt) {
+            chains = new uint16[](2);
+            chains[0] = 2;
+            chains[1] = 4;
+
+
+        } else {
+            chains = new uint16[](2);
+            chains[0] = 6;
+            chains[1] = 14;
+        }
+
+        for(uint16 i =0; i < chains.length; i++){
+            provider.updateDeliveryAddress(chains[i], core_relayer.toWormholeFormat(currentAddress));
+            provider.updateDeliverGasOverhead(chains[i], 350000);
+            provider.updatePrice(chains[i], 30 * 10^9, 1 * 10^6);
+            provider.updateMaximumBudget(chains[i], 1 * 10^17);
+        }
     }
 
-    function run() public {
+    function configureCoreRelayer() public {
+        //Only thing to do here is register all the chains together
+    }
+
+
+    // function deployMockRelayerIntegration() public {
+    //     // deploy the mock integration contract
+    //     mockRelayerIntegration = new MockRelayerIntegration(
+    //         address(wormhole),
+    //         address(coreRelayerProxy)
+    //     );
+    // }
+
+    function run(address _wormholeAddress) public {
+        //actual setup
+        wormhole = IWormhole(_wormholeAddress);
+        wormholeAddress = _wormholeAddress;
+        chainId = wormhole.chainId();
+        isTilt = (wormholeAddress == TILT_WORMHOLE_ADDRESS);
+        if(isTilt){
+            migrations = Migrations(TILT_MIGRATION_ADDRESS);
+        }
+
+
         // begin sending transactions
         vm.startBroadcast();
 
         // GasOracle.sol
-        deployGasOracle();
+        deployRelayProvider();
 
         // CoreRelayer.sol
         deployCoreRelayer();
 
+
+
+        //TODO integration contract deployments
         // MockRelayerIntegration.sol
-        deployMockRelayerIntegration();
+        //deployMockRelayerIntegration();
 
         // finished
         vm.stopBroadcast();

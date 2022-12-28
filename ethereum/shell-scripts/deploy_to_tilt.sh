@@ -18,10 +18,18 @@ echo "deploying to eth devnet"
 forge script forge-scripts/deploy_contracts.sol \
     --rpc-url $ETH_DEVNET \
     --private-key $PRIVATE_KEY \
-    --broadcast --slow --legacy > /dev/null 2>&1
+    --interactives 1 \
+    --sig "run(address wormholeAddress)" \
+    "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"\
+    -vvv \
+    --broadcast --slow --legacy 
 
 echo "deploying to bsc devnet"
 forge script forge-scripts/deploy_contracts.sol \
     --rpc-url $BSC_DEVNET \
     --private-key $PRIVATE_KEY \
-    --broadcast --slow --legacy > /dev/null 2>&1
+    --interactives 1 \
+    --sig "run(address wormholeAddress)" \
+    "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550" \
+    -vvv \
+    --broadcast --slow --legacy 

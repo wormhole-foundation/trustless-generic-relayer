@@ -8,11 +8,6 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGetters.sol";
 import "./CoreRelayerStructs.sol";
 
-
-import "forge-std/Test.sol";
-
-import "forge-std/console.sol";
-
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
@@ -62,12 +57,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
             index += 32;
 
-    }
-
-    // TODO: WIP
-    function encodeRewardPayout(RewardPayout memory rp) internal pure returns (bytes memory) {
-        require(rp.payloadID == 100, "invalid RewardPayout");
-        return abi.encodePacked(uint8(100), rp.fromChain, rp.chain, rp.amount, rp.receiver);
     }
 
     /// @dev `decodeDeliveryInstructionsContainer` parses encoded delivery instructions into the DeliveryInstructions struct
@@ -152,28 +141,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     //     require(encoded.length == index, "invalid DeliveryStatus");
     // }
 
-    function parseRewardPayout(bytes memory encoded) internal pure returns (RewardPayout memory rp) {
-        uint256 index = 0;
-
-        rp.payloadID = encoded.toUint8(index);
-        index += 1;
-
-        require(rp.payloadID == 100, "invalid RewardPayout");
-
-        rp.fromChain = encoded.toUint16(index);
-        index += 2;
-
-        rp.chain = encoded.toUint16(index);
-        index += 2;
-
-        rp.amount = encoded.toUint256(index);
-        index += 32;
-
-        rp.receiver = encoded.toBytes32(index);
-        index += 32;
-
-        require(encoded.length == index, "invalid RewardPayout");
-    }
 
     function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container) internal view returns(bytes memory encoded) {
         encoded = abi.encodePacked(

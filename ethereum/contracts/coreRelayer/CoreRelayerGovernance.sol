@@ -24,13 +24,13 @@ abstract contract CoreRelayerGovernance is
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event RelayProviderUpdated(address indexed oldDefaultRelayProvider, address indexed newDefaultRelayProvider);
+    event RelayProviderUpdated(address indexed newDefaultRelayProvider);
     
     /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
     function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
-        require(coreRelayerContractAddress != bytes32(0), "invalid contract address");
-        require(registeredCoreRelayerContract(chainId) == bytes32(0), "contract already registered");
-        require(chainId != 0, "invalid chainId");
+        require(coreRelayerContractAddress != bytes32(0), "1");//"invalid contract address");
+        require(registeredCoreRelayerContract(chainId) == bytes32(0), "2");//"contract already registered");
+        require(chainId != 0, "3");//"invalid chainId");
 
         setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
     }
@@ -49,20 +49,6 @@ abstract contract CoreRelayerGovernance is
         require(success, string(reason));
 
         emit ContractUpgraded(currentImplementation, newImplementation);
-    }
-
-
-    /// @dev updateRelayProviderContract changes the contract address for the RelayProvider
-    function updateDefaultRelayProviderContract(uint16 thisChainId, address newRelayProviderAddress) public onlyOwner {
-        require(thisChainId == chainId(), "wrong chain id");
-        require(newRelayProviderAddress != address(0), "new RelayProvider address cannot be address(0)");
-
-        // cache the current defaultRelayProvider address
-        address currentRelayProvider = getDefaultRelayProviderAddress();
-
-        setRelayProvider(newRelayProviderAddress);
-
-        emit RelayProviderUpdated(currentRelayProvider, newRelayProviderAddress);
     }
 
     /**

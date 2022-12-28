@@ -128,21 +128,21 @@ abstract contract CoreRelayerStructs {
         bool isValid;
     }
 
-    struct DeliveryStatus {
-        uint8 payloadID; // payloadID = 2;
-        bytes32 batchHash;
-        bytes32 emitterAddress;
-        uint64 sequence;
-        uint16 deliveryCount;
-        bool deliverySuccess;
-    }
+    // struct DeliveryStatus {
+    //     uint8 payloadID; // payloadID = 2;
+    //     bytes32 batchHash;
+    //     bytes32 emitterAddress;
+    //     uint64 sequence;
+    //     uint16 deliveryCount;
+    //     bool deliverySuccess;
+    // }
 
-    // TODO: WIP
-    struct RewardPayout {
-        uint8 payloadID; // payloadID = 100; prevent collisions with new blueprint payloads
-        uint16 fromChain;
-        uint16 chain;
-        uint256 amount;
-        bytes32 receiver;
-    }
+    // // TODO: WIP
+    // struct RewardPayout {
+    //     uint8 payloadID; // payloadID = 100; prevent collisions with new blueprint payloads
+    //     uint16 fromChain;
+    //     uint16 chain;
+    //     uint256 amount;
+    //     bytes32 receiver;
+    // }
 }
