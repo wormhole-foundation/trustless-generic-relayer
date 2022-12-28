@@ -85,7 +85,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
     }
 
     function requestForward(uint16 targetChain, bytes32 intendedRecipient) internal {
-        uint256 computeBudget = core_relayer.quoteDeliveryGasComputeBudget(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 computeBudget = core_relayer.quoteGasDeliveryFee(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
         uint256 applicationBudget = 0;
 
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(

@@ -39,7 +39,7 @@ interface ICoreRelayer {
     
     function getDefaultRelayParams() external pure returns(bytes memory relayParams);
 
-    function quoteDeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 deliveryQuote);
+    function quoteGasDeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 deliveryQuote);
 
     function quoteRedeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 redeliveryQuote);
 
@@ -123,16 +123,14 @@ interface ICoreRelayer {
         uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
-        uint256 computeBudgetTarget;
+        uint256 maximumRefundTarget;
         uint256 applicationBudgetTarget;
-        uint256 sourceReward;
-        uint16 sourceChain;
         ExecutionParameters executionParameters; //Has the gas limit to execute with
     }
     struct ExecutionParameters {
         uint8 version;
         uint32 gasLimit;
-        bytes32 relayerAddress;
+        bytes32 providerDeliveryAddress;
     }
 
 }

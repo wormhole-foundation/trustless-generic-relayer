@@ -8,6 +8,11 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGetters.sol";
 import "./CoreRelayerStructs.sol";
 
+
+import "forge-std/Test.sol";
+
+import "forge-std/console.sol";
+
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
@@ -80,7 +85,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 1;
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
-
+ 
         DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](arrayLen);
 
         for (uint8 i = 0; i < arrayLen; i++) {
@@ -89,7 +94,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             // target chain of the delivery instruction
             instruction.targetChain = encoded.toUint16(index);
             index += 2;
-
+    
             // target contract address
             instruction.targetAddress = encoded.toBytes32(index);
             index += 32;

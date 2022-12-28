@@ -49,7 +49,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             message = parsed.payload.slice(1, parsed.payload.length - 1);
             
             if(forward) {
-                uint256 computeBudget = relayer.quoteDeliveryGasComputeBudget(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
+                uint256 computeBudget = relayer.quoteGasDeliveryFee(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
 
                 wormhole.publishMessage(1, abi.encodePacked(uint8(0), bytes("received!")), 200);
 

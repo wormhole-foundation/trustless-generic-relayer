@@ -46,7 +46,7 @@ contract XmintSpoke is IWormholeReceiver {
     //And then requests delivery from relayer network.
     function purchaseTokens() public payable {
         //Calculate how many tokens will be required to cover transaction fees.
-        uint256 deliveryFeeBuffer = core_relayer.quoteDeliveryGasComputeBudget(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 deliveryFeeBuffer = core_relayer.quoteGasDeliveryFee(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
 
         //require that enough funds were paid to cover this transaction and the relay costs
         require(msg.value > deliveryFeeBuffer + core_bridge.messageFee());
@@ -74,7 +74,7 @@ contract XmintSpoke is IWormholeReceiver {
     }
 
     function requestDelivery() internal {
-        uint256 computeBudget = core_relayer.quoteDeliveryGasComputeBudget(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 computeBudget = core_relayer.quoteGasDeliveryFee(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
         uint256 applicationBudget = 0;
 
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
