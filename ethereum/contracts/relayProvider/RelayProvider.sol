@@ -71,8 +71,6 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     }
 
     function computeTransactionCost(uint16 targetChainId, uint256 transactionFee) internal view returns (uint256 quote) {
-        console.log("Transaction fee:");
-        console.log(transactionFee);
         uint256 srcNativeCurrencyPrice = nativeCurrencyPrice(chainId());
         require(srcNativeCurrencyPrice > 0, "srcNativeCurrencyPrice == 0");
 

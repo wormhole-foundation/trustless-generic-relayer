@@ -43,7 +43,7 @@ interface ICoreRelayer {
 
     function quoteRedeliveryGasComputeBudget(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 redeliveryQuote);
 
-    function quoteAssetConversion(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) external pure returns (uint256 nativeQuote);
+    function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) external pure returns (uint256 nativeQuote);
 
     function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
 

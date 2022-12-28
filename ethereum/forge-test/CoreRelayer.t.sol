@@ -360,9 +360,7 @@ contract TestCoreRelayer is Test {
                 for(uint16 j=i; j<encodedVMs.length; j++) {
                     if(parsed[i].nonce == parsed[j].nonce) {
                         if(parsed[j].emitterAddress == toWormholeFormat(address(contracts.coreRelayer)) && (parsed[j].emitterChainId == chainId)) {
-                             console.log("Debug 0");
                              ICoreRelayer.DeliveryInstructionsContainer memory container = contracts.coreRelayer.getDeliveryInstructionsContainer(parsed[j].payload);
-                             console.log("Debug 1");
                              for(uint8 k=0; k<container.instructions.length; k++) {
                                 uint256 budget = container.instructions[k].maximumRefundTarget + container.instructions[k].applicationBudgetTarget;
                                 ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle(deliveryInstructions, counter, k);

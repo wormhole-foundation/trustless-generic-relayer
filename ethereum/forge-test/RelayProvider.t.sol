@@ -179,8 +179,6 @@ contract TestRelayProvider is Test {
         // verify price
         uint256 expected = ( uint256(dstNativeCurrencyPrice) * (uint256(dstGasPrice)) + (srcNativeCurrencyPrice - 1)) / srcNativeCurrencyPrice;
         uint256 readValues = relayProvider.quoteGasPrice(dstChainId);
-        console.log(expected);
-        console.log(readValues);
         require(readValues == expected, "relayProvider.quotePrices != expected");
     }
 
