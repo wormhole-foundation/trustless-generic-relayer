@@ -3,10 +3,10 @@
   "shouldRest": false,
   "logWatcherSleepMs": 300000,
   "supportedChains": {
-    "6": {
+    "2": {
       "relayerAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
     },
-    "14": {
+    "4": {
       "relayerAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
     }
   }
