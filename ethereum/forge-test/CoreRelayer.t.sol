@@ -332,6 +332,8 @@ contract TestCoreRelayer is Test {
         senders[1] = address(source.coreRelayer);
         genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
 
+        assertTrue((keccak256(target.integration.getMessage()) != keccak256(message)) || (keccak256(message) == keccak256(bytes(""))));
+
         bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
 
         ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest(SOURCE_CHAIN_ID, deliveryVaaHash, 1, TARGET_CHAIN_ID, computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
