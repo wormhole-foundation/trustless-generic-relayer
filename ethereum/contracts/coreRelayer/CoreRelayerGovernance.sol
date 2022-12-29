@@ -87,10 +87,6 @@ abstract contract CoreRelayerGovernance is
         setRelayProvider(relayProvider);
     }
 
-    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) public onlyOwner {
-        setRegisteredCoreRelayerContract(chainId, relayerAddress);
-    }
-
     modifier onlyOwner() {
         require(owner() == _msgSender(), "7");
         _;

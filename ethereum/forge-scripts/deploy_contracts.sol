@@ -161,8 +161,9 @@ contract ContractScript is Script {
 
     function configureCoreRelayer() public {
         //Only thing to do here is register all the chains together
-        CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
-        core_relayer.registerCoreRelayer(chainId, core_relayer.toWormholeFormat(address(core_relayer)));
+        // contract already registers itself in the setup
+        // CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
+        // core_relayer.registerCoreRelayerContract(chainId, core_relayer.toWormholeFormat(address(core_relayer)));
     }
 
 
