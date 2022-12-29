@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
 
-
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
@@ -33,14 +32,13 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider) public payable returns (uint64 sequence) {
-
         (uint256 requestFee, uint256 maximumRefund, uint256 applicationBudgetTarget, bool isSufficient, string memory reason)= 
-            verifyFunding(provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget);
+            verifyFunding(VerifyFundingCalculation(provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget, false));
         require(isSufficient, reason);
         uint256 totalFee = requestFee + wormhole().messageFee();
 
         //Make sure the msg.value covers the budget they specified
-        require(msg.value >= totalFee, "Msg.value does not cover the specified budget");
+        require(msg.value >= totalFee, "1"); //"Msg.value does not cover the specified budget");
 
         emitRedelivery(request, nonce, provider.getConsistencyLevel(), applicationBudgetTarget, maximumRefund, provider);
 
@@ -79,7 +77,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     {
         (uint256 totalCost, bool isSufficient, string memory cause) = sufficientFundsHelper(deliveryRequests, msg.value);
         require(isSufficient, cause);
-        require(nonce > 0, "nonce must be > 0");
+        require(nonce > 0, "2");//"nonce must be > 0");
 
         // encode the DeliveryInstructions
         bytes memory container = convertToEncodedDeliveryInstructions(deliveryRequests, true);
@@ -107,8 +105,8 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it generates a VAA with the encoded DeliveryInstructions
      */
     function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce) public payable {
-        require(isContractLocked(), "Can only forward while a delivery is in process.");
-        require(getForwardingRequest().isValid != true, "Cannot request multiple forwards.");
+        require(isContractLocked(), "3");//"Can only forward while a delivery is in process.");
+        require(getForwardingRequest().isValid != true, "4");//"Cannot request multiple forwards.");
 
         //We want to catch malformed requests in this function, and only underfunded requests when emitting.
         verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
@@ -160,19 +158,19 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyForwardingRequest(DeliveryRequestsContainer memory container, uint16 rolloverChain, uint32 nonce) internal view {
-        require(nonce > 0, "nonce must be > 0");
+        require(nonce > 0, "2");//"nonce must be > 0");
 
         bool foundRolloverChain = false;
         IRelayProvider selectedProvider = IRelayProvider(container.relayProviderAddress);
 
         for(uint16 i = 0; i < container.requests.length; i++) {
-            require(selectedProvider.getDeliveryAddress(container.requests[i].targetChain) != 0, "Specified relay provider does not support the target chain" );
+            require(selectedProvider.getDeliveryAddress(container.requests[i].targetChain) != 0, "5");//"Specified relay provider does not support the target chain" );
             if(container.requests[i].targetChain == rolloverChain) {
                 foundRolloverChain = true;
             }
         }
 
-        require(foundRolloverChain, "Rollover chain was not included in the forwarding request.");
+        require(foundRolloverChain, "6");//"Rollover chain was not included in the forwarding request.");
     }
 
     function findDeliveryIndex(DeliveryRequestsContainer memory container, uint16 chainId) internal pure returns (uint16 deliveryRequestIndex) {
@@ -183,7 +181,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
         }
 
-        revert("Required chain not found in the delivery requests"); 
+        revert("7");//"Required chain not found in the delivery requests"); 
     }
 
     /*
@@ -198,7 +196,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             DeliveryRequest memory request = deliveryRequests.requests[i];
 
             (uint256 requestFee, uint256 applicationBudgetTarget, uint256 maximumReund, bool isSufficient, string memory reason) =
-                verifyFunding(provider, chainId(), request.targetChain, request.computeBudget, request.applicationBudget);
+                verifyFunding(VerifyFundingCalculation(provider, chainId(), request.targetChain, request.computeBudget, request.applicationBudget, true));
 
             if(!isSufficient){
                 return (0, false, reason);
@@ -207,32 +205,40 @@ contract CoreRelayer is CoreRelayerGovernance {
             totalFees = totalFees + requestFee;
 
             if( funds < totalFees ) {
-                return (0, false, "Insufficient funds were provided to cover the delivery fees.");
+                return (0, false, "25");//"Insufficient funds were provided to cover the delivery fees.");
             }
         }
 
         return (totalFees, true, "");
     }
 
-    function verifyFunding(IRelayProvider provider, uint16 sourceChain, uint16 targetChain, uint256 computeBudgetSource, uint256 applicationBudgetSource) 
+    struct VerifyFundingCalculation {
+        IRelayProvider provider; 
+        uint16 sourceChain; 
+        uint16 targetChain; 
+        uint256 computeBudgetSource; 
+        uint256 applicationBudgetSource; 
+        bool isDelivery;
+    }
+
+    function verifyFunding(VerifyFundingCalculation memory args) 
         internal view returns(uint256 requestFee, uint256 applicationBudgetTarget, uint256 maximumRefund, bool isSufficient, string memory reason){
-        requestFee = computeBudgetSource + applicationBudgetSource;
-        applicationBudgetTarget = provider.quoteAssetConversion(sourceChain, applicationBudgetSource, targetChain);
-        uint256 overheadFeeSource = provider.quoteRedeliveryOverhead(targetChain);
-        uint256 overheadBudgetTarget = provider.quoteAssetConversion(sourceChain, overheadFeeSource,targetChain);
-        maximumRefund = calculateTargetRedeliveryMaximumRefund(targetChain, computeBudgetSource, provider);
-        uint256 totalBudgetTarget = maximumRefund + overheadBudgetTarget + applicationBudgetTarget;
+        requestFee = args.computeBudgetSource + args.applicationBudgetSource;
+        applicationBudgetTarget = convertApplicationBudgetAmount(args.applicationBudgetSource, args.targetChain, args.provider);
+        uint256 overheadFeeSource = args.isDelivery ? args.provider.quoteDeliveryOverhead(args.targetChain) : args.provider.quoteRedeliveryOverhead(args.targetChain);
+        uint256 overheadBudgetTarget = quoteAssetConversion(args.sourceChain, overheadFeeSource, args.targetChain, args.provider);
+        maximumRefund = args.isDelivery ? calculateTargetDeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider) :calculateTargetRedeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider) ;
 
         //Make sure the computeBudget covers the minimum delivery cost to the targetChain
-        if(computeBudgetSource < overheadFeeSource){
+        if(args.computeBudgetSource < overheadFeeSource){
             isSufficient = false;
-            reason = "Insufficient msg.value to cover minimum delivery costs.";
+            reason = "26";//Insufficient msg.value to cover minimum delivery costs.";
         }
 
-        //Make sure the budget does not exceed the maximum for the provider on that chain;
-        else if(provider.quoteMaximumBudget(targetChain) < totalBudgetTarget){
+        //Make sure the budget does not exceed the maximum for the provider on that chain; //This added value is totalBudgetTarget
+        else if(args.provider.quoteMaximumBudget(args.targetChain) < (maximumRefund + overheadBudgetTarget + applicationBudgetTarget)){
             isSufficient = false;
-            reason = "Specified budget exceeds the maximum allowed by the provider"; 
+            reason = "27";//"Specified budget exceeds the maximum allowed by the provider"; 
         }
 
         else {
@@ -249,7 +255,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //REVISE Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
-        require(!isContractLocked(), "reentrant call");
+        require(!isContractLocked(), "8");//"reentrant call");
         setContractLock(true);
 
         // store gas budget pre target invocation to calculate unused gas budget
@@ -258,7 +264,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // call the receiveWormholeMessages endpoint on the target contract
         (bool success,) = fromWormholeFormat(internalInstruction.targetAddress).call{
             gas: internalInstruction.executionParameters.gasLimit, value:internalInstruction.applicationBudgetTarget
-        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[])", encodedVMs));
+        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[], bytes[])", encodedVMs, new bytes[](0)));
 
         uint256 postGas = gasleft();
 
@@ -373,14 +379,14 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //validate the original delivery VM
         (IWormhole.VM memory originalDeliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[targetParams.deliveryIndex]);
-        require(valid, "Invalid VAA at delivery index");
-        require(verifyRelayerVM(originalDeliveryVM), "Original Delivery VM has a invalid emitter");
+        require(valid, "9");//"Invalid VAA at delivery index");
+        require(verifyRelayerVM(originalDeliveryVM), "10");//"Original Delivery VM has a invalid emitter");
 
         //validate the redelivery VM
         IWormhole.VM memory redeliveryVM;
         (redeliveryVM, valid, reason) = wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
-        require(valid, "Redelivery VM is invalid");
-        require(verifyRelayerVM(redeliveryVM), "Redelivery VM has an invalid emitter");
+        require(valid, "11");//"Redelivery VM is invalid");
+        require(verifyRelayerVM(redeliveryVM), "12");//"Redelivery VM has an invalid emitter");
 
         DeliveryInstruction memory instruction = validateRedeliverySingle(decodeRedeliveryByTxHashInstruction(redeliveryVM.payload), decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[targetParams.multisendIndex]);
 
@@ -400,19 +406,20 @@ contract CoreRelayer is CoreRelayerGovernance {
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
         require(providerAddress == 
             fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress), 
-            "The same relay provider must be specified when doing a single VAA redeliver");
+            "13");//"The same relay provider must be specified when doing a single VAA redeliver");
 
         //msg.sender must be the provider
-        require (msg.sender == providerAddress, "Relay provider differed from the specified address");
+        require (msg.sender == providerAddress, "14");//"Relay provider differed from the specified address");
 
         //redelivery must target this chain
-        require (chainId() == redeliveryInstruction.targetChain, "Redelivery request does not target this chain.");
+        require (chainId() == redeliveryInstruction.targetChain, "15");//"Redelivery request does not target this chain.");
 
         //original delivery must target this chain
-        require (chainId() == originalInstruction.targetChain, "Original delivery request did not target this chain.");
+        require (chainId() == originalInstruction.targetChain, "16");//"Original delivery request did not target this chain.");
 
         //relayer must have covered the necessary funds
-        require (msg.value >= redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee(), "Msg.value does not cover the necessary budget fees");
+        require (msg.value >= redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee(), 
+        "17");//"Msg.value does not cover the necessary budget fees");
 
         //Overwrite compute budget and application budget on the original request and proceed.
         originalInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
@@ -428,31 +435,35 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // validate the deliveryIndex 
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
-        require(valid, "Invalid VAA at delivery index");
-        require(verifyRelayerVM(deliveryVM), "invalid emitter");
+        require(valid, "18");//"Invalid VAA at delivery index");
+        require(verifyRelayerVM(deliveryVM), "19");//"invalid emitter");
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
         //ensure this is a funded delivery, not a failed forward.
-        require(container.sufficientlyFunded, "This delivery request was not sufficiently funded, and must request redelivery.");
+        require(container.sufficientlyFunded, "20");//"This delivery request was not sufficiently funded, and must request redelivery.");
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
         DeliveryInstruction memory deliveryInstruction =
             container.instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
-        require(fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) == msg.sender, "Specified relayer is not the relayer delivering the message");
+        require(fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) == msg.sender, 
+        "21");//"Specified relayer is not the relayer delivering the message");
 
         //make sure relayer passed in sufficient funds
-        require(msg.value >= deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee(), "Relayer did not pass in sufficient funds");
+        require(msg.value >= deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee(), 
+        "22");//"Relayer did not pass in sufficient funds");
 
         //make sure this has not already been delivered
-        require(!isDeliveryCompleted(deliveryVM.hash), "delivery is already completed");
+        require(!isDeliveryCompleted(deliveryVM.hash), 
+        "23");//"delivery is already completed");
 
         //mark as delivered, so it can't be reattempted
         markAsDelivered(deliveryVM.hash);
 
         //make sure this delivery is intended for this chain
-        require(chainId() == deliveryInstruction.targetChain, "targetChain is not this chain");
+        require(chainId() == deliveryInstruction.targetChain, 
+        "24");//"targetChain is not this chain");
 
         return _executeDelivery(wormhole, deliveryInstruction, targetParams.encodedVMs, deliveryVM.hash);
     }
@@ -497,7 +508,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function calculateTargetDeliveryMaximumRefund(uint16 targetChain, uint256 computeBudget, IRelayProvider provider) internal view returns (uint256 maximumRefund) {
         uint256 remainder = computeBudget - provider.quoteDeliveryOverhead(targetChain);
-        maximumRefund = provider.quoteAssetConversion(chainId(), remainder, targetChain);
+        maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
     }
 
     /**
@@ -519,7 +530,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function calculateTargetRedeliveryMaximumRefund(uint16 targetChain, uint256 computeBudget, IRelayProvider provider) internal view returns (uint256 maximumRefund) {
         uint256 remainder = computeBudget - provider.quoteRedeliveryOverhead(targetChain);
-        maximumRefund = provider.quoteAssetConversion(chainId(), remainder, targetChain);
+        maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
     }
 
     function quoteGasDeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider provider) public view returns (uint256 deliveryQuote){
@@ -530,9 +541,20 @@ contract CoreRelayer is CoreRelayerGovernance {
         return provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain)) + wormhole().messageFee();
     }
 
+    //This is used internally to calculate the exchange rate for the provider without deducting the buffer amount
+    function quoteAssetConversion(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain,  IRelayProvider provider) internal view returns (uint256 targetAmount) {
+        uint256 srcNativeCurrencyPrice = provider.quoteAssetPrice(sourceChain);
+        require(srcNativeCurrencyPrice > 0, "28");
+
+        uint256 dstNativeCurrencyPrice = provider.quoteAssetPrice(targetChain);
+        require(dstNativeCurrencyPrice > 0, "29");
+
+        return sourceAmount * srcNativeCurrencyPrice / dstNativeCurrencyPrice;
+    }
+
     //If the integrator pays at least nativeQuote, they should receive at least targetAmount as their application budget
     function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) public view returns (uint256 nativeQuote) {
-        uint256 sourceAmount = provider.quoteAssetConversion(targetChain, targetAmount, chainId());
+        uint256 sourceAmount = quoteAssetConversion(targetChain, targetAmount, chainId(), provider);
         (uint16 buffer, uint16 denominator) = provider.assetConversionBuffer(chainId(), targetChain);
         nativeQuote = (sourceAmount * (denominator + buffer) + denominator - 1) / denominator; 
     }
@@ -540,7 +562,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     //This should invert quoteApplicationBudgetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
     //quoteApplicationBudgetFee.
     function convertApplicationBudgetAmount(uint256 sourceAmount, uint16 targetChain, IRelayProvider provider) internal view returns (uint256 targetAmount) {
-        uint256 amount = provider.quoteAssetConversion(chainId(), sourceAmount, targetChain);
+        uint256 amount = quoteAssetConversion(chainId(), sourceAmount, targetChain, provider);
         (uint16 buffer, uint16 denominator) = provider.assetConversionBuffer(chainId(), targetChain);
         targetAmount = amount * denominator / (denominator + buffer); 
     }
@@ -597,7 +619,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 request.refundAddress);
             newEncoded = abi.encodePacked(newEncoded, 
                 calculateTargetDeliveryMaximumRefund(request.targetChain, request.computeBudget, provider), 
-                provider.quoteAssetConversion(chainId(), request.applicationBudget, request.targetChain));
+                quoteAssetConversion(chainId(), request.applicationBudget, request.targetChain, provider));
             newEncoded = abi.encodePacked(newEncoded, 
                 uint8(1), //version for ExecutionParameters
                 calculateTargetGasDeliveryAmount(request.targetChain, request.computeBudget, provider),

@@ -1,14 +1,15 @@
 {
-  "shouldSpy": true,
+  "shouldSpy": false,
   "shouldRest": false,
-  "spyServiceFilters": [
-    {
-      "chainId": 2,
-      "emitterAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
+  "logWatcherSleepMs": 300000,
+  "supportedChains": {
+    "6": {
+      "coreContract": "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C",
+      "relayerAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
     },
-    {
-      "chainId": 4,
-      "emitterAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
+    "14": {
+      "coreContract": "0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56",
+      "relayerAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
     }
-  ]
+  }
 }

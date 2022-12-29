@@ -15,7 +15,7 @@ interface ICoreRelayer {
 
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce , IRelayProvider provider) external payable returns (uint64 sequence);
 
-    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce, IRelayProvider provider) external payable returns (uint64 sequence);
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce) external payable returns (uint64 sequence);
 
     /**
     @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all

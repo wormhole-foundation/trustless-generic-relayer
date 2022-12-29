@@ -17,9 +17,9 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
         address defaultRelayProvider
     ) public {
         // sanity check initial values
-        require(implementation != address(0), "implementation cannot be address(0)");
-        require(wormhole != address(0), "wormhole cannot be address(0)");
-        require(defaultRelayProvider != address(0), "default relay provider cannot be address(0)");
+        require(implementation != address(0), "1");//"implementation cannot be address(0)");
+        require(wormhole != address(0), "2");//wormhole cannot be address(0)");
+        require(defaultRelayProvider != address(0), "3");//default relay provider cannot be address(0)");
 
         setOwner(_msgSender());
 

@@ -52,20 +52,4 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.contractLock = status;
     }
 
-    function incrementAttemptedDelivery(bytes32 deliveryHash) internal {
-        _state.attemptedDeliveries[deliveryHash] += 1;
-    }
-
-    function incrementRedeliveryAttempt(bytes32 deliveryHash) internal {
-        _state.redeliveryAttempts[deliveryHash] += 1;
-    }
-
-    function incrementRelayerRewards(address relayer, uint16 rewardChain, uint256 rewardAmount) internal {
-        _state.relayerRewards[relayer][rewardChain] += rewardAmount;
-    }
-
-    function resetRelayerRewards(address relayer, uint16 rewardChain) internal {
-        _state.relayerRewards[relayer][rewardChain] = 0;
-    }
-
 }

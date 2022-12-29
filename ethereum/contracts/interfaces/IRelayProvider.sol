@@ -17,12 +17,6 @@ interface IRelayProvider {
     // should this have source chain as a parameter, or default to current chain id?
     function assetConversionBuffer(uint16 sourceChain, uint16 targetChain) external view returns (uint16 tolerance, uint16 toleranceDenominator);
 
-    // should this have target chain as a parameter, or default to current chain id?
-    //This function must be invertible in order to be considered compliant.
-    // revise: There seems to be no need for the provider to provide quotes that don't include chainId() as one of the source or target chain?
-    //I.E quoteAssetConversion(targetChain, quoteAssetConversion(sourceChain, sourceAmount, targetChain), sourceChain) == sourceAmount;
-    function quoteAssetConversion(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain) external view returns (uint256 targetAmount);
-
     //In order to be compliant, this must return an amount larger than both
     // quoteDeliveryOverhead(targetChain) and quoteRedeliveryOverhead(targetChain)
     function quoteMaximumBudget(uint16 targetChain) external view returns (uint256 maximumTargetBudget);

@@ -22,22 +22,22 @@ abstract contract CoreRelayerGovernance is
 {
     //TODO convert this upgrade to being managed by guardian VAAs
 
-    event ContractUpgraded(address indexed oldContract, address indexed newContract);
-    event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event RelayProviderUpdated(address indexed oldDefaultRelayProvider, address indexed newDefaultRelayProvider);
+    // event ContractUpgraded(address indexed oldContract, address indexed newContract);
+    // event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
+    // event RelayProviderUpdated(address indexed newDefaultRelayProvider);
     
     /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
     function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
-        require(coreRelayerContractAddress != bytes32(0), "invalid contract address");
-        require(registeredCoreRelayerContract(chainId) == bytes32(0), "contract already registered");
-        require(chainId != 0, "invalid chainId");
+        require(coreRelayerContractAddress != bytes32(0), "1");//"invalid contract address");
+        require(registeredCoreRelayerContract(chainId) == bytes32(0), "2");//"contract already registered");
+        require(chainId != 0, "3");//"invalid chainId");
 
         setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
     }
 
     /// @dev upgrade serves to upgrade contract implementations
     function upgrade(uint16 thisRelayerChainId, address newImplementation) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "wrong chain id");
+        require(thisRelayerChainId == chainId(), "3");
 
         address currentImplementation = _getImplementation();
 
@@ -48,21 +48,7 @@ abstract contract CoreRelayerGovernance is
 
         require(success, string(reason));
 
-        emit ContractUpgraded(currentImplementation, newImplementation);
-    }
-
-
-    /// @dev updateRelayProviderContract changes the contract address for the RelayProvider
-    function updateDefaultRelayProviderContract(uint16 thisChainId, address newRelayProviderAddress) public onlyOwner {
-        require(thisChainId == chainId(), "wrong chain id");
-        require(newRelayProviderAddress != address(0), "new RelayProvider address cannot be address(0)");
-
-        // cache the current defaultRelayProvider address
-        address currentRelayProvider = getDefaultRelayProviderAddress();
-
-        setRelayProvider(newRelayProviderAddress);
-
-        emit RelayProviderUpdated(currentRelayProvider, newRelayProviderAddress);
+        //emit ContractUpgraded(currentImplementation, newImplementation);
     }
 
     /**
@@ -70,8 +56,8 @@ abstract contract CoreRelayerGovernance is
      * - it saves an address for the new owner in the pending state
      */
     function submitOwnershipTransferRequest(uint16 thisRelayerChainId, address newOwner) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "incorrect chainId");
-        require(newOwner != address(0), "new owner cannot be address(0)");
+        require(thisRelayerChainId == chainId(), "4");
+        require(newOwner != address(0), "5");
 
         setPendingOwner(newOwner);
     }
@@ -85,7 +71,7 @@ abstract contract CoreRelayerGovernance is
         // cache the new owner address
         address newOwner = pendingOwner();
 
-        require(msg.sender == newOwner, "caller must be pending owner");
+        require(msg.sender == newOwner, "6");
 
         // cache currentOwner for Event
         address currentOwner = owner();
@@ -94,7 +80,7 @@ abstract contract CoreRelayerGovernance is
         setOwner(newOwner);
         setPendingOwner(address(0));
 
-        emit OwnershipTransfered(currentOwner, newOwner);
+        //emit OwnershipTransfered(currentOwner, newOwner);
     }
 
     function setDefaultRelayProvider(address relayProvider) public onlyOwner {
@@ -106,7 +92,7 @@ abstract contract CoreRelayerGovernance is
     }
 
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "caller must be the owner");
+        require(owner() == _msgSender(), "7");
         _;
     }
 }

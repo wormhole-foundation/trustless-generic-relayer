@@ -34,8 +34,27 @@ contract MockRelayerIntegration is IWormholeReceiver {
         owner = msg.sender;
     }
 
+    function sendMessage() public payable{
+        wormhole.publishMessage(1, abi.encode(uint8(1)), 200);
 
-    function receiveWormholeMessages(bytes[] memory wormholeObservations) public override {
+        //Calc which should be done off-chain
+        //uint256 computeBudget = relayer.quoteGasDeliveryFee(wormhole.chainId(), 1000000, relayer.getDefaultRelayProvider());
+        uint256 applicationBudget = 0;
+
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
+            wormhole.chainId(), //target chain
+            relayer.toWormholeFormat(address(this)), //target address
+            relayer.toWormholeFormat(address(this)),  //refund address, This will be ignored on the target chain because the intent is to perform a forward
+            msg.value, //compute budget
+            applicationBudget, //application budget, not needed in this case. 
+            relayer.getDefaultRelayParams() //no overrides
+        );
+
+        relayer.requestDelivery{value: msg.value}(request, 1, relayer.getDefaultRelayProvider());
+    }
+
+
+    function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory additionalData) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
         for (uint256 i = 0; i < numObservations - 1;) {

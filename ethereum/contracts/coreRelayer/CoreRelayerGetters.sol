@@ -53,10 +53,6 @@ contract CoreRelayerGetters is CoreRelayerState {
     //     }
     // } 
 
-    function getDefaultRelayProviderAddress() public view returns (address) {
-        return _state.defaultRelayProvider;
-    }
-
     function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
         return _state.forwardingRequest;
     }
@@ -69,15 +65,4 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.contractLock;
     }
 
-    function attemptedDeliveryCount(bytes32 deliveryHash) public view returns (uint16) {
-        return _state.attemptedDeliveries[deliveryHash];
-    }
-
-    function redeliveryAttemptCount(bytes32 deliveryHash) public view returns (uint16) {
-        return _state.redeliveryAttempts[deliveryHash];
-    }
-
-    function relayerRewards(address relayer, uint16 rewardChain) public view returns (uint256) {
-        return _state.relayerRewards[relayer][rewardChain];
-    }
 }
