@@ -8,6 +8,8 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
+import "forge-std/console.sol";
+
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
@@ -32,7 +34,8 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider) public payable returns (uint64 sequence) {
-        (uint256 requestFee, uint256 maximumRefund, uint256 applicationBudgetTarget, bool isSufficient, string memory reason)= 
+           console.log("got here 1");
+        (uint256 requestFee, uint256 maximumRefund, uint256 applicationBudgetTarget, bool isSufficient, string memory reason) =
             verifyFunding(VerifyFundingCalculation(provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget, false));
         require(isSufficient, reason);
         uint256 totalFee = requestFee + wormhole().messageFee();
@@ -42,7 +45,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         emitRedelivery(request, nonce, provider.getConsistencyLevel(), applicationBudgetTarget, maximumRefund, provider);
 
-        
+        console.log("got here 2");
         //Send the delivery fees to the specified address of the provider.
         provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
     }
@@ -269,7 +272,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 postGas = gasleft();
 
         // refund unused gas budget
-        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+        uint256 weiToRefund = 0;
+        if(success) {
+            weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas)) * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+        }
 
         // unlock the contract
         setContractLock(false);
