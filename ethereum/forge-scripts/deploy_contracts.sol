@@ -60,7 +60,7 @@ contract ContractScript is Script {
     address TILT_WORMHOLE_ADDRESS = 0xC89Ce4735882C9F0f0FE26686c53074E09B0D550;
     address TILT_MIGRATION_ADDRESS = 0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab;
     bool isTilt = false;
-    uint16 chainId = 2;
+    uint16 chainId;
     address wormholeAddress;
 
     function setUp() public {
@@ -193,6 +193,7 @@ contract ContractScript is Script {
         chainId = wormhole.chainId();
         isTilt = (wormholeAddress == TILT_WORMHOLE_ADDRESS);
         if(isTilt){
+            console.log("running in tilt");
             migrations = Migrations(TILT_MIGRATION_ADDRESS);
         }
 
@@ -210,8 +211,8 @@ contract ContractScript is Script {
         
         deployRelayerIntegrationContract();
 
-        // mockRelayerIntegration.sendMessage{gas:1000000, 
-        // value:coreRelayer.quoteGasDeliveryFee(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000}();
+        mockRelayerIntegration.sendMessage{gas:1000000, 
+        value:coreRelayer.quoteGasDeliveryFee(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000}(abi.encode("Hello World"), chainId, address(mockRelayerIntegration));
 
         // finished
         vm.stopBroadcast();
