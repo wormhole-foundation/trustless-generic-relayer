@@ -57,7 +57,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
     }
 
 
-    function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory additionalData) public payable override {
+    function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
         for (uint256 i = 0; i < numObservations - 1;) {
