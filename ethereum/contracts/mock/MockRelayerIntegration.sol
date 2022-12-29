@@ -8,9 +8,6 @@ import "../interfaces/IWormhole.sol";
 import "../interfaces/ICoreRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
 
-import "forge-std/Test.sol";
-import "forge-std/console.sol";
-
 contract MockRelayerIntegration is IWormholeReceiver {
     using BytesLib for bytes;
 
@@ -34,17 +31,23 @@ contract MockRelayerIntegration is IWormholeReceiver {
         owner = msg.sender;
     }
 
-    function sendMessage() public payable{
-        wormhole.publishMessage(1, abi.encode(uint8(1)), 200);
+    function sendMessage(bytes memory message, uint16 targetChainId, address destination) public payable {
+        executeSend(abi.encodePacked(uint8(0), message), targetChainId, destination);
+    }
 
-        //Calc which should be done off-chain
-        //uint256 computeBudget = relayer.quoteGasDeliveryFee(wormhole.chainId(), 1000000, relayer.getDefaultRelayProvider());
+    function sendMessageWithForwardedResponse(bytes memory message, uint16 targetChainId, address destination) public payable {
+        executeSend(abi.encodePacked(uint8(1), message), targetChainId, destination);
+    }
+
+    function executeSend(bytes memory fullMessage, uint16 targetChainId, address destination) internal {
+        wormhole.publishMessage(1, fullMessage, 200);
+
         uint256 applicationBudget = 0;
 
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
-            wormhole.chainId(), //target chain
-            relayer.toWormholeFormat(address(this)), //target address
-            relayer.toWormholeFormat(address(this)),  //refund address, This will be ignored on the target chain because the intent is to perform a forward
+            targetChainId, //target chain
+            relayer.toWormholeFormat(address(destination)), //target address
+            relayer.toWormholeFormat(address(destination)),  //refund address, This will be ignored on the target chain because the intent is to perform a forward
             msg.value, //compute budget
             applicationBudget, //application budget, not needed in this case. 
             relayer.getDefaultRelayParams() //no overrides

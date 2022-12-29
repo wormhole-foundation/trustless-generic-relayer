@@ -7,10 +7,6 @@ import "./RelayProviderGovernance.sol";
 import "./RelayProviderStructs.sol";
 import "../interfaces/IRelayProvider.sol";
 
-import "forge-std/Test.sol";
-
-import "forge-std/console.sol";
-
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     
     //Returns the delivery overhead fee required to deliver a message to targetChain, denominated in this chain's wei.

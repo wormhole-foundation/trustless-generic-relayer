@@ -43,10 +43,6 @@ contract TestCoreRelayer is Test {
         uint64 sourceNativePrice;
     }
 
-    struct VMParams {
-        uint32 nonce;
-    }
-
     IWormhole relayerWormhole;
     WormholeSimulator relayerWormholeSimulator;
 
@@ -150,7 +146,7 @@ contract TestCoreRelayer is Test {
     }
 
 
-    function standardAssume(GasParameters memory gasParams, VMParams memory batchParams) public {
+    function standardAssume(GasParameters memory gasParams) public {
         uint128 halfMaxUint128 = 2 ** (128 / 2) - 1;
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
@@ -160,7 +156,7 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.sourceNativePrice > 0 && gasParams.sourceNativePrice < halfMaxUint128);
         vm.assume(gasParams.sourceNativePrice  < halfMaxUint128 / gasParams.sourceGasPrice );
         vm.assume(gasParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice );
-        vm.assume(batchParams.nonce > 0);
+
     }
 
 
@@ -218,9 +214,9 @@ contract TestCoreRelayer is Test {
     }
     // This test confirms that the `send` method generates the correct delivery Instructions payload
     // to be delivered on the target chain.
-    function testSend(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
+    function testSend(GasParameters memory gasParams, bytes memory message) public {
         
-        standardAssume(gasParams, batchParams);
+        standardAssume(gasParams);
 
         vm.assume(gasParams.targetGasLimit >= 1000000);
         //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
@@ -243,14 +239,7 @@ contract TestCoreRelayer is Test {
         // start listening to events
         vm.recordLogs();
 
-        // send an arbitrary wormhole message to be relayed
-        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(0), message), 200);
-
-        // call the send function on the relayer contract
-
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, toWormholeFormat(address(target.integration)), toWormholeFormat(address(target.integration)), computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
-
-        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, source.relayProvider);
+        source.integration.sendMessage{value: computeBudget + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
 
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);
@@ -262,9 +251,9 @@ contract TestCoreRelayer is Test {
     }
 
 
-    function testForward(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
+    function testForward(GasParameters memory gasParams, bytes memory message) public {
         
-        standardAssume(gasParams, batchParams);
+        standardAssume(gasParams);
 
         uint16 SOURCE_CHAIN_ID = 1;
         uint16 TARGET_CHAIN_ID = 2;
@@ -288,16 +277,8 @@ contract TestCoreRelayer is Test {
         // start listening to events
         vm.recordLogs();
 
-        // send an arbitrary wormhole message to be relayed
-        vm.prank(address(source.integration));
-        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(1), message), 200);
-
-        // call the send function on the relayer contract
-
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, bytes32(uint256(uint160(address(target.integration)))), bytes32(uint256(uint160(address(0x1)))), computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
-
-        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudget}(request, batchParams.nonce, source.relayProvider);
-
+        source.integration.sendMessageWithForwardedResponse{value: computeBudget + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
+        
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);
         senders[1] = address(source.coreRelayer);
@@ -317,9 +298,9 @@ contract TestCoreRelayer is Test {
 
     }
 
-    function testRedelivery(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
+    function testRedelivery(GasParameters memory gasParams, bytes memory message) public {
         
-        standardAssume(gasParams, batchParams);
+        standardAssume(gasParams);
 
         vm.assume(gasParams.targetGasLimit >= 1000000);
         //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
@@ -343,14 +324,7 @@ contract TestCoreRelayer is Test {
         // start listening to events
         vm.recordLogs();
 
-        // send an arbitrary wormhole message to be relayed
-        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(0), message), 200);
-
-        // call the send function on the relayer contract
-
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, toWormholeFormat(address(target.integration)), toWormholeFormat(address(target.integration)), computeBudgetNotEnough, 0, source.coreRelayer.getDefaultRelayParams());
-
-        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudgetNotEnough}(request, batchParams.nonce, source.relayProvider);
+        source.integration.sendMessage{value: computeBudgetNotEnough + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
 
         address[] memory senders = new address[](2);
         senders[0] = address(source.integration);
@@ -361,9 +335,9 @@ contract TestCoreRelayer is Test {
 
         bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
 
-        ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest(SOURCE_CHAIN_ID, deliveryVaaHash, batchParams.nonce, TARGET_CHAIN_ID, computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
+        ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest(SOURCE_CHAIN_ID, deliveryVaaHash, 1, TARGET_CHAIN_ID, computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
 
-        source.coreRelayer.requestRedelivery{value: source.wormhole.messageFee() + computeBudget}(redeliveryRequest, batchParams.nonce, source.relayProvider);
+        source.coreRelayer.requestRedelivery{value: source.wormhole.messageFee() + computeBudget}(redeliveryRequest, 1, source.relayProvider);
 
         senders = new address[](2);
         senders[0] = address(source.integration);

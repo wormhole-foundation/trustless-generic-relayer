@@ -11,9 +11,6 @@ import "./RelayProviderGetters.sol";
 import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
-import "forge-std/console.sol";
-
-
 abstract contract RelayProviderGovernance is
     RelayProviderGetters,
     RelayProviderSetters,
@@ -66,8 +63,6 @@ abstract contract RelayProviderGovernance is
     }
 
     function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) public onlyOwner {
-        console.log("max budget contract set");
-        console.log(maximumTotalBudget);
         setMaximumBudget(targetChainId, maximumTotalBudget);
     }
 
