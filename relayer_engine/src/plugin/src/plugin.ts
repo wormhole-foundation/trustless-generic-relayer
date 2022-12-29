@@ -1,6 +1,5 @@
 import {
   ActionExecutor,
-  assertArray,
   assertBool,
   assertInt,
   CommonPluginEnv,
@@ -18,7 +17,7 @@ import {
 import * as wh from "@certusone/wormhole-sdk"
 import { Logger } from "winston"
 import { PluginError } from "./utils"
-import { SignedVaa } from "@certusone/wormhole-sdk"
+import { EVMChainId, SignedVaa } from "@certusone/wormhole-sdk"
 import {
   CoreRelayer__factory,
   DeliveryInstructionsContainer,
@@ -110,7 +109,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
   async subscribeToEvents(eventSource: (event: SignedVaa) => Promise<void>) {
     // need to keep same function object to unsubscribe from events successfully
-    const fns: Record<string, any> = {}
+    const fns: Record<number, any> = {}
     while (true) {
       // resubscribe to contract events every 5 minutes
       for (const [
