@@ -194,7 +194,7 @@ contract TestCoreRelayer is Test {
         for(uint16 i=1; i<=numChains; i++) {
             for(uint16 j=1; j<=numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
-                map[i].coreRelayerGovernance.registerCoreRelayer(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
+                map[i].coreRelayerGovernance.registerCoreRelayerContract(j, bytes32(uint256(uint160(address(map[j].coreRelayer)))));
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
             }
         }
@@ -338,13 +338,10 @@ contract TestCoreRelayer is Test {
 
         source.coreRelayer.requestRedelivery{value: source.wormhole.messageFee() + computeBudget}(redeliveryRequest, 1, source.relayProvider);
 
-        senders = new address[](2);
-        senders[0] = address(source.integration);
-        senders[1] = address(source.coreRelayer);
-        //genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
-        // need to make this work for redelivery ^
-        //assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
-
+        senders = new address[](1);
+        senders[0] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
     }
 
@@ -358,6 +355,8 @@ contract TestCoreRelayer is Test {
     }
 
     mapping(uint256 => bool) nonceCompleted; 
+
+    mapping(bytes32 => ICoreRelayer.TargetDeliveryParametersSingle) pastDeliveries;
 
     function genericRelayer(bytes[] memory encodedVMs) internal {
         
@@ -389,16 +388,7 @@ contract TestCoreRelayer is Test {
                 for(uint16 j=i; j<encodedVMs.length; j++) {
                     if(parsed[i].nonce == parsed[j].nonce) {
                         if(parsed[j].emitterAddress == toWormholeFormat(address(contracts.coreRelayer)) && (parsed[j].emitterChainId == chainId)) {
-                             ICoreRelayer.DeliveryInstructionsContainer memory container = contracts.coreRelayer.getDeliveryInstructionsContainer(parsed[j].payload);
-                             for(uint8 k=0; k<container.instructions.length; k++) {
-                                uint256 budget = container.instructions[k].maximumRefundTarget + container.instructions[k].applicationBudgetTarget;
-                                ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle(deliveryInstructions, counter, k);
-                                uint16 targetChain = container.instructions[k].targetChain;
-                                vm.deal(map[targetChain].relayer, budget);
-                                vm.prank(map[targetChain].relayer);
-                                map[targetChain].coreRelayer.deliverSingle{value: budget}(package);
-                             }
-                             break;
+                             genericRelay(contracts, counter, encodedVMs[j], deliveryInstructions, parsed[j]);
                         }
                         counter += 1;
                     }
@@ -409,6 +399,31 @@ contract TestCoreRelayer is Test {
         }
         for(uint8 i=0; i<encodedVMs.length; i++) {
             nonceCompleted[parsed[i].nonce] = false;
+        }
+    }
+
+    function genericRelay(Contracts memory contracts, uint8 counter, bytes memory encodedVM, bytes[] memory deliveryInstructions, IWormhole.VM memory parsed) internal {
+        uint8 payloadId = parsed.payload.toUint8(0);
+        if(payloadId == 1) {
+            ICoreRelayer.DeliveryInstructionsContainer memory container = contracts.coreRelayer.getDeliveryInstructionsContainer(parsed.payload);
+            for(uint8 k=0; k<container.instructions.length; k++) {
+                uint256 budget = container.instructions[k].maximumRefundTarget + container.instructions[k].applicationBudgetTarget;
+                ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle(deliveryInstructions, counter, k);
+                uint16 targetChain = container.instructions[k].targetChain;
+                vm.deal(map[targetChain].relayer, budget);
+                vm.prank(map[targetChain].relayer);
+                map[targetChain].coreRelayer.deliverSingle{value: budget}(package);
+                pastDeliveries[parsed.hash] = package;
+            }
+        } else if(payloadId == 2) {
+            ICoreRelayer.RedeliveryByTxHashInstruction memory instruction = contracts.coreRelayer.getRedeliveryByTxHashInstruction(parsed.payload);
+            ICoreRelayer.TargetDeliveryParametersSingle memory originalDelivery = pastDeliveries[instruction.sourceTxHash];
+            uint256 budget = instruction.newMaximumRefundTarget + instruction.newApplicationBudgetTarget;
+            uint16 targetChain = instruction.targetChain;
+            ICoreRelayer.TargetRedeliveryByTxHashParamsSingle memory package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle(encodedVM, originalDelivery.encodedVMs, originalDelivery.deliveryIndex, originalDelivery.multisendIndex);
+            vm.deal(map[targetChain].relayer, budget);
+            vm.prank(map[targetChain].relayer);
+            map[targetChain].coreRelayer.redeliverSingle{value: budget}(package);
         }
     }
 

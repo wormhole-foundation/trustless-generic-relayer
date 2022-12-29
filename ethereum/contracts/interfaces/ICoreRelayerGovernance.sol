@@ -8,6 +8,6 @@ interface ICoreRelayerGovernance {
     
     function setDefaultRelayProvider(address relayProvider) external;
 
-    function registerCoreRelayer(uint16 chainId, bytes32 relayerAddress) external;
+    function registerCoreRelayerContract(uint16 chainId, bytes32 relayerAddress) external;
 
 }

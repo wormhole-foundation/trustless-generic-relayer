@@ -61,7 +61,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     /// @dev `decodeDeliveryInstructionsContainer` parses encoded delivery instructions into the DeliveryInstructions struct
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
-        public
+        internal
         pure
         returns (DeliveryInstructionsContainer memory)
     {

@@ -47,6 +47,9 @@ interface ICoreRelayer {
 
     function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
 
+    function getRedeliveryByTxHashInstruction(bytes memory encoded) external view returns (RedeliveryByTxHashInstruction memory instruction);
+
+
     struct DeliveryRequestsContainer {
         uint8 payloadId; // payloadID = 1
         address relayProviderAddress;
@@ -127,6 +130,18 @@ interface ICoreRelayer {
         uint256 applicationBudgetTarget;
         ExecutionParameters executionParameters; //Has the gas limit to execute with
     }
+
+    struct RedeliveryByTxHashInstruction {
+        uint8 payloadId; //2
+        uint16 sourceChain;
+        bytes32 sourceTxHash;
+        uint32 sourceNonce; 
+        uint16 targetChain;
+        uint256 newMaximumRefundTarget; 
+        uint256 newApplicationBudgetTarget;
+        ExecutionParameters executionParameters;
+    }
+
     struct ExecutionParameters {
         uint8 version;
         uint32 gasLimit;

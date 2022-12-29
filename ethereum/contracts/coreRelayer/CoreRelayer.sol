@@ -34,7 +34,6 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider) public payable returns (uint64 sequence) {
-           console.log("got here 1");
         (uint256 requestFee, uint256 maximumRefund, uint256 applicationBudgetTarget, bool isSufficient, string memory reason) =
             verifyFunding(VerifyFundingCalculation(provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget, false));
         require(isSufficient, reason);
@@ -493,6 +492,10 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function getDeliveryInstructionsContainer(bytes memory encoded) public view returns (DeliveryInstructionsContainer memory container) {
         container = decodeDeliveryInstructionsContainer(encoded);
+    }
+
+    function getRedeliveryByTxHashInstruction(bytes memory encoded) public view returns (RedeliveryByTxHashInstruction memory instruction) {
+        instruction = decodeRedeliveryByTxHashInstruction(encoded);
     }
 
     /**
