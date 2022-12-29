@@ -2,8 +2,6 @@ import * as relayerEngine from "@wormhole-foundation/relayer-engine"
 import GenericRelayerPluginDef, { GenericRelayerPluginConfig } from "./plugin/src/plugin"
 
 async function main() {
-  console.log("args: ", process.argv)
-
   // load plugin config
   const envType = selectPluginConfig(process.argv[2] || "")
   const pluginConfig = (await relayerEngine.loadFileAndParseToObject(
