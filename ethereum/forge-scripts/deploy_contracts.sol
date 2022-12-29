@@ -52,6 +52,7 @@ contract ContractScript is Script {
     CoreRelayerSetup coreRelayerSetup;
     CoreRelayerImplementation coreRelayerImplementation;
     CoreRelayerProxy coreRelayerProxy;
+    CoreRelayer coreRelayer;
 
     // MockRelayerIntegration
     MockRelayerIntegration mockRelayerIntegration;
@@ -112,6 +113,8 @@ contract ContractScript is Script {
         if(isTilt){
             migrations.setCompleted(69);
         }
+
+        coreRelayer = CoreRelayer(address(coreRelayerProxy));
     }
 
     function configureRelayProvider() public {
@@ -138,16 +141,28 @@ contract ContractScript is Script {
             chains[1] = 14;
         }
 
+        bytes32 thing = core_relayer.toWormholeFormat(currentAddress);
+        console.log("got current address wh");
+
         for(uint16 i =0; i < chains.length; i++){
+            console.log("about to set delivery address");
             provider.updateDeliveryAddress(chains[i], core_relayer.toWormholeFormat(currentAddress));
             provider.updateDeliverGasOverhead(chains[i], 350000);
-            provider.updatePrice(chains[i], 30 * 10^9, 1 * 10^6);
-            provider.updateMaximumBudget(chains[i], 1 * 10^17);
+            provider.updatePrice(chains[i], uint128(300000000000), uint128(100000));
+            provider.updateMaximumBudget(chains[i], uint256(1000000000000000000));
         }
+
+        console.log("max budget for chain 2");
+        console.log(provider.quoteMaximumBudget(2));
+        console.log("asset price for chain 2");
+        console.log(provider.quoteAssetPrice(2));
+            
     }
 
     function configureCoreRelayer() public {
         //Only thing to do here is register all the chains together
+        CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
+        core_relayer.registerCoreRelayer(chainId, core_relayer.toWormholeFormat(address(core_relayer)));
     }
 
 
@@ -158,6 +173,18 @@ contract ContractScript is Script {
     //         address(coreRelayerProxy)
     //     );
     // }
+
+    function deployRelayerIntegrationContract() public {
+        // if(chainId == 2 || chainId == 6) {
+        //     //deploy hub
+        // } else {
+        //     //deploy spoke
+        // }
+
+        mockRelayerIntegration= new MockRelayerIntegration(address(wormhole), 
+            address(coreRelayerProxy));
+
+    }
 
     function run(address _wormholeAddress) public {
         //actual setup
@@ -173,17 +200,18 @@ contract ContractScript is Script {
         // begin sending transactions
         vm.startBroadcast();
 
-        // GasOracle.sol
         deployRelayProvider();
-
-        // CoreRelayer.sol
         deployCoreRelayer();
 
+        configureRelayProvider();
+        configureCoreRelayer();
 
+        vm.roll(block.number + 1);
+        
+        deployRelayerIntegrationContract();
 
-        //TODO integration contract deployments
-        // MockRelayerIntegration.sol
-        //deployMockRelayerIntegration();
+        // mockRelayerIntegration.sendMessage{gas:1000000, 
+        // value:coreRelayer.quoteGasDeliveryFee(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000}();
 
         // finished
         vm.stopBroadcast();
