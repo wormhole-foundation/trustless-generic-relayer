@@ -73,6 +73,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         uint256 srcNativeCurrencyPrice = quoteAssetPrice(sourceChain);
         uint256 dstNativeCurrencyPrice = quoteAssetPrice(targetChain);
 
-        return sourceAmount * srcNativeCurrencyPrice / dstNativeCurrencyPrice;
+        // round up
+        return (sourceAmount * srcNativeCurrencyPrice + dstNativeCurrencyPrice - 1) / dstNativeCurrencyPrice;
     }
 }

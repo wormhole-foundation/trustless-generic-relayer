@@ -264,7 +264,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // call the receiveWormholeMessages endpoint on the target contract
         (bool success,) = fromWormholeFormat(internalInstruction.targetAddress).call{
             gas: internalInstruction.executionParameters.gasLimit, value:internalInstruction.applicationBudgetTarget
-        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[], bytes[])", encodedVMs, new bytes[](0)));
+        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[],bytes[])", encodedVMs, new bytes[](0)));
 
         uint256 postGas = gasleft();
 
