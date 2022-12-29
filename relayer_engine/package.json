@@ -5,7 +5,7 @@
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
   "scripts": {
-    "testent": "ts-node src/main --testnet",
+    "testnet": "ts-node src/main --testnet",
     "tilt": "ts-node src/main --tilt",
     "mainnet": "ts-node src/main --mainnet",
     "typecheck": "tsc --noEmit",

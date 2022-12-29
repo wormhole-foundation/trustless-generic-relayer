@@ -4,10 +4,10 @@
   "logWatcherSleepMs": 300000,
   "supportedChains": {
     "6": {
-      "relayerAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
+      "relayerAddress": "0x19b20Dc6d5C0BcD2D278d7703975e4F7F78A2646"
     },
     "14": {
-      "relayerAddress": "0xdC78afe9cFDe0576Ff236667DC8c380615c24Ca9"
+      "relayerAddress": "0xbe9F613ab3e51f90Dd389E82f4745847656ef819"
     }
   }
 }

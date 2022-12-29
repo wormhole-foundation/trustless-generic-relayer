@@ -4,6 +4,7 @@ import {
   assertInt,
   CommonPluginEnv,
   ContractFilter,
+  dbg,
   EventSource,
   ParsedVaaWithBytes,
   parseVaaWithBytes,
@@ -164,22 +165,24 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     chainId: wh.EVMChainId,
     payload: string,
     typedEvent: TypedEvent<
-      [string, ethers.BigNumber, number, Uint8Array, number] & {
+      [string, ethers.BigNumber, number, string, number] & {
         sender: string
         sequence: ethers.BigNumber
         nonce: number
-        payload: Uint8Array
+        payload: string
         consistencyLevel: number
       }
     >
   ): Promise<void> {
-    parsePayloadType(typedEvent.args.payload)
+    dbg(payload, "payload")
+    dbg(typedEvent.args.payload, "event args payload")
+    parsePayloadType(payload)
     const rx = await typedEvent.getTransactionReceipt()
     // todo: will need to tweak retry and backoff params
     const resp = await wh.getSignedVAAWithRetry(
       ["https://wormhole-v2-testnet-api.certus.one"],
       chainId,
-      typedEvent.args.sender,
+      wh.tryNativeToHexString(typedEvent.args.sender, "ethereum"),
       typedEvent.args.sequence.toString(),
       undefined,
       undefined,
@@ -192,38 +195,6 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   // so we actually want to bypass the inbuilt filters.
   getFilters(): ContractFilter[] {
     return []
-  }
-
-  async fetchOtherVaas(
-    rx: ethers.ContractReceipt,
-    batchId: number, // aka nonce
-    chainId: wh.EVMChainId
-  ): Promise<ParsedVaaWithBytes[]> {
-    // parse log and fetch vaa
-    const logToVaa = async (bridgeLog: ethers.providers.Log) => {
-      const log = Implementation__factory.createInterface().parseLog(
-        bridgeLog
-      ) as unknown as LogMessagePublishedEvent
-      const resp = await wh.getSignedVAAWithRetry(
-        ["https://wormhole-v2-testnet-api.certus.one"],
-        chainId,
-        log.args.sender,
-        log.args.sequence.toString(),
-        undefined,
-        undefined,
-        10
-      )
-      return parseVaaWithBytes(resp.vaaBytes)
-    }
-
-    // collect all vaas
-    const vaas: ParsedVaaWithBytes[] = await Promise.all(rx.logs.map(logToVaa))
-
-    if (vaas.length <= 1) {
-      // todo: figure out error handling for subscription code
-      this.logger.error("Expected generic relay tx to have >1 VAA")
-    }
-    return vaas.filter((vaa) => vaa.nonce === batchId)
   }
 
   async consumeEvent(
@@ -242,7 +213,12 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     }
 
     const emitterChain = coreRelayerVaa.emitterChain as wh.EVMChainId
-    const otherVaas = await this.fetchOtherVaas(rx, coreRelayerVaa.nonce, emitterChain)
+    const otherVaas = await this.fetchOtherVaas(
+      rx,
+      coreRelayerVaa.nonce,
+      emitterChain,
+      coreRelayerVaa.emitterAddress
+    )
 
     return {
       workflowData: {
@@ -252,6 +228,47 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     }
   }
 
+  async fetchOtherVaas(
+    rx: ethers.ContractReceipt,
+    batchId: number, // aka nonce
+    chainId: wh.EVMChainId,
+    coreRelayerAddress: Buffer
+  ): Promise<ParsedVaaWithBytes[]> {
+    // parse log and fetch vaa
+    const logToVaa = async (bridgeLog: ethers.providers.Log) => {
+      const log = Implementation__factory.createInterface().parseLog(
+        bridgeLog
+      ) as unknown as LogMessagePublishedEvent
+      const sender = wh.tryNativeToHexString(log.args.sender, "ethereum")
+      if (sender === wh.tryUint8ArrayToNative(coreRelayerAddress, "ethereum")) {
+        return undefined
+      }
+      // todo: this should handle VAAs that are not ready for hours
+      const resp = await wh.getSignedVAAWithRetry(
+        ["https://wormhole-v2-testnet-api.certus.one"],
+        chainId,
+        sender,
+        log.args.sequence.toString(),
+        undefined,
+        undefined,
+        10
+      )
+      return parseVaaWithBytes(resp.vaaBytes)
+    }
+
+    // collect all vaas
+    // @ts-ignore
+    const vaas: ParsedVaaWithBytes[] = (await Promise.all(rx.logs.map(logToVaa))).filter(
+      (x) => x
+    )
+
+    if (vaas.length <= 1) {
+      // todo: figure out error handling for subscription code
+      this.logger.error("Expected generic relay tx to have >1 VAA")
+    }
+    return vaas.filter((vaa) => vaa.nonce === batchId)
+  }
+
   async handleWorkflow(
     workflow: Workflow<WorkflowPayload>,
     providers: Providers,
@@ -259,11 +276,14 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   ): Promise<void> {
     this.logger.info("Got workflow")
     this.logger.debug(JSON.stringify(workflow, undefined, 2))
+    console.log("sanity console log")
 
     const payload = this.parseWorkflowPayload(workflow)
+    this.logger.debug("after parse")
     for (let i = 0; i < payload.deliveryInstructionsContainer.instructions.length; i++) {
+    this.logger.debug("top of loop")
       const ix = payload.deliveryInstructionsContainer.instructions[i]
-      const budget = ix.applicationBudgetTarget.add(ix.computeBudgetTarget)
+      const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget) // todo: add wormhole fee
       const input: CoreRelayerStructs.TargetDeliveryParametersSingleStruct = {
         encodedVMs: [
           payload.coreRelayerVaa.bytes,
@@ -316,9 +336,11 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   }
 
   parseWorkflowPayload(workflow: Workflow<WorkflowPayload>): WorkflowPayloadParsed {
+    this.logger.debug("parse workflow")
     const coreRelayerVaa = parseVaaWithBytes(
       Buffer.from(workflow.data.coreRelayerVaa, "base64")
     )
+    this.logger.debug("after parse core relayer")
     return {
       coreRelayerVaa,
       otherVaas: workflow.data.otherVaas.map((s) =>

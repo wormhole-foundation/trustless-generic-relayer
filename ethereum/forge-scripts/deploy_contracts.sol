@@ -37,8 +37,6 @@ import "forge-std/console.sol";
 // Deploy Hub if hubchain, deploy spoke if spoke chain
 // call setup
 
-
-
 contract ContractScript is Script {
     Migrations migrations;
     IWormhole wormhole;
@@ -63,9 +61,7 @@ contract ContractScript is Script {
     uint16 chainId;
     address wormholeAddress;
 
-    function setUp() public {
-
-    }
+    function setUp() public {}
 
     function deployRelayProvider() public {
         // first Setup
@@ -85,7 +81,7 @@ contract ContractScript is Script {
         );
 
         // following is used just to roll to the next block
-        if(isTilt) {
+        if (isTilt) {
             migrations.setCompleted(69);
         }
     }
@@ -110,7 +106,7 @@ contract ContractScript is Script {
         );
 
         // following is used just to roll to the next block
-        if(isTilt){
+        if (isTilt) {
             migrations.setCompleted(69);
         }
 
@@ -127,14 +123,11 @@ contract ContractScript is Script {
 
         uint16[] memory chains;
 
-
         //set delivery address,
-        if(isTilt) {
+        if (isTilt) {
             chains = new uint16[](2);
             chains[0] = 2;
             chains[1] = 4;
-
-
         } else {
             chains = new uint16[](2);
             chains[0] = 6;
@@ -144,19 +137,16 @@ contract ContractScript is Script {
         bytes32 thing = core_relayer.toWormholeFormat(currentAddress);
         console.log("got current address wh");
 
-        for(uint16 i =0; i < chains.length; i++){
+        for (uint16 i = 0; i < chains.length; i++) {
             console.log("about to set delivery address");
             provider.updateDeliveryAddress(chains[i], core_relayer.toWormholeFormat(currentAddress));
             provider.updateDeliverGasOverhead(chains[i], 350000);
             provider.updatePrice(chains[i], uint128(300000000000), uint128(100000));
             provider.updateMaximumBudget(chains[i], uint256(1000000000000000000));
-        }
 
-        console.log("max budget for chain 2");
-        console.log(provider.quoteMaximumBudget(2));
-        console.log("asset price for chain 2");
-        console.log(provider.quoteAssetPrice(2));
-            
+            console.log("max budget for chain %s", i);
+            console.log(provider.quoteMaximumBudget(i));
+        }
     }
 
     function configureCoreRelayer() public {
@@ -165,7 +155,6 @@ contract ContractScript is Script {
         // CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
         // core_relayer.registerCoreRelayerContract(chainId, core_relayer.toWormholeFormat(address(core_relayer)));
     }
-
 
     // function deployMockRelayerIntegration() public {
     //     // deploy the mock integration contract
@@ -182,9 +171,8 @@ contract ContractScript is Script {
         //     //deploy spoke
         // }
 
-        mockRelayerIntegration= new MockRelayerIntegration(address(wormhole), 
+        mockRelayerIntegration = new MockRelayerIntegration(address(wormhole), 
             address(coreRelayerProxy));
-
     }
 
     function run(address _wormholeAddress) public {
@@ -193,11 +181,10 @@ contract ContractScript is Script {
         wormholeAddress = _wormholeAddress;
         chainId = wormhole.chainId();
         isTilt = (wormholeAddress == TILT_WORMHOLE_ADDRESS);
-        if(isTilt){
+        if (isTilt) {
             console.log("running in tilt");
             migrations = Migrations(TILT_MIGRATION_ADDRESS);
         }
-
 
         // begin sending transactions
         vm.startBroadcast();
@@ -209,11 +196,13 @@ contract ContractScript is Script {
         configureCoreRelayer();
 
         vm.roll(block.number + 1);
-        
+
         deployRelayerIntegrationContract();
 
-        mockRelayerIntegration.sendMessage{gas:1000000, 
-        value:coreRelayer.quoteGasDeliveryFee(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000}(abi.encode("Hello World"), chainId, address(mockRelayerIntegration));
+        mockRelayerIntegration.sendMessage{
+            gas: 1000000,
+            value: coreRelayer.quoteGasDeliveryFee(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000
+        }(abi.encode("Hello World"), chainId, address(mockRelayerIntegration));
 
         // finished
         vm.stopBroadcast();
