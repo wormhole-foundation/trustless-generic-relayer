@@ -240,8 +240,6 @@ contract TestCoreRelayer is Test {
         // estimate the cost based on the intialized values
         uint256 computeBudget = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
 
-        
-
         // start listening to events
         vm.recordLogs();
 
@@ -315,6 +313,64 @@ contract TestCoreRelayer is Test {
         genericRelayer(signMessages(senders, TARGET_CHAIN_ID));
 
         assertTrue(keccak256(source.integration.getMessage()) == keccak256(bytes("received!")));
+
+
+    }
+
+    function testRedelivery(GasParameters memory gasParams, VMParams memory batchParams, bytes memory message) public {
+        
+        standardAssume(gasParams, batchParams);
+
+        vm.assume(gasParams.targetGasLimit >= 1000000);
+        //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
+        //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
+        
+        uint16 SOURCE_CHAIN_ID = 1;
+        uint16 TARGET_CHAIN_ID = 2;
+
+        Contracts memory source = map[SOURCE_CHAIN_ID];
+        Contracts memory target = map[TARGET_CHAIN_ID];
+
+        // set relayProvider prices
+        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+
+        
+        // estimate the cost based on the intialized values
+        uint256 computeBudget = source.coreRelayer.quoteGasRedeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
+        uint256 computeBudgetNotEnough = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, 10, source.relayProvider);
+
+        // start listening to events
+        vm.recordLogs();
+
+        // send an arbitrary wormhole message to be relayed
+        source.wormhole.publishMessage{value: source.wormhole.messageFee()}(batchParams.nonce, abi.encodePacked(uint8(0), message), 200);
+
+        // call the send function on the relayer contract
+
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(TARGET_CHAIN_ID, toWormholeFormat(address(target.integration)), toWormholeFormat(address(target.integration)), computeBudgetNotEnough, 0, source.coreRelayer.getDefaultRelayParams());
+
+        source.coreRelayer.requestDelivery{value: source.wormhole.messageFee() + computeBudgetNotEnough}(request, batchParams.nonce, source.relayProvider);
+
+        address[] memory senders = new address[](2);
+        senders[0] = address(source.integration);
+        senders[1] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+
+        assertTrue(keccak256(target.integration.getMessage()) != keccak256(message));
+
+        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
+
+        ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest(SOURCE_CHAIN_ID, deliveryVaaHash, batchParams.nonce, TARGET_CHAIN_ID, computeBudget, 0, source.coreRelayer.getDefaultRelayParams());
+
+        source.coreRelayer.requestRedelivery{value: source.wormhole.messageFee() + computeBudget}(redeliveryRequest, batchParams.nonce, source.relayProvider);
+
+        senders = new address[](2);
+        senders[0] = address(source.integration);
+        senders[1] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        // need to make this work for redelivery ^
+        assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
 
     }
