@@ -8,12 +8,13 @@ export type { IWormhole } from "./ethers-contracts/IWormhole"
 export { IWormhole__factory } from "./ethers-contracts/factories/IWormhole__factory"
 
 import { ethers } from "ethers"
+import { arrayify } from "ethers/lib/utils"
 import { CoreRelayerStructs } from "./ethers-contracts/CoreRelayer"
 
 export enum RelayerPayloadType {
   Delivery = 1,
   Redelivery = 2,
-  DeliveryStatus = 3,
+  // DeliveryStatus = 3,
 }
 
 export interface DeliveryInstructionsContainer {
@@ -23,7 +24,6 @@ export interface DeliveryInstructionsContainer {
 }
 
 export interface DeliveryInstruction {
-  computeBudgetTarget: ethers.BigNumber
   targetChain: number
   targetAddress: Buffer
   refundAddress: Buffer
@@ -38,9 +38,13 @@ export interface ExecutionParameters {
   providerDeliveryAddress: Buffer
 }
 
-export function parsePayloadType(payload: Buffer | Uint8Array): RelayerPayloadType {
-  if (payload[0] == 0 || payload[0] > 3) {
-    throw new Error("Unrecogned payload type")
+export function parsePayloadType(
+  stringPayload: string | Buffer | Uint8Array
+): RelayerPayloadType {
+  const payload =
+    typeof stringPayload === "string" ? arrayify(stringPayload) : stringPayload
+  if (payload[0] == 0 || payload[0] >= 3) {
+    throw new Error("Unrecogned payload type " + payload[0])
   }
   return payload[0]
 }
@@ -61,6 +65,7 @@ export function parseDeliveryInstructionsContainer(
   idx += 1
 
   const numInstructions = bytes.readUInt8(idx)
+  idx += 1
   let instructions = [] as DeliveryInstruction[]
   for (let i = 0; i < numInstructions; ++i) {
     const targetChain = bytes.readUInt16BE(idx)
@@ -70,10 +75,6 @@ export function parseDeliveryInstructionsContainer(
     const refundAddress = bytes.slice(idx, idx + 32)
     idx += 32
     const maximumRefundTarget = ethers.BigNumber.from(
-      Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
-    )
-    idx += 32
-    const computeBudgetTarget = ethers.BigNumber.from(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
@@ -91,7 +92,6 @@ export function parseDeliveryInstructionsContainer(
     instructions.push(
       // dumb typechain format
       {
-        computeBudgetTarget,
         targetChain,
         targetAddress,
         refundAddress,
@@ -101,6 +101,7 @@ export function parseDeliveryInstructionsContainer(
       }
     )
   }
+  console.log('here')
   return {
     payloadId,
     sufficientlyFunded,
