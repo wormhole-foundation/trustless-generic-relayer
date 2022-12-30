@@ -347,6 +347,54 @@ contract TestCoreRelayer is Test {
 
     }
 
+    function testTwoSends(GasParameters memory gasParams, bytes memory message, bytes memory secondMessage) public {
+        
+        standardAssume(gasParams);
+
+        vm.assume(gasParams.targetGasLimit >= 1000000);
+        vm.assume(gasParams.targetGasPrice <= 2**62);
+        //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
+        //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
+        
+        uint16 SOURCE_CHAIN_ID = 1;
+        uint16 TARGET_CHAIN_ID = 2;
+
+        Contracts memory source = map[SOURCE_CHAIN_ID];
+        Contracts memory target = map[TARGET_CHAIN_ID];
+
+        // set relayProvider prices
+        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+
+        
+        // estimate the cost based on the intialized values
+        uint256 computeBudget = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
+
+        // start listening to events
+        vm.recordLogs();
+
+        source.integration.sendMessage{value: computeBudget + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
+
+        address[] memory senders = new address[](2);
+        senders[0] = address(source.integration);
+        senders[1] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+
+        assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
+
+        vm.getRecordedLogs();
+
+        source.integration.sendMessage{value: computeBudget + source.wormhole.messageFee()}(secondMessage, TARGET_CHAIN_ID, address(target.integration));
+
+        senders = new address[](2);
+        senders[0] = address(source.integration);
+        senders[1] = address(source.coreRelayer);
+        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+
+        assertTrue(keccak256(target.integration.getMessage()) == keccak256(secondMessage));
+
+    }
+
     function signMessages(address[] memory senders, uint16 chainId) internal returns (bytes[] memory encodedVMs) {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         require(senders.length <= entries.length, "Wrong length of senders array");
