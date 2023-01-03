@@ -31,12 +31,12 @@ contract MockRelayerIntegration is IWormholeReceiver {
         owner = msg.sender;
     }
 
-    function sendMessage(bytes memory message, uint16 targetChainId, address destination) public payable {
-        executeSend(abi.encodePacked(uint8(0), message), targetChainId, destination);
+    function sendMessage(bytes memory _message, uint16 targetChainId, address destination) public payable {
+        executeSend(abi.encodePacked(uint8(0), _message), targetChainId, destination);
     }
 
-    function sendMessageWithForwardedResponse(bytes memory message, uint16 targetChainId, address destination) public payable {
-        executeSend(abi.encodePacked(uint8(1), message), targetChainId, destination);
+    function sendMessageWithForwardedResponse(bytes memory _message, uint16 targetChainId, address destination) public payable {
+        executeSend(abi.encodePacked(uint8(1), _message), targetChainId, destination);
     }
 
     function executeSend(bytes memory fullMessage, uint16 targetChainId, address destination) internal {

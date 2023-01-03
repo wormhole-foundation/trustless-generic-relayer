@@ -148,7 +148,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
         if(funded) {
-            address(provider).call{value: refundAmount}("");
+            provider.getRewardAddress().call{value: refundAmount}("");
         }
         
         //clear forwarding request from cache
@@ -633,5 +633,4 @@ contract CoreRelayer is CoreRelayerGovernance {
                 calculateTargetGasDeliveryAmount(request.targetChain, request.computeBudget, provider),
                 provider.getDeliveryAddress(request.targetChain));
     }
-
   }

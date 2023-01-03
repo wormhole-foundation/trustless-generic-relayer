@@ -44,37 +44,38 @@ async function run() {
     "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"
 
   //first collect all contract addresses
-  const promises = CHAIN_INFOS.map(async (info) => {
-    const file = await fs.readFileSync(
-      `./broadcast/deploy_contracts.sol/${info.id}/run-latest.json`
-    )
-    const content = JSON.parse(file.toString())
-    const createTransaction = content.transactions.find((x: any, index: any) => {
-      return x.contractName == "RelayProviderProxy" && index > 4
+  await Promise.all(
+    CHAIN_INFOS.map(async (info) => {
+      const file = await fs.readFileSync(
+        `./broadcast/deploy_contracts.sol/${info.id}/run-latest.json`
+      )
+      const content = JSON.parse(file.toString())
+      const createTransaction = content.transactions.find((x: any, index: any) => {
+        return x.contractName == "RelayProviderProxy" && index > 4
+      })
+      info.contractAddress = createTransaction.contractAddress
     })
-    info.contractAddress = createTransaction.contractAddress
-  })
-  await Promise.all(promises)
+  )
 
-  const promises2 = CHAIN_INFOS.map(async (info) => {
-    const provider = new ethers.providers.StaticJsonRpcProvider(info.rpc)
+  await Promise.all(
+    CHAIN_INFOS.map(async (info) => {
+      const provider = new ethers.providers.StaticJsonRpcProvider(info.rpc)
 
-    // signers
-    const wallet = new ethers.Wallet(pk, provider)
+      // signers
+      const wallet = new ethers.Wallet(pk, provider)
 
-    const coreRelayer = CoreRelayer__factory.connect(info.contractAddress, wallet)
+      const coreRelayer = CoreRelayer__factory.connect(info.contractAddress, wallet)
 
-    for (const info2 of CHAIN_INFOS) {
-      if (info.wormholeId != info2.wormholeId) {
-        await coreRelayer.registerCoreRelayerContract(
-          info2.wormholeId,
-          "0x" + tryNativeToHexString(info.contractAddress, "ethereum")
-        )
+      for (const info2 of CHAIN_INFOS) {
+        if (info.wormholeId != info2.wormholeId) {
+          await coreRelayer.registerCoreRelayerContract(
+            info2.wormholeId,
+            "0x" + tryNativeToHexString(info2.contractAddress, "ethereum")
+          )
+        }
       }
-    }
-  })
-
-  await Promise.all(promises2)
+    })
+  )
 }
 
 run().then(() => console.log("Done!"))

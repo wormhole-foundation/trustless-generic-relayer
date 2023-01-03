@@ -59,11 +59,13 @@ async function run() {
     })
     info.mockIntegrationAddress = createTransaction.contractAddress
     info.relayerAddress = createTransaction2.contractAddress
+
+    console.log(`${info.wormholeId}: CoreRelayer: ${info.relayerAddress}`)
   })
 
   await Promise.all(promises)
   const sourceChain = CHAIN_INFOS[1]
-  const targetChain = CHAIN_INFOS[1]
+  const targetChain = CHAIN_INFOS[0]
 
   const sourceProvider = new ethers.providers.StaticJsonRpcProvider(sourceChain.rpc)
   const targetProvider = new ethers.providers.StaticJsonRpcProvider(targetChain.rpc)
@@ -82,16 +84,26 @@ async function run() {
     sourceWallet
   )
 
+  // todo: remove
+  const x = await CoreRelayer__factory.connect(
+    targetChain.relayerAddress,
+    targetWallet
+  ).registeredCoreRelayerContract(sourceChain.wormholeId)
+  console.log("should be fuji address", x)
+
+  const defaultRelayerProvider = await coreRelayer.getDefaultRelayProvider()
+  console.log("Default relay provider: ", defaultRelayerProvider)
+
   const relayQuote = await (
     await coreRelayer.quoteGasDeliveryFee(
       targetChain.wormholeId,
-      1000000,
+      2000000,
       coreRelayer.getDefaultRelayProvider()
     )
   ).add(10000000000)
 
-  const tx = await mockIntegration.sendMessage(
-    Buffer.from("Hello World"),
+  const tx = await mockIntegration.sendMessageWithForwardedResponse(
+    Buffer.from("Hello World 3"),
     targetChain.wormholeId,
     targetChain.mockIntegrationAddress,
     {
@@ -102,6 +114,18 @@ async function run() {
   const rx = await tx.wait()
   console.log(rx, "da receipt")
 }
+//   const tx = await mockIntegration.sendMessage(
+//     Buffer.from("Hello World 2"),
+//     targetChain.wormholeId,
+//     targetChain.mockIntegrationAddress,
+//     {
+//       gasLimit: 1000000,
+//       value: relayQuote,
+//     }
+//   )
+//   const rx = await tx.wait()
+//   console.log(rx, "da receipt")
+// }
 
 run().then(() => console.log("Done!"))
 

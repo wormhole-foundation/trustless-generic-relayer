@@ -29,7 +29,6 @@ abstract contract CoreRelayerGovernance is
     /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
     function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
         require(coreRelayerContractAddress != bytes32(0), "1");//"invalid contract address");
-        require(registeredCoreRelayerContract(chainId) == bytes32(0), "2");//"contract already registered");
         require(chainId != 0, "3");//"invalid chainId");
 
         setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
