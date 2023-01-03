@@ -90,7 +90,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         sequence = wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, provider.getConsistencyLevel());
 
         //pay fee to provider
-        provider.getRewardAddress().call{value: msg.value - wormhole.messageFee()}("");
+        provider.getRewardAddress().call{value: totalCost - wormhole.messageFee()}("");
 
     }
 
