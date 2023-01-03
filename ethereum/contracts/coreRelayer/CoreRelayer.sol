@@ -44,7 +44,6 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         emitRedelivery(request, nonce, provider.getConsistencyLevel(), applicationBudgetTarget, maximumRefund, provider);
 
-        console.log("got here 2");
         //Send the delivery fees to the specified address of the provider.
         provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
     }

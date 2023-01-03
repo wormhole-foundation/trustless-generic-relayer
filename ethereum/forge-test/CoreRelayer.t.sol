@@ -34,6 +34,17 @@ contract TestCoreRelayer is Test {
     uint16 MAX_UINT16_VALUE = 65535;
     uint96 MAX_UINT96_VALUE = 79228162514264337593543950335;
 
+    /**
+    *   FORGE TESTING PLAN!! Read this on Tuesday
+    *   Step 1: Set up 'usd fund for a relayer'. before and after the test, check how much 'usd fund' the relayer earned, and assert its positive (and at least gasPrice * some minimum amount of gas the transaction takes)
+    *   Step 2: make sure the user balance loses how ever much the relayer gains (minus whatever fees) 
+    *  
+    *   Step 3: Change the MockRelayerIntegration to take messages with arbitrary length forwarding specifications (A->B->C->D etc), write a helper to figure out how much gas to pay for these, and implement that
+    *   Step 4: Make tests for each of the error messages
+    * 3<->4 interchangeable
+    *
+     */
+
     struct GasParameters {
         uint32 evmGasOverhead;
         uint32 targetGasLimit;
@@ -76,6 +87,7 @@ contract TestCoreRelayer is Test {
         );
 
         setUpChains(5);
+
     }
 
     function setUpWormhole(uint16 chainId) internal returns (IWormhole wormholeContract) {
@@ -146,8 +158,8 @@ contract TestCoreRelayer is Test {
     }
 
 
-    function standardAssume(GasParameters memory gasParams) public {
-        uint128 halfMaxUint128 = 2 ** (128 / 2) - 1;
+    function standardAssumeAndSetupTwoChains(GasParameters memory gasParams, uint256 minTargetGasLimit) public returns (uint16 sourceId, uint16 targetId, Contracts memory source, Contracts memory target) {
+        uint128 halfMaxUint128 = 2 ** (62) - 1;
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
         vm.assume(gasParams.targetGasPrice > 0 && gasParams.targetGasPrice < halfMaxUint128);
@@ -156,7 +168,18 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.sourceNativePrice > 0 && gasParams.sourceNativePrice < halfMaxUint128);
         vm.assume(gasParams.sourceNativePrice  < halfMaxUint128 / gasParams.sourceGasPrice );
         vm.assume(gasParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice );
+        vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
 
+        sourceId = 1;
+        targetId = 2;
+        source = map[sourceId];
+        target = map[targetId];
+
+        // set relayProvider prices
+        source.relayProvider.updatePrice(targetId, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        source.relayProvider.updatePrice(sourceId, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+        target.relayProvider.updatePrice(targetId, gasParams.targetGasPrice, gasParams.targetNativePrice);
+        target.relayProvider.updatePrice(sourceId, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
     }
 
 
@@ -216,35 +239,16 @@ contract TestCoreRelayer is Test {
     // to be delivered on the target chain.
     function testSend(GasParameters memory gasParams, bytes memory message) public {
         
-        standardAssume(gasParams);
+        (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) = standardAssumeAndSetupTwoChains(gasParams, 1000000);
 
-        vm.assume(gasParams.targetGasLimit >= 1000000);
-        //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
-        //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
-        
-        uint16 SOURCE_CHAIN_ID = 1;
-        uint16 TARGET_CHAIN_ID = 2;
+        vm.recordLogs();
 
-        Contracts memory source = map[SOURCE_CHAIN_ID];
-        Contracts memory target = map[TARGET_CHAIN_ID];
-
-        // set relayProvider prices
-        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
-
-        
         // estimate the cost based on the intialized values
         uint256 computeBudget = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
 
-        // start listening to events
-        vm.recordLogs();
-
         source.integration.sendMessage{value: computeBudget + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
 
-        address[] memory senders = new address[](2);
-        senders[0] = address(source.integration);
-        senders[1] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(source.integration), address(source.coreRelayer)), SOURCE_CHAIN_ID));
 
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
@@ -253,45 +257,23 @@ contract TestCoreRelayer is Test {
 
     function testForward(GasParameters memory gasParams, bytes memory message) public {
         
-        standardAssume(gasParams);
+        (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) = standardAssumeAndSetupTwoChains(gasParams, 1000000);
 
-        uint16 SOURCE_CHAIN_ID = 1;
-        uint16 TARGET_CHAIN_ID = 2;
-        Contracts memory source = map[SOURCE_CHAIN_ID];
-        Contracts memory target = map[TARGET_CHAIN_ID];
-
-        vm.assume(gasParams.targetGasLimit >= 1000000);
         vm.assume(uint256(1) * gasParams.targetGasPrice * gasParams.targetNativePrice  > uint256(1) * gasParams.sourceGasPrice * gasParams.sourceNativePrice);
 
-        // set relayProvider prices
-        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
-        target.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        target.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
 
-        
+        vm.recordLogs();
 
         // estimate the cost based on the intialized values
         uint256 computeBudget = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
 
-        // start listening to events
-        vm.recordLogs();
-
         source.integration.sendMessageWithForwardedResponse{value: computeBudget + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
-        
-        address[] memory senders = new address[](2);
-        senders[0] = address(source.integration);
-        senders[1] = address(source.coreRelayer);
-
      
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(source.integration), address(source.coreRelayer)), SOURCE_CHAIN_ID));
 
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
-        senders = new address[](2);
-        senders[0] = address(target.integration);
-        senders[1] = address(target.coreRelayer);
-        genericRelayer(signMessages(senders, TARGET_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(target.integration), address(target.coreRelayer)), TARGET_CHAIN_ID));
 
         assertTrue(keccak256(source.integration.getMessage()) == keccak256(bytes("received!")));
 
@@ -300,37 +282,18 @@ contract TestCoreRelayer is Test {
 
     function testRedelivery(GasParameters memory gasParams, bytes memory message) public {
         
-        standardAssume(gasParams);
+        (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) = standardAssumeAndSetupTwoChains(gasParams, 1000000);
 
-        vm.assume(gasParams.targetGasLimit >= 1000000);
-        vm.assume(gasParams.targetNativePrice <= uint256(2)**63);
-        //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
-        //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
-        
-        uint16 SOURCE_CHAIN_ID = 1;
-        uint16 TARGET_CHAIN_ID = 2;
-
-        Contracts memory source = map[SOURCE_CHAIN_ID];
-        Contracts memory target = map[TARGET_CHAIN_ID];
-
-        // set relayProvider prices
-        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
-
+        vm.recordLogs();
         
         // estimate the cost based on the intialized values
         uint256 computeBudget = source.coreRelayer.quoteGasRedeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
         uint256 computeBudgetNotEnough = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, 10, source.relayProvider);
 
-        // start listening to events
-        vm.recordLogs();
 
         source.integration.sendMessage{value: computeBudgetNotEnough + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
 
-        address[] memory senders = new address[](2);
-        senders[0] = address(source.integration);
-        senders[1] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(source.integration), address(source.coreRelayer)), SOURCE_CHAIN_ID));
 
         assertTrue((keccak256(target.integration.getMessage()) != keccak256(message)) || (keccak256(message) == keccak256(bytes(""))));
 
@@ -340,31 +303,15 @@ contract TestCoreRelayer is Test {
 
         source.coreRelayer.requestRedelivery{value: source.wormhole.messageFee() + computeBudget}(redeliveryRequest, 1, source.relayProvider);
 
-        senders = new address[](1);
-        senders[0] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(source.coreRelayer)), SOURCE_CHAIN_ID));
+
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
     }
 
     function testTwoSends(GasParameters memory gasParams, bytes memory message, bytes memory secondMessage) public {
         
-        standardAssume(gasParams);
-
-        vm.assume(gasParams.targetGasLimit >= 1000000);
-        vm.assume(gasParams.targetGasPrice <= 2**62);
-        //vm.assume(within(gasParams.targetGasPrice, gasParams.sourceGasPrice, 10**10));
-        //vm.assume(within(gasParams.targetNativePrice, gasParams.sourceNativePrice, 10**10));
-        
-        uint16 SOURCE_CHAIN_ID = 1;
-        uint16 TARGET_CHAIN_ID = 2;
-
-        Contracts memory source = map[SOURCE_CHAIN_ID];
-        Contracts memory target = map[TARGET_CHAIN_ID];
-
-        // set relayProvider prices
-        source.relayProvider.updatePrice(TARGET_CHAIN_ID, gasParams.targetGasPrice, gasParams.targetNativePrice);
-        source.relayProvider.updatePrice(SOURCE_CHAIN_ID, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+        (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) = standardAssumeAndSetupTwoChains(gasParams, 1000000); 
 
         
         // estimate the cost based on the intialized values
@@ -372,13 +319,11 @@ contract TestCoreRelayer is Test {
 
         // start listening to events
         vm.recordLogs();
+        
 
         source.integration.sendMessage{value: computeBudget + source.wormhole.messageFee()}(message, TARGET_CHAIN_ID, address(target.integration));
 
-        address[] memory senders = new address[](2);
-        senders[0] = address(source.integration);
-        senders[1] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(source.integration), address(source.coreRelayer)), SOURCE_CHAIN_ID));
 
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
@@ -386,10 +331,7 @@ contract TestCoreRelayer is Test {
 
         source.integration.sendMessage{value: computeBudget + source.wormhole.messageFee()}(secondMessage, TARGET_CHAIN_ID, address(target.integration));
 
-        senders = new address[](2);
-        senders[0] = address(source.integration);
-        senders[1] = address(source.coreRelayer);
-        genericRelayer(signMessages(senders, SOURCE_CHAIN_ID));
+        genericRelayer(signMessages(senderArray(address(source.integration), address(source.coreRelayer)), SOURCE_CHAIN_ID));
 
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(secondMessage));
 
@@ -475,6 +417,17 @@ contract TestCoreRelayer is Test {
             vm.prank(map[targetChain].relayer);
             map[targetChain].coreRelayer.redeliverSingle{value: budget}(package);
         }
+    }
+
+    function senderArray(address a, address b) internal returns (address[] memory arr) {
+        arr = new address[](2);
+        arr[0] = a;
+        arr[1] = b;
+    }
+
+    function senderArray(address a) internal returns (address[] memory arr) {
+        arr = new address[](1);
+        arr[0] = a;
     }
 
     /**
