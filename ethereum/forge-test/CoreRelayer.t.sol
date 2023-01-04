@@ -269,30 +269,20 @@ contract TestCoreRelayer is Test {
         uint256 refundAddressBalance = target.refundAddress.balance;
         uint256 relayerBalance = target.relayer.balance;
         uint256 rewardAddressBalance = source.rewardAddress.balance;
-        // estimate the cost based on the intialized values
+
         uint256 payment = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider) + source.wormhole.messageFee();
 
         source.integration.sendMessage{value: payment}(message, TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress));
-
 
         genericRelayer(signMessages(senderArray(address(source.integration), address(source.coreRelayer)), SOURCE_CHAIN_ID));
 
         assertTrue(keccak256(target.integration.getMessage()) == keccak256(message));
 
-        //console.log(refundAddressBalance);
-        //console.log(target.refundAddress.balance);
         uint256 USDcost = uint256(payment)*gasParams.sourceNativePrice - (target.refundAddress.balance - refundAddressBalance)*gasParams.targetNativePrice;
-        console.log("Cost works");
         uint256 relayerProfit = uint256(gasParams.sourceNativePrice) * (source.rewardAddress.balance - rewardAddressBalance) - gasParams.targetNativePrice*( relayerBalance - target.relayer.balance);
 
         uint256 howMuchGasRelayerCouldHavePaidForAndStillProfited = relayerProfit/gasParams.targetGasPrice/gasParams.targetNativePrice;
-        console.log("how much gas relayer could have paid for and still profited");
-        console.log(howMuchGasRelayerCouldHavePaidForAndStillProfited);
         assertTrue(howMuchGasRelayerCouldHavePaidForAndStillProfited >= 30000); // takes around this much gas (seems to go from 36k-200k?!?)
-        console.log("USD Cost");
-        console.log(USDcost);
-        console.log("Relayer profit");
-        console.log(relayerProfit);
         assertTrue(USDcost == relayerProfit, "We paid the exact amount");
     }
 
