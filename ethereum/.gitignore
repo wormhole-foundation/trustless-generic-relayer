@@ -6,3 +6,4 @@ build
 lib
 node_modules
 wormhole
+ts-scripts/output
