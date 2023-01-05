@@ -1,0 +1,26 @@
+{
+  "name": "@wormhole-foundation/generic_relayer_plugin",
+  "version": "0.0.1",
+  "description": "Relayer engine plugin for relaying generic messages",
+  "main": "lib/plugin.js",
+  "types": "lib/plugin.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@certusone/wormhole-sdk": "^0.9.0",
+    "generic-relayer-sdk": "file:../../../sdk",
+    "relayer-engine": "github:wormhole-foundation/relayer-engine"
+  },
+  "author": "Chase Moran",
+  "license": "ISC",
+  "peerDependencies": {
+    "ethers": "^5",
+    "winston": "3.8.2"
+  },
+  "devDependencies": {
+    "typescript": "^4.8.4",
+    "winston": "3.8.2"
+  }
+}

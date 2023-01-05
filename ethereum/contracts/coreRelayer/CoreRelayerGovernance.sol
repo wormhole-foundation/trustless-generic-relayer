@@ -14,24 +14,29 @@ import "./CoreRelayerMessages.sol";
 
 import "../interfaces/IWormhole.sol";
 
-abstract contract CoreRelayerGovernance is CoreRelayerGetters, CoreRelayerSetters, CoreRelayerMessages, ERC1967Upgrade {
-    event ContractUpgraded(address indexed oldContract, address indexed newContract);
-    event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    event GasOracleUpdated(address indexed oldOracle, address indexed newOracle);
-    event EVMDeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
+abstract contract CoreRelayerGovernance is
+    CoreRelayerGetters,
+    CoreRelayerSetters,
+    CoreRelayerMessages,
+    ERC1967Upgrade
+{
+    //TODO convert this upgrade to being managed by guardian VAAs
 
-    /// @dev registerChain registers other relayer contracts with this relayer
-    function registerChain(uint16 relayerChainId, bytes32 relayerAddress) public onlyOwner {
-        require(relayerAddress != bytes32(0), "invalid relayer address");
-        require(registeredRelayer(relayerChainId) == bytes32(0), "relayer already registered");
-        require(relayerChainId != 0, "invalid chainId");
+    // event ContractUpgraded(address indexed oldContract, address indexed newContract);
+    // event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
+    // event RelayProviderUpdated(address indexed newDefaultRelayProvider);
+    
+    /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
+    function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
+        require(coreRelayerContractAddress != bytes32(0), "1");//"invalid contract address");
+        require(chainId != 0, "3");//"invalid chainId");
 
-        setRegisteredRelayer(relayerChainId, relayerAddress);
+        setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
     }
 
     /// @dev upgrade serves to upgrade contract implementations
     function upgrade(uint16 thisRelayerChainId, address newImplementation) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "wrong chain id");
+        require(thisRelayerChainId == chainId(), "3");
 
         address currentImplementation = _getImplementation();
 
@@ -42,30 +47,7 @@ abstract contract CoreRelayerGovernance is CoreRelayerGetters, CoreRelayerSetter
 
         require(success, string(reason));
 
-        emit ContractUpgraded(currentImplementation, newImplementation);
-    }
-
-    /// @dev updateEvmDeliverGasOverhead changes the EVMGasOverhead variable
-    function updateEvmDeliverGasOverhead(uint32 newGasOverhead) public onlyOwner {
-        // cache the current EVMDeliverGasOverhead
-        uint32 currentGasOverhead = evmDeliverGasOverhead();
-
-        setEvmDeliverGasOverhead(newGasOverhead);
-
-        emit EVMDeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
-    }
-
-    /// @dev updateGasOracleContract changes the contract address for the gasOracle
-    function updateGasOracleContract(uint16 thisRelayerChainId, address newGasOracleAddress) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "wrong chain id");
-        require(newGasOracleAddress != address(0), "new gasOracle address cannot be address(0)");
-
-        // cache the current gas oracle address
-        address currentGasOracle = gasOracleAddress();
-
-        setGasOracle(newGasOracleAddress);
-
-        emit GasOracleUpdated(currentGasOracle, newGasOracleAddress);
+        //emit ContractUpgraded(currentImplementation, newImplementation);
     }
 
     /**
@@ -73,8 +55,8 @@ abstract contract CoreRelayerGovernance is CoreRelayerGetters, CoreRelayerSetter
      * - it saves an address for the new owner in the pending state
      */
     function submitOwnershipTransferRequest(uint16 thisRelayerChainId, address newOwner) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "incorrect chainId");
-        require(newOwner != address(0), "new owner cannot be address(0)");
+        require(thisRelayerChainId == chainId(), "4");
+        require(newOwner != address(0), "5");
 
         setPendingOwner(newOwner);
     }
@@ -88,7 +70,7 @@ abstract contract CoreRelayerGovernance is CoreRelayerGetters, CoreRelayerSetter
         // cache the new owner address
         address newOwner = pendingOwner();
 
-        require(msg.sender == newOwner, "caller must be pending owner");
+        require(msg.sender == newOwner, "6");
 
         // cache currentOwner for Event
         address currentOwner = owner();
@@ -97,11 +79,15 @@ abstract contract CoreRelayerGovernance is CoreRelayerGetters, CoreRelayerSetter
         setOwner(newOwner);
         setPendingOwner(address(0));
 
-        emit OwnershipTransfered(currentOwner, newOwner);
+        //emit OwnershipTransfered(currentOwner, newOwner);
+    }
+
+    function setDefaultRelayProvider(address relayProvider) public onlyOwner {
+        setRelayProvider(relayProvider);
     }
 
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "caller must be the owner");
+        require(owner() == _msgSender(), "7");
         _;
     }
 }

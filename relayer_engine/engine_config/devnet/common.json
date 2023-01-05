@@ -1,0 +1,17 @@
+{
+  "mode": "BOTH",
+  "logLevel": "info",
+  "readinessPort": 2000,
+  "supportedChains": [
+    {
+      "chainId": 6,
+      "chainName": "Avalanche",
+      "nodeUrl": "https://api.avax-test.network/ext/bc/C/rpc"
+    },
+    {
+      "chainId": 14,
+      "chainName": "Celo",
+      "nodeUrl": "https://alfajores-forno.celo-testnet.org"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "shouldSpy": false,
+  "shouldRest": false,
+  "logWatcherSleepMs": 300000,
+  "supportedChains": {
+    "6": {
+      "relayerAddress": "0x932848Aed98d8af0f3eA685533966dA4551851db",
+      "mockIntegrationContractAddress": "0xF5C9730B9F8B4D3a352D0cC6358896B1e56E656C"
+    },
+    "14": {
+      "relayerAddress": "0x06ced51D388A66ff3d968818C4ea58e5CC199B0B",
+      "mockIntegrationContractAddress": "0xB7078f7384d4bb353A147a1035990eD6CDAF011E"
+    }
+  }
+}

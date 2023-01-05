@@ -4,17 +4,17 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/IWormhole.sol";
-import "../interfaces/IGasOracle.sol";
+import "../interfaces/IRelayProvider.sol";
+import "./CoreRelayerStructs.sol";
 
 import "./CoreRelayerState.sol";
+import "../libraries/external/BytesLib.sol";
 
 contract CoreRelayerGetters is CoreRelayerState {
+    using BytesLib for bytes;
+
     function owner() public view returns (address) {
         return _state.owner;
-    }
-
-    function consistencyLevel() public view returns (uint8) {
-        return _state.consistencyLevel;
     }
 
     function pendingOwner() public view returns (address) {
@@ -33,20 +33,28 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.provider.chainId;
     }
 
-    function registeredRelayer(uint16 chain) public view returns (bytes32) {
-        return _state.registeredRelayers[chain];
+    function registeredCoreRelayerContract(uint16 chain) public view returns (bytes32) {
+        return _state.registeredCoreRelayerContract[chain];
     }
 
-    function evmDeliverGasOverhead() public view returns (uint32) {
-        return _state.evmDeliverGasOverhead;
+    function defaultRelayProvider() internal view returns (IRelayProvider) {
+        return IRelayProvider(_state.defaultRelayProvider);
     }
 
-    function gasOracle() public view returns (IGasOracle) {
-        return IGasOracle(_state.gasOracle);
-    }
+    // function getSelectedRelayProvider(bytes memory relayerParams) internal view returns (IRelayProvider) {
+    //     if(relayerParams.length == 0){
+    //         return defaultRelayProvider();
+    //     } else {
+    //         require(relayerParams.length == 33, "Wrong length of relayerParams");
+    //         if(relayerParams.toUint8(0) == 0) {
+    //             return defaultRelayProvider();
+    //         }
+    //         return IRelayProvider(address(uint160(uint256(relayerParams.toBytes32(1)))));
+    //     }
+    // } 
 
-    function gasOracleAddress() public view returns (address) {
-        return _state.gasOracle;
+    function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
+        return _state.forwardingRequest;
     }
 
     function isDeliveryCompleted(bytes32 deliveryHash) public view returns (bool) {
@@ -57,15 +65,4 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.contractLock;
     }
 
-    function attemptedDeliveryCount(bytes32 deliveryHash) public view returns (uint16) {
-        return _state.attemptedDeliveries[deliveryHash];
-    }
-
-    function redeliveryAttemptCount(bytes32 deliveryHash) public view returns (uint16) {
-        return _state.redeliveryAttempts[deliveryHash];
-    }
-
-    function relayerRewards(address relayer, uint16 rewardChain) public view returns (uint256) {
-        return _state.relayerRewards[relayer][rewardChain];
-    }
 }
