@@ -204,7 +204,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
 
             totalFees = totalFees + requestFee;
-
+            console.log(funds);
+            console.log(totalFees);
             if( funds < totalFees ) {
                 return (0, false, "25");//"Insufficient funds were provided to cover the delivery fees.");
             }

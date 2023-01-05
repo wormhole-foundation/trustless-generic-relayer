@@ -81,6 +81,27 @@ contract WormholeSimulator {
         }
     }
 
+    function setMessageFee(uint256 newFee) public {
+        bytes32 coreModule = 0x00000000000000000000000000000000000000000000000000000000436f7265;
+        bytes memory message = abi.encodePacked(coreModule, uint8(3), uint16(wormhole.chainId()), newFee);
+        IWormhole.VM memory preSignedMessage = IWormhole.VM({
+            version: 1,
+            timestamp: uint32(block.timestamp),
+            nonce: 0,
+            emitterChainId: wormhole.governanceChainId(), 
+            emitterAddress: wormhole.governanceContract(),
+            sequence: 0,
+            consistencyLevel: 200,
+            payload: message,
+            guardianSetIndex: 0,
+            signatures: new IWormhole.Signature[](0),
+            hash: bytes32("")
+        });
+
+        bytes memory signed = encodeAndSignMessage(preSignedMessage);
+        wormhole.submitSetMessageFee(signed);
+    }
+
     function doubleKeccak256(bytes memory body) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(keccak256(body)));
     }

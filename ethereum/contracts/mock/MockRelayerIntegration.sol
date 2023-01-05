@@ -8,6 +8,8 @@ import "../interfaces/IWormhole.sol";
 import "../interfaces/ICoreRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
 
+import "forge-std/console.sol";
+
 contract MockRelayerIntegration is IWormholeReceiver {
     using BytesLib for bytes;
 
@@ -48,7 +50,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             targetChainId, //target chain
             relayer.toWormholeFormat(address(destination)), //target address
             relayer.toWormholeFormat(address(refundAddress)),  //refund address, This will be ignored on the target chain because the intent is to perform a forward
-            msg.value - wormhole.messageFee(), //compute budget
+            msg.value - 2*wormhole.messageFee(), //compute budget
             applicationBudget, //application budget, not needed in this case. 
             relayer.getDefaultRelayParams() //no overrides
         );
