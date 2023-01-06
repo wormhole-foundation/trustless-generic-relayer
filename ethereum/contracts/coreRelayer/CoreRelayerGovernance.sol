@@ -25,11 +25,11 @@ abstract contract CoreRelayerGovernance is
     // event ContractUpgraded(address indexed oldContract, address indexed newContract);
     // event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     // event RelayProviderUpdated(address indexed newDefaultRelayProvider);
-    
+
     /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
     function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
-        require(coreRelayerContractAddress != bytes32(0), "1");//"invalid contract address");
-        require(chainId != 0, "3");//"invalid chainId");
+        require(coreRelayerContractAddress != bytes32(0), "1"); //"invalid contract address");
+        require(chainId != 0, "3"); //"invalid chainId");
 
         setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
     }

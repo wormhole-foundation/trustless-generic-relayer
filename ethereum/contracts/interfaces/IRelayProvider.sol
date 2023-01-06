@@ -4,8 +4,6 @@
 pragma solidity ^0.8.0;
 
 interface IRelayProvider {
-
-    
     function quoteDeliveryOverhead(uint16 targetChain) external view returns (uint256 deliveryOverhead);
 
     function quoteRedeliveryOverhead(uint16 targetChain) external view returns (uint256 redeliveryOverhead);
@@ -15,7 +13,10 @@ interface IRelayProvider {
     function quoteAssetPrice(uint16 chainId) external view returns (uint256 usdPrice);
 
     // should this have source chain as a parameter, or default to current chain id?
-    function assetConversionBuffer(uint16 sourceChain, uint16 targetChain) external view returns (uint16 tolerance, uint16 toleranceDenominator);
+    function assetConversionBuffer(uint16 sourceChain, uint16 targetChain)
+        external
+        view
+        returns (uint16 tolerance, uint16 toleranceDenominator);
 
     //In order to be compliant, this must return an amount larger than both
     // quoteDeliveryOverhead(targetChain) and quoteRedeliveryOverhead(targetChain)
@@ -28,5 +29,4 @@ interface IRelayProvider {
     function getRewardAddress() external view returns (address rewardAddress);
 
     function getConsistencyLevel() external view returns (uint8 consistencyLevel);
-
 }

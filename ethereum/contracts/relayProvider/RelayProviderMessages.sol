@@ -10,5 +10,4 @@ import "./RelayProviderStructs.sol";
 
 contract RelayProviderMessages is RelayProviderStructs, RelayProviderGetters {
     using BytesLib for bytes;
-
 }

@@ -2,30 +2,52 @@
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
+
 import "./IRelayProvider.sol";
 
 interface ICoreRelayer {
-    
     /**
-    * @dev This is the basic function for requesting delivery
-    */
-    function requestDelivery(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider) external payable returns (uint64 sequence);
-
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce , IRelayProvider provider) external payable;
-
-    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce , IRelayProvider provider) external payable returns (uint64 sequence);
-
-    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce) external payable returns (uint64 sequence);
-
-    /**
-    @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
-        the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
+     * @dev This is the basic function for requesting delivery
      */
-    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce , IRelayProvider provider) external payable;
+    function requestDelivery(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider)
+        external
+        payable
+        returns (uint64 sequence);
 
-    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable returns (uint64 sequence);
+    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider)
+        external
+        payable;
 
-    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) external payable returns (uint64 sequence);
+    function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider)
+        external
+        payable
+        returns (uint64 sequence);
+
+    function requestMultidelivery(DeliveryRequestsContainer memory deliveryRequests, uint32 nonce)
+        external
+        payable
+        returns (uint64 sequence);
+
+    /**
+     * @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
+     *     the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
+     */
+    function requestMultiforward(
+        DeliveryRequestsContainer memory deliveryRequests,
+        uint16 rolloverChain,
+        uint32 nonce,
+        IRelayProvider provider
+    ) external payable;
+
+    function deliverSingle(TargetDeliveryParametersSingle memory targetParams)
+        external
+        payable
+        returns (uint64 sequence);
+
+    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams)
+        external
+        payable
+        returns (uint64 sequence);
 
     // function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
 
@@ -33,22 +55,36 @@ interface ICoreRelayer {
 
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
-    function fromWormholeFormat(bytes32 whFormatAddress) external pure returns(address addr);
+    function fromWormholeFormat(bytes32 whFormatAddress) external pure returns (address addr);
 
     function getDefaultRelayProvider() external returns (IRelayProvider);
-    
-    function getDefaultRelayParams() external pure returns(bytes memory relayParams);
 
-    function quoteGasDeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 deliveryQuote);
+    function getDefaultRelayParams() external pure returns (bytes memory relayParams);
 
-    function quoteGasRedeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider) external pure returns (uint256 redeliveryQuote);
+    function quoteGasDeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider)
+        external
+        pure
+        returns (uint256 deliveryQuote);
 
-    function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider) external pure returns (uint256 nativeQuote);
+    function quoteGasRedeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider relayProvider)
+        external
+        pure
+        returns (uint256 redeliveryQuote);
 
-    function getDeliveryInstructionsContainer(bytes memory encoded) external view returns (DeliveryInstructionsContainer memory container);
+    function quoteApplicationBudgetFee(uint16 targetChain, uint256 targetAmount, IRelayProvider provider)
+        external
+        pure
+        returns (uint256 nativeQuote);
 
-    function getRedeliveryByTxHashInstruction(bytes memory encoded) external view returns (RedeliveryByTxHashInstruction memory instruction);
+    function getDeliveryInstructionsContainer(bytes memory encoded)
+        external
+        view
+        returns (DeliveryInstructionsContainer memory container);
 
+    function getRedeliveryByTxHashInstruction(bytes memory encoded)
+        external
+        view
+        returns (RedeliveryByTxHashInstruction memory instruction);
 
     struct DeliveryRequestsContainer {
         uint8 payloadId; // payloadID = 1
@@ -57,13 +93,13 @@ interface ICoreRelayer {
     }
 
     /**
-    *  targetChain - the chain to send to in Wormhole Chain ID format.
-    *  targetAddress - is the recipient contract address on the target chain (in Wormhole 32-byte address format).
-    *  refundAddress - is the address where any remaining computeBudget should be sent at the end of the transaction. (In Wormhole address format. Must be on the target chain.)
-    *  computeBudget - is the maximum amount (denominated in this chain's wei) that the relayer should spend on transaction fees (gas) for this delivery. Usually calculated from quoteEvmDeliveryPrice.
-    *  applicationBudget - this amount (denominated in this chain's wei) will be converted to the target native currency and given to the recipient contract at the beginning of the delivery execution.
-    *  relayParameters - optional payload which can alter relayer behavior.
-    */
+     *  targetChain - the chain to send to in Wormhole Chain ID format.
+     *  targetAddress - is the recipient contract address on the target chain (in Wormhole 32-byte address format).
+     *  refundAddress - is the address where any remaining computeBudget should be sent at the end of the transaction. (In Wormhole address format. Must be on the target chain.)
+     *  computeBudget - is the maximum amount (denominated in this chain's wei) that the relayer should spend on transaction fees (gas) for this delivery. Usually calculated from quoteEvmDeliveryPrice.
+     *  applicationBudget - this amount (denominated in this chain's wei) will be converted to the target native currency and given to the recipient contract at the beginning of the delivery execution.
+     *  relayParameters - optional payload which can alter relayer behavior.
+     */
     struct DeliveryRequest {
         uint16 targetChain;
         bytes32 targetAddress;
@@ -76,9 +112,9 @@ interface ICoreRelayer {
     struct RedeliveryByTxHashRequest {
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint32 sourceNonce; 
+        uint32 sourceNonce;
         uint16 targetChain;
-        uint256 newComputeBudget; 
+        uint256 newComputeBudget;
         uint256 newApplicationBudget;
         bytes newRelayParameters;
     }
@@ -90,9 +126,9 @@ interface ICoreRelayer {
         uint8 deliveryIndex;
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
-        // Optional gasOverride which can be supplied by the relayer
-        // uint32 targetCallGasOverride;
     }
+    // Optional gasOverride which can be supplied by the relayer
+    // uint32 targetCallGasOverride;
 
     struct TargetDeliveryParametersSingle {
         // encoded batchVM to be delivered on the target chain
@@ -101,9 +137,9 @@ interface ICoreRelayer {
         uint8 deliveryIndex;
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
-        // Optional gasOverride which can be supplied by the relayer
-       // uint32 targetCallGasOverride;
     }
+    // Optional gasOverride which can be supplied by the relayer
+    // uint32 targetCallGasOverride;
 
     struct TargetRedeliveryByTxHashParamsSingle {
         bytes redeliveryVM;
@@ -118,7 +154,7 @@ interface ICoreRelayer {
 
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded; 
+        bool sufficientlyFunded;
         DeliveryInstruction[] instructions;
     }
 
@@ -135,9 +171,9 @@ interface ICoreRelayer {
         uint8 payloadId; //2
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint32 sourceNonce; 
+        uint32 sourceNonce;
         uint16 targetChain;
-        uint256 newMaximumRefundTarget; 
+        uint256 newMaximumRefundTarget;
         uint256 newApplicationBudgetTarget;
         ExecutionParameters executionParameters;
     }
@@ -147,5 +183,4 @@ interface ICoreRelayer {
         uint32 gasLimit;
         bytes32 providerDeliveryAddress;
     }
-
 }

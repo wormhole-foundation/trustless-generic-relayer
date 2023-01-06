@@ -8,7 +8,6 @@ import "../interfaces/IWormhole.sol";
 import "./RelayProviderState.sol";
 
 contract RelayProviderGetters is RelayProviderState {
-
     function owner() public view returns (address) {
         return _state.owner;
     }

@@ -51,7 +51,7 @@ contract CoreRelayerGetters is CoreRelayerState {
     //         }
     //         return IRelayProvider(address(uint160(uint256(relayerParams.toBytes32(1)))));
     //     }
-    // } 
+    // }
 
     function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
         return _state.forwardingRequest;
@@ -64,5 +64,4 @@ contract CoreRelayerGetters is CoreRelayerState {
     function isContractLocked() internal view returns (bool) {
         return _state.contractLock;
     }
-
 }
