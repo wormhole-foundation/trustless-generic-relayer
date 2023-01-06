@@ -8,8 +8,6 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
-import "forge-std/console.sol";
-
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
@@ -255,8 +253,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
 
             totalFees = totalFees + requestFee;
-            console.log(funds);
-            console.log(totalFees);
             if (funds < totalFees) {
                 return (0, false, "25"); //"Insufficient funds were provided to cover the delivery fees.");
             }

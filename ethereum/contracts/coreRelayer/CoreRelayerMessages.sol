@@ -11,18 +11,6 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
-    // function encodeDeliveryStatus(DeliveryStatus memory ds) internal pure returns (bytes memory) {
-    //     require(ds.payloadID == 2, "invalid DeliveryStatus");
-    //     return abi.encodePacked(
-    //         uint8(2), // payloadID = 2
-    //         ds.batchHash,
-    //         ds.emitterAddress,
-    //         ds.sequence,
-    //         ds.deliveryCount,
-    //         ds.deliverySuccess ? uint8(1) : uint8(0)
-    //     );
-    // }
-
     function decodeRedeliveryByTxHashInstruction(bytes memory encoded)
         internal
         pure
@@ -61,7 +49,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 32;
     }
 
-    /// @dev `decodeDeliveryInstructionsContainer` parses encoded delivery instructions into the DeliveryInstructions struct
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         internal
         pure
@@ -117,35 +104,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         return DeliveryInstructionsContainer(payloadId, sufficientlyFunded, instructionArray);
     }
 
-    // function parseDeliveryStatus(bytes memory encoded) internal pure returns (DeliveryStatus memory ds) {
-    //     uint256 index = 0;
-
-    //     ds.payloadID = encoded.toUint8(index);
-    //     index += 1;
-
-    //     require(ds.payloadID == 2, "invalid DeliveryStatus");
-
-    //     ds.batchHash = encoded.toBytes32(index);
-    //     index += 32;
-
-    //     ds.emitterAddress = encoded.toBytes32(index);
-    //     index += 32;
-
-    //     ds.sequence = encoded.toUint64(index);
-    //     index += 8;
-
-    //     ds.deliveryCount = encoded.toUint16(index);
-    //     index += 2;
-
-    //     ds.deliverySuccess = encoded.toUint8(index) != 0;
-    //     index += 1;
-
-    //     require(encoded.length == index, "invalid DeliveryStatus");
-    // }
-
     function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container)
         internal
-        view
+        pure
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
@@ -165,17 +126,15 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
                 request.refundAddress,
                 request.computeBudget,
                 request.applicationBudget,
-                request.relayParameters.length > 0 ? request.relayParameters.toUint8(0) : uint8(0),
-                request.relayParameters.length > 0
-                    ? request.relayParameters.toBytes32(1)
-                    : bytes32(uint256(uint160(address(0x0))))
+                uint8(request.relayParameters.length),
+                request.relayParameters
             );
         }
     }
 
     function decodeDeliveryRequestsContainer(bytes memory encoded)
         internal
-        view
+        pure
         returns (DeliveryRequestsContainer memory)
     {
         uint256 index = 0;
@@ -211,9 +170,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             request.applicationBudget = encoded.toUint256(index);
             index += 32;
 
-            request.relayParameters = encoded.slice(index, 33);
+            uint8 relayParametersLength = encoded.toUint8(index);
 
-            index += 33;
+            index += 1;
+
+            request.relayParameters = encoded.slice(index, relayParametersLength);
+
+            index += relayParametersLength;
 
             requestArray[i] = request;
         }
