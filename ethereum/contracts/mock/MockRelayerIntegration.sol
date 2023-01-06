@@ -34,28 +34,31 @@ contract MockRelayerIntegration is IWormholeReceiver {
     }
 
     function sendMessage(bytes memory _message, uint16 targetChainId, address destination, address refundAddress) public payable {
-        executeSend(abi.encodePacked(uint8(0), _message), targetChainId, destination, refundAddress);
+        executeSend(abi.encodePacked(uint8(0), _message), targetChainId, destination, refundAddress, 0, 1);
     }
 
     function sendMessageWithForwardedResponse(bytes memory _message, uint16 targetChainId, address destination, address refundAddress) public payable {
-        executeSend(abi.encodePacked(uint8(1), _message), targetChainId, destination, refundAddress);
+        executeSend(abi.encodePacked(uint8(1), _message), targetChainId, destination, refundAddress, 0, 1);
     }
 
-    function executeSend(bytes memory fullMessage, uint16 targetChainId, address destination, address refundAddress) internal {
-        wormhole.publishMessage{value: wormhole.messageFee()}(1, fullMessage, 200);
+    function sendMessageGeneral(bytes memory fullMessage, uint16 targetChainId, address destination, address refundAddress, uint256 applicationBudget, uint32 nonce) public payable {
+        executeSend(fullMessage, targetChainId, destination, refundAddress, applicationBudget, nonce);
+    }
 
-        uint256 applicationBudget = 0;
+    function executeSend(bytes memory fullMessage, uint16 targetChainId, address destination, address refundAddress, uint256 applicationBudget, uint32 nonce) internal {
+        wormhole.publishMessage{value: wormhole.messageFee()}(nonce, fullMessage, 200);
+
 
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
             targetChainId, //target chain
             relayer.toWormholeFormat(address(destination)), //target address
-            relayer.toWormholeFormat(address(refundAddress)),  //refund address, This will be ignored on the target chain because the intent is to perform a forward
+            relayer.toWormholeFormat(address(refundAddress)),  //refund address, This will be ignored on the target chain if the intent is to perform a forward
             msg.value - 2*wormhole.messageFee(), //compute budget
             applicationBudget, //application budget, not needed in this case. 
             relayer.getDefaultRelayParams() //no overrides
         );
 
-        relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(request, 1, relayer.getDefaultRelayProvider());
+        relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(request, nonce, relayer.getDefaultRelayProvider());
     }
 
 
@@ -73,13 +76,13 @@ contract MockRelayerIntegration is IWormholeReceiver {
             message = parsed.payload.slice(1, parsed.payload.length - 1);
             
             if(forward) {
-                wormhole.publishMessage{value: wormhole.messageFee()}(1, abi.encodePacked(uint8(0), bytes("received!")), 200);
+                wormhole.publishMessage{value: wormhole.messageFee()}(parsed.nonce, abi.encodePacked(uint8(0), bytes("received!")), 200);
                 
                 uint256 computeBudget = relayer.quoteGasDeliveryFee(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
 
                 ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(parsed.emitterChainId, parsed.emitterAddress, parsed.emitterAddress, computeBudget, 0, relayer.getDefaultRelayParams());
 
-                relayer.requestForward(request, parsed.emitterChainId, 1, relayer.getDefaultRelayProvider());
+                relayer.requestForward(request, parsed.emitterChainId, parsed.nonce, relayer.getDefaultRelayProvider());
 
             }
 

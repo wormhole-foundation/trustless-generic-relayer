@@ -279,9 +279,6 @@ contract TestCoreRelayer is Test {
         uint32 wormholeFeeOnTargetInSourceCurrency = uint32(gasParams.wormholeFeeOnSource*map[SOURCE_CHAIN_ID].relayProvider.quoteAssetPrice(TARGET_CHAIN_ID)/map[SOURCE_CHAIN_ID].relayProvider.quoteAssetPrice(SOURCE_CHAIN_ID) + 1);
         map[SOURCE_CHAIN_ID].relayProvider.updateWormholeFee(TARGET_CHAIN_ID, wormholeFeeOnTargetInSourceCurrency);
         
-
-        console.log(map[SOURCE_CHAIN_ID].wormhole.messageFee());
-        console.log(map[TARGET_CHAIN_ID].wormhole.messageFee());
         uint256 payment = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider) + source.wormhole.messageFee();
 
         source.integration.sendMessage{value: payment}(message, TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress));
@@ -295,8 +292,7 @@ contract TestCoreRelayer is Test {
 
         uint256 howMuchGasRelayerCouldHavePaidForAndStillProfited = relayerProfit/gasParams.targetGasPrice/gasParams.targetNativePrice;
         assertTrue(howMuchGasRelayerCouldHavePaidForAndStillProfited >= 30000); // takes around this much gas (seems to go from 36k-200k?!?)
-        console.log(USDcost);
-        console.log(relayerProfit);
+
         assertTrue(USDcost == relayerProfit + 2*map[SOURCE_CHAIN_ID].wormhole.messageFee()*gasParams.sourceNativePrice, "We paid the exact amount");
     }
 
@@ -383,6 +379,67 @@ contract TestCoreRelayer is Test {
 
     }
 
+    function testRevertRequestRedeliveryNotEnoughFunds(GasParameters memory gasParams, bytes memory message) public {
+        
+        (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) = standardAssumeAndSetupTwoChains(gasParams, 1000000);
+
+        vm.recordLogs();
+        
+        // estimate the cost based on the intialized values
+        uint256 payment = source.coreRelayer.quoteGasRedeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider) + source.wormhole.messageFee();
+        uint256 paymentNotEnough = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, 10, source.relayProvider) + source.wormhole.messageFee();
+
+
+        source.integration.sendMessage{value: paymentNotEnough}(message, TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress));
+
+        genericRelayer(SOURCE_CHAIN_ID, 2);
+
+        assertTrue((keccak256(target.integration.getMessage()) != keccak256(message)) || (keccak256(message) == keccak256(bytes(""))));
+
+        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
+
+        ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest(SOURCE_CHAIN_ID, deliveryVaaHash, 1, TARGET_CHAIN_ID, payment - source.wormhole.messageFee(), 0, source.coreRelayer.getDefaultRelayParams());
+
+        vm.expectRevert(bytes("1"));
+        source.coreRelayer.requestRedelivery{value: payment-1}(redeliveryRequest, 1, source.relayProvider);
+
+    }
+
+    function testRevertNonceZero(GasParameters memory gasParams, bytes memory message) public {
+        
+        (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) = standardAssumeAndSetupTwoChains(gasParams, 1000000);
+
+        vm.recordLogs();
+
+        uint256 wormholeFee = source.wormhole.messageFee();
+        // estimate the cost based on the intialized values
+        uint256 computeBudget = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
+
+        vm.expectRevert(bytes("2"));
+        source.integration.sendMessageGeneral{value: computeBudget + wormholeFee}(abi.encodePacked(uint8(0), message), TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress), 0, 0);
+
+    }
+
+    /** Forwarding tests 3-7.. need to think about how to test this.. some sort of way to control the forwarding request? Or maybe make a different relayerintegration for testing? */
+
+    /** Reentrnecy test for execute delivery 8 */
+
+    /** Redelivery  9-17 */
+
+    /** Delivery 18-24 */
+
+    /** Request delivery 25-27  */
+
+    /** asset conversoin 28-29 */
+
+
+
+    /*****
+     *
+     * GENERIC RELAYER CODE
+     *
+     *****/
+
     mapping(uint256 => bool) nonceCompleted; 
 
     mapping(bytes32 => ICoreRelayer.TargetDeliveryParametersSingle) pastDeliveries;
@@ -461,15 +518,6 @@ contract TestCoreRelayer is Test {
             map[targetChain].coreRelayer.redeliverSingle{value: budget}(package);
         }
     }
-
-    /**
-    FORWARDING TESTS
-
-    */
-    //This test confirms that forwarding a request produces the proper delivery instructions
-
-    //This test confirms that forwarding cannot occur when the contract is locked
-
-    //This test confirms that forwarding cannot occur if there are insufficient refunds after the request
-
 }
+
+
