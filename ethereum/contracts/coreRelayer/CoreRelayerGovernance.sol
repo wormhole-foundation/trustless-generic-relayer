@@ -38,7 +38,8 @@ abstract contract CoreRelayerGovernance is
     function upgrade(uint16 thisRelayerChainId, address newImplementation) public onlyOwner {
         require(thisRelayerChainId == chainId(), "3");
 
-        address currentImplementation = _getImplementation();
+        // cache currentImplementation for event
+        //address currentImplementation = _getImplementation();
 
         _upgradeTo(newImplementation);
 
@@ -72,8 +73,8 @@ abstract contract CoreRelayerGovernance is
 
         require(msg.sender == newOwner, "6");
 
-        // cache currentOwner for Event
-        address currentOwner = owner();
+        // cache currentOwner for event
+        //address currentOwner = owner();
 
         // update the owner in the contract state and reset the pending owner
         setOwner(newOwner);
