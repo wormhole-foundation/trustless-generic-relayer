@@ -33,40 +33,61 @@ contract MockRelayerIntegration is IWormholeReceiver {
         owner = msg.sender;
     }
 
-    function sendMessage(bytes memory _message, uint16 targetChainId, address destination, address refundAddress) public payable {
+    function sendMessage(bytes memory _message, uint16 targetChainId, address destination, address refundAddress)
+        public
+        payable
+    {
         executeSend(abi.encodePacked(uint8(0), _message), targetChainId, destination, refundAddress, 0, 1);
     }
 
-    function sendMessageWithForwardedResponse(bytes memory _message, uint16 targetChainId, address destination, address refundAddress) public payable {
+    function sendMessageWithForwardedResponse(
+        bytes memory _message,
+        uint16 targetChainId,
+        address destination,
+        address refundAddress
+    ) public payable {
         executeSend(abi.encodePacked(uint8(1), _message), targetChainId, destination, refundAddress, 0, 1);
     }
 
-    function sendMessageGeneral(bytes memory fullMessage, uint16 targetChainId, address destination, address refundAddress, uint256 applicationBudget, uint32 nonce) public payable {
+    function sendMessageGeneral(
+        bytes memory fullMessage,
+        uint16 targetChainId,
+        address destination,
+        address refundAddress,
+        uint256 applicationBudget,
+        uint32 nonce
+    ) public payable {
         executeSend(fullMessage, targetChainId, destination, refundAddress, applicationBudget, nonce);
     }
 
-    function executeSend(bytes memory fullMessage, uint16 targetChainId, address destination, address refundAddress, uint256 applicationBudget, uint32 nonce) internal {
+    function executeSend(
+        bytes memory fullMessage,
+        uint16 targetChainId,
+        address destination,
+        address refundAddress,
+        uint256 applicationBudget,
+        uint32 nonce
+    ) internal {
         wormhole.publishMessage{value: wormhole.messageFee()}(nonce, fullMessage, 200);
-
 
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
             targetChainId, //target chain
             relayer.toWormholeFormat(address(destination)), //target address
-            relayer.toWormholeFormat(address(refundAddress)),  //refund address, This will be ignored on the target chain if the intent is to perform a forward
-            msg.value - 2*wormhole.messageFee(), //compute budget
-            applicationBudget, //application budget, not needed in this case. 
+            relayer.toWormholeFormat(address(refundAddress)), //refund address, This will be ignored on the target chain if the intent is to perform a forward
+            msg.value - 2 * wormhole.messageFee(), //compute budget
+            applicationBudget, //application budget, not needed in this case.
             relayer.getDefaultRelayParams() //no overrides
         );
 
-        relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(request, nonce, relayer.getDefaultRelayProvider());
+        relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(
+            request, nonce, relayer.getDefaultRelayProvider()
+        );
     }
-
 
     function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
         for (uint256 i = 0; i < numObservations - 1;) {
-
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
@@ -74,19 +95,27 @@ contract MockRelayerIntegration is IWormholeReceiver {
             bool forward = (parsed.payload.toUint8(0) == 1);
             verifiedPayloads[parsed.hash] = parsed.payload.slice(1, parsed.payload.length - 1);
             message = parsed.payload.slice(1, parsed.payload.length - 1);
-            
-            if(forward) {
-                wormhole.publishMessage{value: wormhole.messageFee()}(parsed.nonce, abi.encodePacked(uint8(0), bytes("received!")), 200);
-                
-                uint256 computeBudget = relayer.quoteGasDeliveryFee(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
 
-                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(parsed.emitterChainId, parsed.emitterAddress, parsed.emitterAddress, computeBudget, 0, relayer.getDefaultRelayParams());
+            if (forward) {
+                wormhole.publishMessage{value: wormhole.messageFee()}(
+                    parsed.nonce, abi.encodePacked(uint8(0), bytes("received!")), 200
+                );
+
+                uint256 computeBudget =
+                    relayer.quoteGasDeliveryFee(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
+
+                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
+                    parsed.emitterChainId,
+                    parsed.emitterAddress,
+                    parsed.emitterAddress,
+                    computeBudget,
+                    0,
+                    relayer.getDefaultRelayParams()
+                );
 
                 relayer.requestForward(request, parsed.emitterChainId, parsed.nonce, relayer.getDefaultRelayProvider());
-
             }
 
-            
             unchecked {
                 i += 1;
             }

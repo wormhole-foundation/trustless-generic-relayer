@@ -31,9 +31,9 @@ abstract contract CoreRelayerStructs {
         uint8 deliveryIndex;
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
-        // Optional gasOverride which can be supplied by the relayer
-        // uint32 targetCallGasOverride;
     }
+    // Optional gasOverride which can be supplied by the relayer
+    // uint32 targetCallGasOverride;
 
     struct TargetRedeliveryByTxHashParamsSingle {
         bytes redeliveryVM;
@@ -54,9 +54,9 @@ abstract contract CoreRelayerStructs {
     struct RedeliveryByTxHashRequest {
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint32 sourceNonce; 
+        uint32 sourceNonce;
         uint16 targetChain;
-        uint256 newComputeBudget; 
+        uint256 newComputeBudget;
         uint256 newApplicationBudget;
         bytes newRelayParameters;
     }
@@ -67,9 +67,6 @@ abstract contract CoreRelayerStructs {
     }
 
     //Below this are internal structs
-
-
-
 
     //Wire Types
     struct DeliveryInstructionsContainer {
@@ -97,19 +94,14 @@ abstract contract CoreRelayerStructs {
         uint8 payloadId; //2
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint32 sourceNonce; 
+        uint32 sourceNonce;
         uint16 targetChain;
-        uint256 newMaximumRefundTarget; 
+        uint256 newMaximumRefundTarget;
         uint256 newApplicationBudgetTarget;
         ExecutionParameters executionParameters;
     }
 
     //End Wire Types
-
-
-
-
-
 
     //Internal usage structs
 

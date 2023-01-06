@@ -10,10 +10,7 @@ import "./RelayProviderGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract RelayProviderSetup is RelayProviderSetters, ERC1967Upgrade {
-    function setup(
-        address implementation,
-        uint16 chainId
-    ) public {
+    function setup(address implementation, uint16 chainId) public {
         // sanity check initial values
         require(implementation != address(0), "implementation cannot be address(0)");
 

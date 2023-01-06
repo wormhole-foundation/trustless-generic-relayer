@@ -11,11 +11,7 @@ import "./RelayProviderGetters.sol";
 import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
-abstract contract RelayProviderGovernance is
-    RelayProviderGetters,
-    RelayProviderSetters,
-    ERC1967Upgrade
-{
+abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProviderSetters, ERC1967Upgrade {
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event RewardAddressUpdated(address indexed newAddress);
@@ -82,7 +78,6 @@ abstract contract RelayProviderGovernance is
         emit ContractUpgraded(currentImplementation, newImplementation);
     }
 
-    
     /**
      * @dev submitOwnershipTransferRequest serves to begin the ownership transfer process of the contracts
      * - it saves an address for the new owner in the pending state

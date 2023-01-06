@@ -4,7 +4,6 @@
 pragma solidity ^0.8.0;
 
 contract RelayProviderStorage {
-
     struct PriceData {
         uint128 gasPrice;
         uint128 nativeCurrencyPrice;
@@ -14,17 +13,13 @@ contract RelayProviderStorage {
         uint16 chainId;
         address owner;
         address pendingOwner;
-
         mapping(address => bool) initializedImplementations;
-
         mapping(uint16 => PriceData) data;
         mapping(uint16 => uint32) deliverGasOverhead;
         mapping(uint16 => uint32) wormholeFee;
         mapping(uint16 => uint256) maximumBudget;
         mapping(uint16 => bytes32) deliveryAddressMap;
         address rewardAddress;
-
-
     }
 }
 
