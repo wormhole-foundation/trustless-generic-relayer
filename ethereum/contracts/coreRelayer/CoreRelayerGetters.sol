@@ -13,12 +13,16 @@ import "../libraries/external/BytesLib.sol";
 contract CoreRelayerGetters is CoreRelayerState {
     using BytesLib for bytes;
 
-    function owner() public view returns (address) {
-        return _state.owner;
+    function governanceActionIsConsumed(bytes32 hash) public view returns (bool) {
+        return _state.consumedGovernanceActions[hash];
     }
 
-    function pendingOwner() public view returns (address) {
-        return _state.pendingOwner;
+    function governanceChainId() public view returns (uint16){
+        return _state.provider.governanceChainId;
+    }
+
+    function governanceContract() public view returns (bytes32){
+        return _state.provider.governanceContract;
     }
 
     function isInitialized(address impl) public view returns (bool) {
@@ -31,6 +35,14 @@ contract CoreRelayerGetters is CoreRelayerState {
 
     function chainId() public view returns (uint16) {
         return _state.provider.chainId;
+    }
+
+    function evmChainId() public view returns (uint256) {
+        return _state.evmChainId;
+    }
+
+    function isFork() public view returns (bool) {
+        return evmChainId() != block.chainid;
     }
 
     function registeredCoreRelayerContract(uint16 chain) public view returns (bytes32) {
