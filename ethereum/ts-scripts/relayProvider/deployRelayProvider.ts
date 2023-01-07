@@ -42,7 +42,9 @@ async function run() {
   writeOutputFiles(output, processName)
 }
 
-async function deployRelayProviderImplementation(chain: ChainInfo): Promise<Deployment> {
+export async function deployRelayProviderImplementation(
+  chain: ChainInfo
+): Promise<Deployment> {
   console.log("deployRelayProviderImplementation " + chain.chainId)
   let provider = new ethers.providers.StaticJsonRpcProvider(chain.rpc)
   let signer = new ethers.Wallet(privateKey, provider)
@@ -58,7 +60,7 @@ async function deployRelayProviderImplementation(chain: ChainInfo): Promise<Depl
   })
 }
 
-async function deployRelayProviderSetup(chain: ChainInfo): Promise<Deployment> {
+export async function deployRelayProviderSetup(chain: ChainInfo): Promise<Deployment> {
   console.log("deployRelayProviderSetup " + chain.chainId)
   let provider = new ethers.providers.StaticJsonRpcProvider(chain.rpc)
   let signer = new ethers.Wallet(privateKey, provider)
@@ -72,7 +74,7 @@ async function deployRelayProviderSetup(chain: ChainInfo): Promise<Deployment> {
     return { address: result.address, chainId: chain.chainId }
   })
 }
-async function deployRelayProviderProxy(
+export async function deployRelayProviderProxy(
   chain: ChainInfo,
   relayProviderSetupAddress: string,
   relayProviderImplementationAddress: string
