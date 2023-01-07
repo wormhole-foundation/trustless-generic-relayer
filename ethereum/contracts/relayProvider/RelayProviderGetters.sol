@@ -24,6 +24,14 @@ contract RelayProviderGetters is RelayProviderState {
         return _state.chainId;
     }
 
+    function coreRelayer() public view returns (address) {
+        return _state.coreRelayer;
+    }
+
+    function approvedSender(address sender) public view returns (bool) {
+        return _state.approvedSenders[sender];
+    }
+
     function gasPrice(uint16 targetChainId) public view returns (uint128) {
         return _state.data[targetChainId].gasPrice;
     }
