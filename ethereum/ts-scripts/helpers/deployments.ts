@@ -134,13 +134,20 @@ export async function deployCoreRelayerProxy(
   //@ts-ignore
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
 
-  let ABI = ["function setup(address,uint16,address,address)"]
+  const governanceChainId = 1
+  const governanceContract =
+    "0x0000000000000000000000000000000000000000000000000000000000000004"
+
+  let ABI = ["function setup(address,uint16,address,address,uint16,bytes32,uint256)"]
   let iface = new ethers.utils.Interface(ABI)
   let encodedData = iface.encodeFunctionData("setup", [
     coreRelayerImplementationAddress,
     chain.chainId,
     wormholeAddress,
     relayProviderProxyAddress,
+    governanceChainId,
+    governanceContract,
+    chain.evmNetworkId,
   ])
 
   const contract = await factory.deploy(coreRelayerSetupAddress, encodedData)

@@ -16,7 +16,7 @@ All other configuration is done through files in the ./config/${env} directory.
 
 ## Running the scripts
 
-All files in the coreRelayer, relayProvider, and MockIntegration directories are runnable.
+All files in the coreRelayer, relayProvider, and MockIntegration directories are runnable. These are intended to run from the /ethereum directory.
 
 The target environment must be passed in as an environment variable. So, for example, you can run the RelayProvider deployment script by running:
 

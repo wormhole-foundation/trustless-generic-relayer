@@ -20,74 +20,177 @@ abstract contract CoreRelayerGovernance is
     CoreRelayerMessages,
     ERC1967Upgrade
 {
-    //TODO convert this upgrade to being managed by guardian VAAs
+    using BytesLib for bytes;
+    event ContractUpgraded(address indexed oldContract, address indexed newContract);
 
-    // event ContractUpgraded(address indexed oldContract, address indexed newContract);
-    // event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
-    // event RelayProviderUpdated(address indexed newDefaultRelayProvider);
+    // "CoreRelayer" (left padded)
+    bytes32 constant module = 0x000000000000000000000000000000000000000000436f726552656c61796572;
 
-    /// @dev registerCoreRelayerContract registers other relayer contracts with this relayer
-    function registerCoreRelayerContract(uint16 chainId, bytes32 coreRelayerContractAddress) public onlyOwner {
-        require(coreRelayerContractAddress != bytes32(0), "1"); //"invalid contract address");
-        require(chainId != 0, "3"); //"invalid chainId");
+    function submitContractUpgrade(bytes memory _vm) public {
+        require(!isFork(), "invalid fork");
 
-        setRegisteredCoreRelayerContract(chainId, coreRelayerContractAddress);
+        (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(_vm);
+        require(valid, reason);
+
+        setConsumedGovernanceAction(vm.hash);
+
+        ContractUpgrade memory contractUpgrade = parseUpgrade(vm.payload);
+
+        require(contractUpgrade.chain == chainId(), "wrong chain id");
+
+        upgradeImplementation(contractUpgrade.newContract);
     }
 
-    /// @dev upgrade serves to upgrade contract implementations
-    function upgrade(uint16 thisRelayerChainId, address newImplementation) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "3");
+    function registerCoreRelayerContract(bytes memory vaa) public {
+        (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(vaa);
+        require(valid, reason);
 
+        setConsumedGovernanceAction(vm.hash);
+
+        RegisterChain memory rc = parseRegisterChain(vm.payload);
+
+        require((rc.chain == chainId() && !isFork()) || rc.chain == 0, "invalid chain id");
+
+        setRegisteredCoreRelayerContract(rc.emitterChain, rc.emitterAddress);
+    }
+
+    function setDefaultRelayProvider(bytes memory vaa) public {
+        (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(vaa);
+        require(valid, reason);
+
+        setConsumedGovernanceAction(vm.hash);
+
+        UpdateDefaultProvider memory provider = parseUpdateDefaultProvider(vm.payload);
+
+        require((provider.chain == chainId() && !isFork()) || provider.chain == 0, "invalid chain id");
+
+        setRelayProvider(provider.newProvider);
+    }
+
+    function parseUpgrade(bytes memory encodedUpgrade) public pure returns (ContractUpgrade memory cu) {
+        uint index = 0;
+
+        cu.module = encodedUpgrade.toBytes32(index);
+        index += 32;
+
+        require(cu.module == module, "wrong module");
+
+        cu.action = encodedUpgrade.toUint8(index);
+        index += 1;
+
+        require(cu.action == 1, "invalid ContractUpgrade");
+
+        cu.chain = encodedUpgrade.toUint16(index);
+        index += 2;
+
+        cu.newContract = address(uint160(uint256(encodedUpgrade.toBytes32(index))));
+        index += 32;
+
+        require(encodedUpgrade.length == index, "invalid ContractUpgrade");
+    }
+
+    function parseRegisterChain(bytes memory encodedRegistration) public pure returns (RegisterChain memory registerChain) {
+        uint index = 0;
+
+        registerChain.module = encodedRegistration.toBytes32(index);
+        index += 32;
+
+        require(registerChain.module == module, "wrong module");
+
+        registerChain.action = encodedRegistration.toUint8(index);
+        index += 1;
+
+        registerChain.chain = encodedRegistration.toUint16(index);
+        index += 2;
+
+        require(registerChain.action == 2, "invalid RegisterChain");
+
+        registerChain.emitterChain = encodedRegistration.toUint16(index);
+        index += 2;
+
+        registerChain.emitterAddress = encodedRegistration.toBytes32(index);
+        index += 32;
+
+        require(encodedRegistration.length == index, "invalid RegisterChain");
+    }
+
+    function parseUpdateDefaultProvider(bytes memory encodedDefaultProvider) public pure returns (UpdateDefaultProvider memory defaultProvider) {
+        uint index = 0;
+
+        defaultProvider.module = encodedDefaultProvider.toBytes32(index);
+        index += 32;
+
+        require(defaultProvider.module == module, "wrong module");
+
+        defaultProvider.action = encodedDefaultProvider.toUint8(index);
+        index += 1;
+
+        require(defaultProvider.action == 3, "invalid DefaultProvider");
+        
+        defaultProvider.chain = encodedDefaultProvider.toUint16(index);
+        index += 2;
+
+        defaultProvider.newProvider = address(uint160(uint256(encodedDefaultProvider.toBytes32(index))));
+        index += 32;
+
+        require(encodedDefaultProvider.length == index, "invalid DefaultProvider");
+    }
+
+    struct ContractUpgrade {
+        bytes32 module;
+        uint8 action;
+        uint16 chain;
+        address newContract;
+    }
+
+    struct RegisterChain {
+        bytes32 module;
+        uint8 action;
+        uint16 chain; //TODO Why is this on this object?
+
+        uint16 emitterChain;
+        bytes32 emitterAddress;
+    }
+
+    //This could potentially be combined with ContractUpgrade
+    struct UpdateDefaultProvider {
+        bytes32 module;
+        uint8 action;
+        uint16 chain;
+        address newProvider;
+    }
+
+    function verifyGovernanceVM(bytes memory encodedVM) internal view returns (IWormhole.VM memory parsedVM, bool isValid, string memory invalidReason){
+        (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVM);
+
+        if (!valid) {
+            return (vm, valid, reason);
+        }
+
+        if (vm.emitterChainId != governanceChainId()) {
+            return (vm, false, "wrong governance chain");
+        }
+        if (vm.emitterAddress != governanceContract()) {
+            return (vm, false, "wrong governance contract");
+        }
+
+        if (governanceActionIsConsumed(vm.hash)) {
+            return (vm, false, "governance action already consumed");
+        }
+
+        return (vm, true, "");
+    }
+
+    function upgradeImplementation(address newImplementation) internal {
         address currentImplementation = _getImplementation();
 
         _upgradeTo(newImplementation);
 
-        // call initialize function of the new implementation
+        // Call initialize function of the new implementation
         (bool success, bytes memory reason) = newImplementation.delegatecall(abi.encodeWithSignature("initialize()"));
 
         require(success, string(reason));
 
-        //emit ContractUpgraded(currentImplementation, newImplementation);
-    }
-
-    /**
-     * @dev submitOwnershipTransferRequest serves to begin the ownership transfer process of the contracts
-     * - it saves an address for the new owner in the pending state
-     */
-    function submitOwnershipTransferRequest(uint16 thisRelayerChainId, address newOwner) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "4");
-        require(newOwner != address(0), "5");
-
-        setPendingOwner(newOwner);
-    }
-
-    /**
-     * @dev confirmOwnershipTransferRequest serves to finalize an ownership transfer
-     * - it checks that the caller is the pendingOwner to validate the wallet address
-     * - it updates the owner state variable with the pendingOwner state variable
-     */
-    function confirmOwnershipTransferRequest() public {
-        // cache the new owner address
-        address newOwner = pendingOwner();
-
-        require(msg.sender == newOwner, "6");
-
-        // cache currentOwner for Event
-        address currentOwner = owner();
-
-        // update the owner in the contract state and reset the pending owner
-        setOwner(newOwner);
-        setPendingOwner(address(0));
-
-        //emit OwnershipTransfered(currentOwner, newOwner);
-    }
-
-    function setDefaultRelayProvider(address relayProvider) public onlyOwner {
-        setRelayProvider(relayProvider);
-    }
-
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "7");
-        _;
+        emit ContractUpgraded(currentImplementation, newImplementation);
     }
 }

@@ -21,7 +21,8 @@
     "integration-test": "bash shell-scripts/run_integration_tests.sh",
     "typechain": "bash ../sdk/scripts/make_ethers_types.sh",
     "flatten": "mkdir -p node_modules/@poanet/solidity-flattener/contracts && cp -r contracts/* node_modules/@poanet/solidity-flattener/contracts/ && poa-solidity-flattener",
-    "deployAndConfigureTilt": "ENV=tilt bash ./ts-scripts/shell/deployConfigureTest.sh"
+    "deployAndConfigureTilt": "ENV=tilt bash ./ts-scripts/shell/deployConfigureTest.sh",
+    "size": "forge build --sizes --force"
   },
   "author": "",
   "license": "ISC",
