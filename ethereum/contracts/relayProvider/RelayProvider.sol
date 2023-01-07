@@ -6,8 +6,14 @@ pragma solidity ^0.8.0;
 import "./RelayProviderGovernance.sol";
 import "./RelayProviderStructs.sol";
 import "../interfaces/IRelayProvider.sol";
+import "../interfaces/ICoreRelayer.sol";
 
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
+    modifier onlyApprovedSender() {
+        require(approvedSender(_msgSender()), "_msgSender() not approved");
+        _;
+    }
+
     //Returns the delivery overhead fee required to deliver a message to targetChain, denominated in this chain's wei.
     function quoteDeliveryOverhead(uint16 targetChain) public view override returns (uint256 nativePriceQuote) {
         uint256 targetFees = deliverGasOverhead(targetChain) * gasPrice(targetChain) + wormholeFee(targetChain);
@@ -78,5 +84,26 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
 
         // round up
         return (sourceAmount * srcNativeCurrencyPrice + dstNativeCurrencyPrice - 1) / dstNativeCurrencyPrice;
+    }
+
+    //Internal delivery proxies
+    function redeliverSingle(ICoreRelayer.TargetRedeliveryByTxHashParamsSingle memory targetParams)
+        public
+        payable
+        onlyApprovedSender
+        returns (uint64 sequence)
+    {
+        ICoreRelayer cr = ICoreRelayer(coreRelayer());
+        return cr.redeliverSingle{value:msg.value}(targetParams);
+    }
+
+    function deliverSingle(ICoreRelayer.TargetDeliveryParametersSingle memory targetParams)
+        public
+        payable
+        onlyApprovedSender
+        returns (uint64 sequence)
+    {
+        ICoreRelayer cr = ICoreRelayer(coreRelayer());
+        return cr.deliverSingle{value:msg.value}(targetParams);
     }
 }

@@ -17,6 +17,18 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     event RewardAddressUpdated(address indexed newAddress);
     event DeliveryAddressUpdated(uint16 indexed targetChainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
+    event CoreRelayerUpdated(address coreRelayer);
+    event ApprovedSenderUpdated(address sender, bool approved);
+
+    function updateCoreRelayer(address payable newAddress) public onlyOwner {
+        setCoreRelayer(newAddress);
+        emit CoreRelayerUpdated(newAddress);
+    }
+
+    function updateApprovedSender(address sender, bool approved) public onlyOwner {
+        setApprovedSender(sender, approved);
+        emit ApprovedSenderUpdated(sender, approved);
+    }
 
     function updateRewardAddress(address newAddress) public onlyOwner {
         setRewardAddress(newAddress);
@@ -114,4 +126,5 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         require(owner() == _msgSender(), "owner() != _msgSender()");
         _;
     }
+
 }

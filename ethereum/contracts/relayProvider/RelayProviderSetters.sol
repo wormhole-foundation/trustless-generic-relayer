@@ -24,6 +24,14 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.chainId = thisChain;
     }
 
+    function setCoreRelayer(address payable coreRelayer) internal {
+        _state.coreRelayer = coreRelayer;
+    }
+
+    function setApprovedSender(address sender, bool approved) internal {
+        _state.approvedSenders[sender] = approved;
+    }
+
     function setDeliverGasOverhead(uint16 chainId, uint32 deliverGasOverhead) internal {
         _state.deliverGasOverhead[chainId] = deliverGasOverhead;
     }
