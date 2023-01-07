@@ -23,7 +23,7 @@
     "flatten": "mkdir -p node_modules/@poanet/solidity-flattener/contracts && cp -r contracts/* node_modules/@poanet/solidity-flattener/contracts/ && poa-solidity-flattener",
     "registerChains": "ts-node ./ts-scripts/registerChains.ts",
     "messageTest": "ts-node ./ts-scripts/messageTest.ts",
-    "deployAndConfigureTilt": "ENV=tilt ts-node ./ts-scripts/deployAndConfigure.ts"
+    "deployAndConfigureTilt": "ENV=tilt bash ./ts-scripts/shell/deployConfigureTest.sh"
   },
   "author": "",
   "license": "ISC",
