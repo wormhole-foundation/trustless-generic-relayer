@@ -57,7 +57,7 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
     }
 
     function setEvmChainId(uint256 evmChainId) internal {
-        require(evmChainId == block.chainid, "invalid evmChainId");
+        require(evmChainId == block.chainid, "invalid evmChainId ");
         _state.evmChainId = evmChainId;
     }
 }

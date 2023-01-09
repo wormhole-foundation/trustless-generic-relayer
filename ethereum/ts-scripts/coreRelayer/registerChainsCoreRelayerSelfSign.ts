@@ -7,6 +7,7 @@ import {
   getRelayProviderAddress,
   getCoreRelayerAddress,
 } from "../helpers/env"
+import { createRegisterChainVAA, createDefaultRelayProviderVAA } from "../helpers/vaa"
 
 const processName = "registerChainsCoreRelayer"
 init()
@@ -24,15 +25,11 @@ async function registerChainsCoreRelayer(chain: ChainInfo) {
   console.log("registerChainsCoreRelayer " + chain.chainId)
 
   const coreRelayer = getCoreRelayer(chain)
-  const relayProviderAddress = getRelayProviderAddress(chain)
 
-  await coreRelayer.setDefaultRelayProvider(relayProviderAddress)
+  await coreRelayer.setDefaultRelayProvider(createDefaultRelayProviderVAA(chain))
 
   for (let i = 0; i < chains.length; i++) {
-    await coreRelayer.registerCoreRelayerContract(
-      chains[i].chainId,
-      "0x" + tryNativeToHexString(getCoreRelayerAddress(chains[i]), "ethereum")
-    )
+    await coreRelayer.registerCoreRelayerContract(createRegisterChainVAA(chains[i]))
   }
 
   console.log("Did all contract registrations for the core relayer on " + chain.chainId)

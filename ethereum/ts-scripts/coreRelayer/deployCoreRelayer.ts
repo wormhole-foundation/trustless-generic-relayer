@@ -1,5 +1,6 @@
 import {
   deployCoreRelayerImplementation,
+  deployCoreRelayerLibrary,
   deployCoreRelayerProxy,
   deployCoreRelayerSetup,
 } from "../helpers/deployments"
@@ -18,13 +19,18 @@ async function run() {
   console.log("Start! " + processName)
 
   const output: any = {
+    coreRelayerLibraries: [],
     coreRelayerImplementations: [],
     coreRelayerSetups: [],
     coreRelayerProxies: [],
   }
 
   for (let i = 0; i < chains.length; i++) {
-    const coreRelayerImplementation = await deployCoreRelayerImplementation(chains[i])
+    const coreRelayerLibrary = await deployCoreRelayerLibrary(chains[i])
+    const coreRelayerImplementation = await deployCoreRelayerImplementation(
+      chains[i],
+      coreRelayerLibrary.address
+    )
     const coreRelayerSetup = await deployCoreRelayerSetup(chains[i])
     const coreRelayerProxy = await deployCoreRelayerProxy(
       chains[i],
@@ -34,6 +40,7 @@ async function run() {
       getRelayProviderAddress(chains[i])
     )
 
+    output.coreRelayerLibraries.push(coreRelayerLibrary)
     output.coreRelayerImplementations.push(coreRelayerImplementation)
     output.coreRelayerSetups.push(coreRelayerSetup)
     output.coreRelayerProxies.push(coreRelayerProxy)
