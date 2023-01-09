@@ -26,6 +26,7 @@ async function run() {
   }
 
   for (let i = 0; i < chains.length; i++) {
+    console.log(`Deploying for chain ${chains[i].chainId}...`)
     const coreRelayerLibrary = await deployCoreRelayerLibrary(chains[i])
     const coreRelayerImplementation = await deployCoreRelayerImplementation(
       chains[i],
@@ -44,6 +45,7 @@ async function run() {
     output.coreRelayerImplementations.push(coreRelayerImplementation)
     output.coreRelayerSetups.push(coreRelayerSetup)
     output.coreRelayerProxies.push(coreRelayerProxy)
+    console.log("")
   }
 
   writeOutputFiles(output, processName)
