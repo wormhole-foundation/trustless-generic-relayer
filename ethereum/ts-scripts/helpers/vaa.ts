@@ -16,6 +16,27 @@ const governanceContract =
 const coreRelayerModule =
   "0x000000000000000000000000000000000000000000436f726552656c61796572"
 
+export function createCoreRelayerUpgradeVAA(chain: ChainInfo, newAddress: string) {
+  /*
+      bytes32 module;
+        uint8 action;
+        uint16 chain;
+        bytes32 newContract; //listed as address in the struct, but is actually bytes32 inside the VAA
+      */
+
+  const payload = ethers.utils.solidityPack(
+    ["bytes32", "uint8", "uint16", "bytes32"],
+    [
+      coreRelayerModule,
+      1,
+      chain.chainId,
+      "0x" + tryNativeToHexString(newAddress, "ethereum"),
+    ]
+  )
+
+  return encodeAndSignGovernancePayload(payload)
+}
+
 export function createDefaultRelayProviderVAA(chain: ChainInfo) {
   /*
     bytes32 module;
