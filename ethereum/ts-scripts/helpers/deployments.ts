@@ -5,6 +5,7 @@ import { MockRelayerIntegration__factory } from "../../../sdk/src"
 import { CoreRelayerProxy__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerProxy__factory"
 import { CoreRelayerSetup__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerSetup__factory"
 import { CoreRelayerImplementation__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerImplementation__factory"
+import { CoreRelayerLibrary__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerLibrary__factory"
 
 import {
   init,
@@ -92,15 +93,47 @@ export async function deployMockIntegration(chain: ChainInfo): Promise<Deploymen
   })
 }
 
+export async function deployCoreRelayerLibrary(chain: ChainInfo): Promise<Deployment> {
+  console.log("deployCoreRelayerLibrary " + chain.chainId)
+
+  let signer = getSigner(chain)
+  const contractInterface = CoreRelayerLibrary__factory.createInterface()
+  const bytecode = CoreRelayerLibrary__factory.bytecode
+  const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
+  const contract = await factory.deploy()
+  return await contract.deployed().then((result) => {
+    console.log("Successfully deployed contract at " + result.address)
+    return { address: result.address, chainId: chain.chainId }
+  })
+}
+
 export async function deployCoreRelayerImplementation(
-  chain: ChainInfo
+  chain: ChainInfo,
+  coreRelayerLibraryAddress: string
 ): Promise<Deployment> {
   console.log("deployCoreRelayerImplementation " + chain.chainId)
   const signer = getSigner(chain)
   const contractInterface = CoreRelayerImplementation__factory.createInterface()
-  const bytecode = CoreRelayerImplementation__factory.bytecode
+  const bytecode: string = CoreRelayerImplementation__factory.bytecode
+
+  /*
+  Linked libraries in EVM are contained in the bytecode and linked at compile time.
+  However, the linked address of the CoreRelayerLibrary is not known until deployment time,
+  So, rather that recompiling the contracts with a static link, we modify the bytecode directly 
+  once we have the CoreRelayLibraryAddress.
+  */
+  const bytecodeWithLibraryLink = link(
+    bytecode,
+    "CoreRelayerLibrary",
+    coreRelayerLibraryAddress
+  )
+
   //@ts-ignore
-  const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
+  const factory = new ethers.ContractFactory(
+    contractInterface,
+    bytecodeWithLibraryLink,
+    signer
+  )
   const contract = await factory.deploy()
   return await contract.deployed().then((result) => {
     console.log("Successfully deployed contract at " + result.address)
@@ -155,4 +188,12 @@ export async function deployCoreRelayerProxy(
     console.log("Successfully deployed contract at " + result.address)
     return { address: result.address, chainId: chain.chainId }
   })
+}
+function link(bytecode: string, libName: String, libAddress: string) {
+  //This doesn't handle the libName, because Forge embed a psuedonym into the bytecode, like
+  //__$a7dd444e34bd28bbe3641e0101a6826fa7$__
+  //This means we can't link more than one library per bytecode
+  //const example = "__$a7dd444e34bd28bbe3641e0101a6826fa7$__"
+  let symbol = /__.*?__/g
+  return bytecode.replace(symbol, libAddress.toLowerCase().substr(2))
 }
