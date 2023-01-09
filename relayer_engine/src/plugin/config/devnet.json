@@ -1,5 +1,5 @@
 {
-  "shouldSpy": false,
+  "shouldSpy": true,
   "shouldRest": false,
   "logWatcherSleepMs": 300000,
   "supportedChains": {
