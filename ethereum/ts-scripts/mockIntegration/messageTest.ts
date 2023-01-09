@@ -14,6 +14,9 @@ const chains = loadChains()
 async function run() {
   const sourceChain = chains[0]
   const targetChain = chains[1]
+  console.log(
+    `Sending message from chain ${sourceChain.chainId} to chain ${targetChain.chainId}`
+  )
 
   const sourceRelayer = getCoreRelayer(sourceChain)
 
@@ -45,7 +48,7 @@ async function run() {
   const targetAddress = getMockIntegrationAddress(targetChain)
 
   const tx = await mockIntegration.sendMessageWithForwardedResponse(
-    Buffer.from("Hello World 3"),
+    Buffer.from("Hello World"),
     targetChain.chainId,
     targetAddress,
     targetAddress,

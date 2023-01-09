@@ -2,6 +2,7 @@
   "mode": "BOTH",
   "logLevel": "info",
   "readinessPort": 2000,
+  "numGuardians": 1,
   "supportedChains": [
     {
       "chainId": 6,

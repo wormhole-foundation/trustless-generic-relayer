@@ -27,7 +27,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@certusone/wormhole-sdk": "^0.3.4",
+    "@certusone/wormhole-sdk": "^0.9.6",
     "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
     "elliptic": "^6.5.4",
     "jsonfile": "^6.1.0",
