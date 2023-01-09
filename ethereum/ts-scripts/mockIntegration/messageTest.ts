@@ -58,6 +58,6 @@ async function run() {
   console.log(rx, "da receipt")
 }
 
-run().then(() => console.log("Done!"))
-
 console.log("Start!")
+
+run().then(() => console.log("Done!"))
