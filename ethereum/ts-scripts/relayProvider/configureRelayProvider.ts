@@ -5,6 +5,7 @@ import {
   loadScriptConfig,
   getRelayProvider,
 } from "../helpers/env"
+import { wait } from "../helpers/utils"
 
 const processName = "configureRelayProvider"
 init()
@@ -38,12 +39,14 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
   }
 
   //Set address info
-  await relayProvider.updateRewardAddress(thisChainsConfigInfo.rewardAddress)
+  await relayProvider.updateRewardAddress(thisChainsConfigInfo.rewardAddress).then(wait)
   for (let i = 0; i < thisChainsConfigInfo.approvedSenders.length; i++) {
-    await relayProvider.updateApprovedSender(
-      thisChainsConfigInfo.approvedSenders[i].address,
-      thisChainsConfigInfo.approvedSenders[i].approved
-    )
+    await relayProvider
+      .updateApprovedSender(
+        thisChainsConfigInfo.approvedSenders[i].address,
+        thisChainsConfigInfo.approvedSenders[i].approved
+      )
+      .then(wait)
   }
 
   //TODO refactor to use the batch price update, probably
@@ -55,19 +58,22 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
       throw new Error("Failed to find pricingInfo for chain " + chains[i].chainId)
     }
     //delivery addresses are not done by this script, but rather the register chains script.
-    await relayProvider.updateDeliverGasOverhead(
-      chains[i].chainId,
-      targetChainPriceUpdate.deliverGasOverhead
-    )
-    await relayProvider.updatePrice(
-      chains[i].chainId,
-      targetChainPriceUpdate.updatePriceGas,
-      targetChainPriceUpdate.updatePriceNative
-    )
-    await relayProvider.updateMaximumBudget(
-      chains[i].chainId,
-      targetChainPriceUpdate.maximumBudget
-    )
+    await relayProvider
+      .updateDeliverGasOverhead(
+        chains[i].chainId,
+        targetChainPriceUpdate.deliverGasOverhead
+      )
+      .then(wait)
+    await relayProvider
+      .updatePrice(
+        chains[i].chainId,
+        targetChainPriceUpdate.updatePriceGas,
+        targetChainPriceUpdate.updatePriceNative
+      )
+      .then(wait)
+    await relayProvider
+      .updateMaximumBudget(chains[i].chainId, targetChainPriceUpdate.maximumBudget)
+      .then(wait)
   }
 
   console.log("done with registrations on " + chain.chainId)

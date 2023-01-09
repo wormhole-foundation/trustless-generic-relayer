@@ -19,6 +19,7 @@ async function run() {
   }
 
   for (let i = 0; i < chains.length; i++) {
+    console.log(`Deploying for chain ${chains[i].chainId}...`)
     const relayProviderImplementation = await deployRelayProviderImplementation(chains[i])
     const relayProviderSetup = await deployRelayProviderSetup(chains[i])
     const relayProviderProxy = await deployRelayProviderProxy(
@@ -30,6 +31,7 @@ async function run() {
     output.relayProviderImplementations.push(relayProviderImplementation)
     output.relayProviderSetups.push(relayProviderSetup)
     output.relayProviderProxies.push(relayProviderProxy)
+    console.log("")
   }
 
   writeOutputFiles(output, processName)

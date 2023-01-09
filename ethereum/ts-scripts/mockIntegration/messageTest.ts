@@ -55,7 +55,7 @@ async function run() {
     }
   )
   const rx = await tx.wait()
-  console.log(rx, "da receipt")
+  console.log(rx.logs, "da receipt")
 }
 
 console.log("Start!")

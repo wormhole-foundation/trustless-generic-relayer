@@ -8,6 +8,7 @@ import {
   getRelayProvider,
   getRelayProviderAddress,
 } from "../helpers/env"
+import { wait } from "../helpers/utils"
 
 const processName = "registerChainsRelayProvider"
 init()
@@ -27,12 +28,13 @@ async function registerChainsRelayProvider(chain: ChainInfo) {
   const relayProvider = getRelayProvider(chain)
   const coreRelayerAddress = getCoreRelayerAddress(chain)
 
-  await relayProvider.updateCoreRelayer(coreRelayerAddress)
+  await relayProvider.updateCoreRelayer(coreRelayerAddress).then(wait)
 
   for (let i = 0; i < chains.length; i++) {
+    console.log(`Cross registering with chain ${chains[i].chainId}...`)
     const targetChainProviderAddress = getRelayProviderAddress(chains[i])
     const whAddress = "0x" + tryNativeToHexString(targetChainProviderAddress, "ethereum")
-    await relayProvider.updateDeliveryAddress(chains[i].chainId, whAddress)
+    await relayProvider.updateDeliveryAddress(chains[i].chainId, whAddress).then(wait)
   }
 
   console.log("done with registrations on " + chain.chainId)

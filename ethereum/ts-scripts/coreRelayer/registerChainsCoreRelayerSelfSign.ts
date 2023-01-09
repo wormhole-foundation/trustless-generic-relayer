@@ -7,6 +7,7 @@ import {
   getRelayProviderAddress,
   getCoreRelayerAddress,
 } from "../helpers/env"
+import { wait } from "../helpers/utils"
 import { createRegisterChainVAA, createDefaultRelayProviderVAA } from "../helpers/vaa"
 
 const processName = "registerChainsCoreRelayer"
@@ -26,10 +27,14 @@ async function registerChainsCoreRelayer(chain: ChainInfo) {
 
   const coreRelayer = getCoreRelayer(chain)
 
-  await coreRelayer.setDefaultRelayProvider(createDefaultRelayProviderVAA(chain))
+  await coreRelayer
+    .setDefaultRelayProvider(createDefaultRelayProviderVAA(chain))
+    .then(wait)
 
   for (let i = 0; i < chains.length; i++) {
-    await coreRelayer.registerCoreRelayerContract(createRegisterChainVAA(chains[i]))
+    await coreRelayer
+      .registerCoreRelayerContract(createRegisterChainVAA(chains[i]))
+      .then(wait)
   }
 
   console.log("Did all contract registrations for the core relayer on " + chain.chainId)
