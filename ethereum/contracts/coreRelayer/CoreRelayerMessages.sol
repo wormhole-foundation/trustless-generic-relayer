@@ -101,7 +101,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         require(index == encoded.length, "invalid delivery instructions payload");
 
-        return DeliveryInstructionsContainer(payloadId, sufficientlyFunded, instructionArray);
+        return DeliveryInstructionsContainer({
+            payloadId: payloadId,
+            sufficientlyFunded: sufficientlyFunded,
+            instructions: instructionArray
+        });
     }
 
     function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container)
@@ -183,6 +187,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         require(index == encoded.length, "invalid delivery requests payload");
 
-        return DeliveryRequestsContainer(payloadId, relayProviderAddress, requestArray);
+        return DeliveryRequestsContainer({
+            payloadId: payloadId,
+            relayProviderAddress: relayProviderAddress,
+            requests: requestArray
+        });
     }
 }

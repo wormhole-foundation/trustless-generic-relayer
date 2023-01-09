@@ -96,14 +96,14 @@ contract XmintHub is ERC20, IWormholeReceiver {
         );
         uint256 applicationBudget = 0;
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
-            targetChain, //target chain
-            trustedContracts[targetChain], //target address
-            intendedRecipient, //refund address. All remaining funds will be returned to the user now
-            computeBudget, //compute budget
-            applicationBudget, //application budget, not needed in this case.
-            core_relayer.getDefaultRelayParams() //no overrides
-        );
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+            targetChain: targetChain,
+            targetAddress: trustedContracts[targetChain],
+            refundAddress: intendedRecipient, // All remaining funds will be returned to the user now
+            computeBudget: computeBudget,
+            applicationBudget: applicationBudget, // not needed in this case.
+            relayParameters: core_relayer.getDefaultRelayParams() //no overrides
+        });
 
         core_relayer.requestDelivery{value: computeBudget + applicationBudget}(
             request, nonce, core_relayer.getDefaultRelayProvider()

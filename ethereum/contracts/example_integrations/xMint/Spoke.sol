@@ -93,14 +93,14 @@ contract XmintSpoke is IWormholeReceiver {
         );
         uint256 applicationBudget = 0;
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
-            hub_contract_chain, //target chain
-            hub_contract_address, //target address
-            hub_contract_address, //refund address, This will be ignored on the target chain because the intent is to perform a forward
-            computeBudget, //compute budget
-            applicationBudget, //application budget, not needed in this case.
-            core_relayer.getDefaultRelayParams() //no overrides
-        );
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+            targetChain: hub_contract_chain,
+            targetAddress: hub_contract_address,
+            refundAddress: hub_contract_address, // This will be ignored on the target chain because the intent is to perform a forward
+            computeBudget: computeBudget,
+            applicationBudget: applicationBudget, // not needed in this case.
+            relayParameters: core_relayer.getDefaultRelayParams() //no overrides
+        });
 
         core_relayer.requestDelivery{value: computeBudget + applicationBudget}(
             request, nonce, core_relayer.getDefaultRelayProvider()

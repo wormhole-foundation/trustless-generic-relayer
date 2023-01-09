@@ -23,7 +23,11 @@ contract CoreRelayer is CoreRelayerGovernance {
     {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
-        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, address(provider), requests);
+        DeliveryRequestsContainer memory container = DeliveryRequestsContainer({
+            payloadId: 1,
+            relayProviderAddress: address(provider),
+            requests: requests
+        });
         return requestMultidelivery(container, nonce);
     }
 
@@ -32,7 +36,11 @@ contract CoreRelayer is CoreRelayerGovernance {
     {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
-        DeliveryRequestsContainer memory container = DeliveryRequestsContainer(1, address(provider), requests);
+        DeliveryRequestsContainer memory container = DeliveryRequestsContainer({
+            payloadId: 1,
+            relayProviderAddress: address(provider),
+            requests: requests
+        });
         return requestMultiforward(container, rolloverChain, nonce);
     }
 
@@ -49,9 +57,14 @@ contract CoreRelayer is CoreRelayerGovernance {
             bool isSufficient,
             string memory reason
         ) = verifyFunding(
-            VerifyFundingCalculation(
-                provider, chainId(), request.targetChain, request.newComputeBudget, request.newApplicationBudget, false
-            )
+            VerifyFundingCalculation({
+                provider: provider,
+                sourceChain: chainId(),
+                targetChain: request.targetChain,
+                computeBudgetSource: request.newComputeBudget,
+                applicationBudgetSource: request.newApplicationBudget,
+                isDelivery: false
+            })
         );
         require(isSufficient, reason);
         uint256 totalFee = requestFee + wormhole().messageFee();
@@ -139,7 +152,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
 
         bytes memory encodedDeliveryRequestsContainer = encodeDeliveryRequestsContainer(deliveryRequests);
-        setForwardingRequest(ForwardingRequest(encodedDeliveryRequestsContainer, rolloverChain, nonce, msg.value, true));
+        setForwardingRequest(ForwardingRequest({
+            deliveryRequestsContainer: encodedDeliveryRequestsContainer,
+            rolloverChain: rolloverChain,
+            nonce: nonce,
+            msgValue: msg.value,
+            isValid: true
+        }));
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
@@ -245,9 +264,14 @@ contract CoreRelayer is CoreRelayerGovernance {
                 bool isSufficient,
                 string memory reason
             ) = verifyFunding(
-                VerifyFundingCalculation(
-                    provider, chainId(), request.targetChain, request.computeBudget, request.applicationBudget, true
-                )
+                VerifyFundingCalculation({
+                    provider: provider,
+                    sourceChain: chainId(),
+                    targetChain: request.targetChain,
+                    computeBudgetSource: request.computeBudget,
+                    applicationBudgetSource: request.applicationBudget,
+                    isDelivery: true
+                })
             );
 
             if (!isSufficient) {

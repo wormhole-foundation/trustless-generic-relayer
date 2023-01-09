@@ -70,14 +70,14 @@ contract MockRelayerIntegration is IWormholeReceiver {
     ) internal {
         wormhole.publishMessage{value: wormhole.messageFee()}(nonce, fullMessage, 200);
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
-            targetChainId, //target chain
-            relayer.toWormholeFormat(address(destination)), //target address
-            relayer.toWormholeFormat(address(refundAddress)), //refund address, This will be ignored on the target chain if the intent is to perform a forward
-            msg.value - 2 * wormhole.messageFee(), //compute budget
-            applicationBudget, //application budget, not needed in this case.
-            relayer.getDefaultRelayParams() //no overrides
-        );
+        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+            targetChain: targetChainId,
+            targetAddress: relayer.toWormholeFormat(address(destination)),
+            refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
+            computeBudget: msg.value - 2 * wormhole.messageFee(),
+            applicationBudget: applicationBudget, // not needed in this case.
+            relayParameters: relayer.getDefaultRelayParams() //no overrides
+        });
 
         relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(
             request, nonce, relayer.getDefaultRelayProvider()
@@ -104,14 +104,14 @@ contract MockRelayerIntegration is IWormholeReceiver {
                 uint256 computeBudget =
                     relayer.quoteGasDeliveryFee(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
 
-                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest(
-                    parsed.emitterChainId,
-                    parsed.emitterAddress,
-                    parsed.emitterAddress,
-                    computeBudget,
-                    0,
-                    relayer.getDefaultRelayParams()
-                );
+                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+                    targetChain: parsed.emitterChainId,
+                    targetAddress: parsed.emitterAddress,
+                    refundAddress: parsed.emitterAddress,
+                    computeBudget: computeBudget,
+                    applicationBudget: 0,
+                    relayParameters: relayer.getDefaultRelayParams()
+                });
 
                 relayer.requestForward(request, parsed.emitterChainId, parsed.nonce, relayer.getDefaultRelayProvider());
             }
