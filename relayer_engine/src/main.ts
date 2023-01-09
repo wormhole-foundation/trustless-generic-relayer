@@ -1,5 +1,9 @@
+import { EVMChainId } from "@certusone/wormhole-sdk"
 import * as relayerEngine from "@wormhole-foundation/relayer-engine"
-import GenericRelayerPluginDef, { GenericRelayerPluginConfig } from "./plugin/src/plugin"
+import GenericRelayerPluginDef, {
+  ChainInfo,
+  GenericRelayerPluginConfig,
+} from "./plugin/src/plugin"
 
 async function main() {
   // load plugin config
@@ -7,6 +11,25 @@ async function main() {
   const pluginConfig = (await relayerEngine.loadFileAndParseToObject(
     `./src/plugin/config/${envType.toLowerCase()}.json`
   )) as GenericRelayerPluginConfig
+
+  const contracts = await relayerEngine.loadFileAndParseToObject(
+    `../ethereum/ts-scripts/config/${envType
+      .toLocaleLowerCase()
+      .replace("devnet", "testnet")}/contracts.json`
+  )
+  const supportedChains = pluginConfig.supportedChains as unknown as Record<
+    any,
+    ChainInfo
+  >
+  contracts.coreRelayers.forEach(
+    ({ chainId, address }: contractConfigEntry) =>
+      (supportedChains[chainId].relayerAddress = address)
+  )
+  contracts.mockIntegrations.forEach(
+    ({ chainId, address }: contractConfigEntry) =>
+      (supportedChains[chainId].mockIntegrationContractAddress = address)
+  )
+  pluginConfig.supportedChains = supportedChains as any
 
   // run relayer engine
   await relayerEngine.run({
@@ -34,3 +57,5 @@ main().catch((e) => {
   console.error(e)
   process.exit(1)
 })
+
+type contractConfigEntry = { chainId: EVMChainId; address: "string" }
