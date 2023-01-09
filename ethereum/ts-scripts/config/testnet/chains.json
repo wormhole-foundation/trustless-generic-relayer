@@ -1,0 +1,20 @@
+{
+  "guardianSetIndex": 0,
+  "description": "This file contains the chains against which all the scripts should run.",
+  "chains": [
+    {
+      "description": "Avalanche testnet fuji",
+      "evmNetworkId": 43113,
+      "chainId": 6,
+      "rpc": "https://api.avax-test.network/ext/bc/C/rpc",
+      "wormholeAddress": "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C"
+    },
+    {
+      "description": "Celo",
+      "evmNetworkId": 44787,
+      "chainId": 14,
+      "rpc": "https://alfajores-forno.celo-testnet.org",
+      "wormholeAddress": "0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56"
+    }
+  ]
+}
