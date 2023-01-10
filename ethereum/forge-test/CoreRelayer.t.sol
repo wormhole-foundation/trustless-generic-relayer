@@ -151,20 +151,24 @@ contract TestCoreRelayer is Test {
         internal
         returns (ICoreRelayer coreRelayer)
     {
+
         CoreRelayerSetup coreRelayerSetup = new CoreRelayerSetup();
         CoreRelayerImplementation coreRelayerImplementation = new CoreRelayerImplementation();
         CoreRelayerProxy myCoreRelayer = new CoreRelayerProxy(
             address(coreRelayerSetup),
             abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,uint16,address,address)")),
+                bytes4(keccak256("setup(address,uint16,address,address,uint16,bytes32,uint256)")),
                 address(coreRelayerImplementation),
                 chainId,
                 wormhole,
-                defaultRelayProvider
+                defaultRelayProvider,
+                uint16(1), // governance chain id
+                0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
+                block.chainid
             )
         );
-
         coreRelayer = ICoreRelayer(address(myCoreRelayer));
+
     }
 
     function standardAssumeAndSetupTwoChains(GasParameters memory gasParams, uint256 minTargetGasLimit)
@@ -235,12 +239,33 @@ contract TestCoreRelayer is Test {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
-                map[i].coreRelayerGovernance.registerCoreRelayerContract(
+                registerCoreRelayerContract(map[i].coreRelayerGovernance, i,
                     j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
                 );
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
             }
         }
+    }
+
+    function registerCoreRelayerContract(ICoreRelayerGovernance governance, uint16 currentChainId, uint16 chainId, bytes32 coreRelayerContractAddress) internal {
+        bytes32 coreRelayerModule = 0x000000000000000000000000000000000000000000436f726552656c61796572;
+        bytes memory message = abi.encodePacked(coreRelayerModule, uint8(2), uint16(currentChainId), chainId, coreRelayerContractAddress);
+        IWormhole.VM memory preSignedMessage = IWormhole.VM({
+            version: 1,
+            timestamp: uint32(block.timestamp),
+            nonce: 0,
+            emitterChainId: relayerWormhole.governanceChainId(),
+            emitterAddress: relayerWormhole.governanceContract(),
+            sequence: 0,
+            consistencyLevel: 200,
+            payload: message,
+            guardianSetIndex: 0,
+            signatures: new IWormhole.Signature[](0),
+            hash: bytes32("")
+        });
+
+        bytes memory signed = relayerWormholeSimulator.encodeAndSignMessage(preSignedMessage);
+        governance.registerCoreRelayerContract(signed);
     }
 
     function within(uint256 a, uint256 b, uint256 c) internal view returns (bool) {

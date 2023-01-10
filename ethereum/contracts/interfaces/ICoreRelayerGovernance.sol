@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 import "./IRelayProvider.sol";
 
 interface ICoreRelayerGovernance {
-    function setDefaultRelayProvider(address relayProvider) external;
+    function setDefaultRelayProvider(bytes memory vaa) external;
 
-    function registerCoreRelayerContract(uint16 chainId, bytes32 relayerAddress) external;
+    function registerCoreRelayerContract(bytes memory vaa) external;
 }
