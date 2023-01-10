@@ -175,7 +175,7 @@ contract TestCoreRelayer is Test {
         public
         returns (uint16 sourceId, uint16 targetId, Contracts memory source, Contracts memory target)
     {
-        uint128 halfMaxUint128 = 2 ** (62) - 1;
+        uint128 halfMaxUint128 = 2 ** (63) - 1;
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
         vm.assume(gasParams.targetGasPrice > 0 && gasParams.targetGasPrice < halfMaxUint128);
