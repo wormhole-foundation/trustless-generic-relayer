@@ -8,6 +8,8 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
+import "forge-std/console.sol";
+
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
@@ -155,18 +157,20 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //REVISE consider deducting the cost of this process from the refund amount?
 
-        //find the delivery instruction for the rollover chain
-        uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
+        if(funded) {
+            //find the delivery instruction for the rollover chain
+            uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
 
-        //calc how much budget is used by chains other than the rollover chain
-        uint256 rolloverChainCostEstimate = container.requests[rolloverInstructionIndex].computeBudget
-            + container.requests[rolloverInstructionIndex].applicationBudget;
-        //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
-        uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate)
-            - container.requests[rolloverInstructionIndex].applicationBudget;
+            //calc how much budget is used by chains other than the rollover chain
+            uint256 rolloverChainCostEstimate = container.requests[rolloverInstructionIndex].computeBudget
+                + container.requests[rolloverInstructionIndex].applicationBudget;
+            //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
+            uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate)
+                - container.requests[rolloverInstructionIndex].applicationBudget;
 
-        //overwrite the gas budget on the rollover chain to the remaining budget amount
-        container.requests[rolloverInstructionIndex].computeBudget = rolloverBudget;
+            //overwrite the gas budget on the rollover chain to the remaining budget amount
+            container.requests[rolloverInstructionIndex].computeBudget = rolloverBudget;
+        }
 
         //emit forwarding instruction
         bytes memory reencoded = convertToEncodedDeliveryInstructions(container, funded);
@@ -184,6 +188,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //clear forwarding request from cache
         clearForwardingRequest();
 
+      
         return (sequence, funded);
     }
 
@@ -239,7 +244,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             (
                 uint256 requestFee,
                 uint256 applicationBudgetTarget,
-                uint256 maximumReund,
+                uint256 maximumRefund,
                 bool isSufficient,
                 string memory reason
             ) = verifyFunding(
@@ -257,7 +262,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 return (0, false, "25"); //"Insufficient funds were provided to cover the delivery fees.");
             }
         }
-
+   
         return (totalFees, true, "");
     }
 
@@ -293,6 +298,10 @@ contract CoreRelayer is CoreRelayerGovernance {
             ? calculateTargetDeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider)
             : calculateTargetRedeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider);
 
+        console.log(args.computeBudgetSource);
+        console.log(overheadFeeSource);
+        console.log(args.targetChain);
+        console.log(args.provider.quoteDeliveryOverhead(args.targetChain));
         //Make sure the computeBudget covers the minimum delivery cost to the targetChain
         if (args.computeBudgetSource < overheadFeeSource) {
             isSufficient = false;
@@ -614,8 +623,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 maximumRefund)
     {
-        uint256 remainder = computeBudget - provider.quoteDeliveryOverhead(targetChain);
-        maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
+        uint256 deliveryOverhead = provider.quoteDeliveryOverhead(targetChain);
+        if(computeBudget >= deliveryOverhead) {
+            uint256 remainder = computeBudget - deliveryOverhead;
+            maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
+        } else {
+            maximumRefund = 0;
+        }
     }
 
     /**
