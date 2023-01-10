@@ -296,10 +296,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             ? calculateTargetDeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider)
             : calculateTargetRedeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider);
 
-        console.log(args.computeBudgetSource);
-        console.log(overheadFeeSource);
-        console.log(args.targetChain);
-        console.log(args.provider.quoteDeliveryOverhead(args.targetChain));
         //Make sure the computeBudget covers the minimum delivery cost to the targetChain
         if (args.computeBudgetSource < overheadFeeSource) {
             isSufficient = false;
