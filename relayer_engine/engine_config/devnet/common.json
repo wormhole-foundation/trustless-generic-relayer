@@ -1,6 +1,6 @@
 {
   "mode": "BOTH",
-  "logLevel": "info",
+  "logLevel": "debug",
   "readinessPort": 2000,
   "numGuardians": 1,
   "supportedChains": [
