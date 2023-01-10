@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@certusone/wormhole-sdk": "^0.9.6",
+    "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
     "@wormhole-foundation/relayer-engine": "file:../../relayer-engine",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "ts-retry": "^4.1.1"
   },
   "author": "Chase Moran",
   "license": "ISC",
