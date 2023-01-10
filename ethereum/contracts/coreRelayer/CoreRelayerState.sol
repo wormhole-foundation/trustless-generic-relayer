@@ -9,16 +9,18 @@ contract CoreRelayerStorage {
     struct Provider {
         uint16 chainId;
         address payable wormhole;
+        uint16 governanceChainId;
+        bytes32 governanceContract;
     }
 
     struct State {
         Provider provider;
         // delivery lock for reentrancy protection
         bool contractLock;
-        // authority of these contracts
-        address owner;
-        // intermediate state when transfering contract ownership
-        address pendingOwner;
+        // EIP-155 Chain ID
+        uint256 evmChainId;
+        // consumed governance VAAs
+        mapping(bytes32 => bool) consumedGovernanceActions;
         // address of the default relay provider on this chain
         address defaultRelayProvider;
         // Request which will be forwarded from the current delivery.

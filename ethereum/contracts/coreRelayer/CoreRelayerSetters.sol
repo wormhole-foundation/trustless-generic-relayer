@@ -8,16 +8,20 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayerSetters is CoreRelayerState, Context {
-    function setOwner(address owner_) internal {
-        _state.owner = owner_;
-    }
-
-    function setPendingOwner(address newOwner) internal {
-        _state.pendingOwner = newOwner;
-    }
-
     function setInitialized(address implementation) internal {
         _state.initializedImplementations[implementation] = true;
+    }
+
+    function setConsumedGovernanceAction(bytes32 hash) internal{
+        _state.consumedGovernanceActions[hash] = true;
+    }
+
+    function setGovernanceChainId(uint16 chainId) internal {
+        _state.provider.governanceChainId = chainId;
+    }
+
+    function setGovernanceContract(bytes32 governanceContract) internal {
+        _state.provider.governanceContract = governanceContract;
     }
 
     function setChainId(uint16 chainId_) internal {
@@ -50,5 +54,10 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
 
     function setContractLock(bool status) internal {
         _state.contractLock = status;
+    }
+
+    function setEvmChainId(uint256 evmChainId) internal {
+        require(evmChainId == block.chainid, "invalid evmChainId ");
+        _state.evmChainId = evmChainId;
     }
 }

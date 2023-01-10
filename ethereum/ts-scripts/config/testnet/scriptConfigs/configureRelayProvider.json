@@ -1,0 +1,37 @@
+{
+  "addresses": [
+    {
+      "chainId": 6,
+      "rewardAddress": "0x61a51662f0B30Bf176484cAc5B4a033C497cB2f3",
+      "approvedSenders": {
+        "address": "0x61a51662f0B30Bf176484cAc5B4a033C497cB2f3",
+        "approved": true
+      }
+    },
+    {
+      "chainId": 14,
+      "rewardAddress": "0x61a51662f0B30Bf176484cAc5B4a033C497cB2f3",
+      "approvedSenders": {
+        "address": "0x61a51662f0B30Bf176484cAc5B4a033C497cB2f3",
+        "approved": true
+      }
+    }
+  ],
+
+  "pricingInfo": [
+    {
+      "chainId": 6,
+      "deliverGasOverhead": "350000",
+      "updatePriceGas": "300000000000",
+      "updatePriceNative": "100000",
+      "maximumBudget": "1000000000000000000"
+    },
+    {
+      "chainId": 14,
+      "deliverGasOverhead": "350000",
+      "updatePriceGas": "300000000000",
+      "updatePriceNative": "100000",
+      "maximumBudget": "1000000000000000000"
+    }
+  ]
+}
