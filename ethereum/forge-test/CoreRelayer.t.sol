@@ -193,12 +193,28 @@ contract TestCoreRelayer is Test {
 
         vm.deal(source.relayer, address(this).balance);
         vm.deal(target.relayer, address(this).balance);
+        vm.deal(address(target.integration), 2**16 * 100);
+        vm.deal(address(source.integration), 2**16 * 100);
+
 
         // set relayProvider prices
         source.relayProvider.updatePrice(targetId, gasParams.targetGasPrice, gasParams.targetNativePrice);
         source.relayProvider.updatePrice(sourceId, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
         target.relayProvider.updatePrice(targetId, gasParams.targetGasPrice, gasParams.targetNativePrice);
         target.relayProvider.updatePrice(sourceId, gasParams.sourceGasPrice, gasParams.sourceNativePrice);
+
+        source.wormholeSimulator.setMessageFee(gasParams.wormholeFeeOnSource);
+        target.wormholeSimulator.setMessageFee(gasParams.wormholeFeeOnTarget);
+        uint32 wormholeFeeOnTargetInSourceCurrency = uint32(
+            gasParams.wormholeFeeOnTarget * source.relayProvider.quoteAssetPrice(targetId)
+                / source.relayProvider.quoteAssetPrice(sourceId) + 1
+        );
+        source.relayProvider.updateWormholeFee(targetId, wormholeFeeOnTargetInSourceCurrency);
+        uint32 wormholeFeeOnSourceInTargetCurrency = uint32(
+            gasParams.wormholeFeeOnSource * target.relayProvider.quoteAssetPrice(sourceId)
+                / target.relayProvider.quoteAssetPrice(targetId) + 1
+        );
+        target.relayProvider.updateWormholeFee(sourceId, wormholeFeeOnSourceInTargetCurrency);
     }
 
     /**
@@ -309,13 +325,7 @@ contract TestCoreRelayer is Test {
         uint256 relayerBalance = target.relayer.balance;
         uint256 rewardAddressBalance = source.rewardAddress.balance;
 
-        map[SOURCE_CHAIN_ID].wormholeSimulator.setMessageFee(gasParams.wormholeFeeOnSource);
-        map[TARGET_CHAIN_ID].wormholeSimulator.setMessageFee(gasParams.wormholeFeeOnTarget);
-        uint32 wormholeFeeOnTargetInSourceCurrency = uint32(
-            gasParams.wormholeFeeOnSource * map[SOURCE_CHAIN_ID].relayProvider.quoteAssetPrice(TARGET_CHAIN_ID)
-                / map[SOURCE_CHAIN_ID].relayProvider.quoteAssetPrice(SOURCE_CHAIN_ID) + 1
-        );
-        map[SOURCE_CHAIN_ID].relayProvider.updateWormholeFee(TARGET_CHAIN_ID, wormholeFeeOnTargetInSourceCurrency);
+        
 
         uint256 payment = source.coreRelayer.quoteGasDeliveryFee(
             TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider
@@ -361,7 +371,11 @@ contract TestCoreRelayer is Test {
             TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider
         ) + source.wormhole.messageFee();
 
-        source.integration.sendMessageWithForwardedResponse{value: payment}(
+         uint256 payment2 = target.coreRelayer.quoteGasDeliveryFee(
+            SOURCE_CHAIN_ID, 500000, target.relayProvider
+        ) * gasParams.targetNativePrice / gasParams.sourceNativePrice  + 1;
+
+        source.integration.sendMessageWithForwardedResponse{value: payment + payment2}(
             message, TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress)
         );
 
@@ -568,7 +582,7 @@ contract TestCoreRelayer is Test {
         stack.parsed = relayerWormhole.parseVM(stack.redeliveryVM);
         stack.instruction = target.coreRelayer.getRedeliveryByTxHashInstruction(stack.parsed.payload);
 
-        stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newApplicationBudgetTarget;
+        stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newApplicationBudgetTarget  + target.wormhole.messageFee();
 
         vm.prank(target.relayer);
         vm.expectRevert(bytes("9"));
@@ -748,7 +762,7 @@ contract TestCoreRelayer is Test {
 
 
         if(uint256(1)*gasParams.targetNativePrice*gasParams.targetGasPrice < uint256(1)*gasParams.sourceNativePrice*gasParams.sourceGasPrice) {
-            stack.paymentNotEnough =  source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, 500000, source.relayProvider);
+            stack.paymentNotEnough =  source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, 600000, source.relayProvider);
 
             source.integration.sendMessageWithForwardedResponse{value: stack.paymentNotEnough  + source.wormhole.messageFee()}(
                 message, TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress)
@@ -782,7 +796,7 @@ contract TestCoreRelayer is Test {
             stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
             stack.instruction = target.coreRelayer.getDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
 
-            stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.applicationBudgetTarget;
+            stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.applicationBudgetTarget + target.wormhole.messageFee();
 
             vm.prank(source.relayer);
             vm.expectRevert(bytes("20"));
@@ -833,7 +847,7 @@ contract TestCoreRelayer is Test {
         stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
         stack.instruction = target.coreRelayer.getDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
 
-        stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.applicationBudgetTarget;
+        stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.applicationBudgetTarget + target.wormhole.messageFee();
 
         vm.prank(target.relayer);
         vm.expectRevert(bytes("18"));
@@ -1043,8 +1057,9 @@ contract TestCoreRelayer is Test {
                 contracts.coreRelayer.getRedeliveryByTxHashInstruction(parsed.payload);
             ICoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[instruction.sourceTxHash];
-            uint256 budget = instruction.newMaximumRefundTarget + instruction.newApplicationBudgetTarget;
             uint16 targetChain = instruction.targetChain;
+            uint256 budget = instruction.newMaximumRefundTarget + instruction.newApplicationBudgetTarget + map[targetChain].wormhole.messageFee();
+
             ICoreRelayer.TargetRedeliveryByTxHashParamsSingle memory package = ICoreRelayer
                 .TargetRedeliveryByTxHashParamsSingle(
                 encodedVM, originalDelivery.encodedVMs, originalDelivery.deliveryIndex, originalDelivery.multisendIndex
