@@ -61,6 +61,8 @@ interface WorkflowPayloadParsed {
  * DB types
  */
 
+const RESOLVED = "resolved"
+const PENDING = "pending"
 interface Pending {
   startTime: string
   numTimesRetried: number
@@ -136,8 +138,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       // track which delivery vaa hashes have all vaas ready this iteration
       let newlyResolved = new Map<string, SignedVaa>()
       await db.withKey(
-        ["pending", "resolved"],
-        async (kv: { resolved?: Resolved[]; pending?: Pending[] }) => {
+        [PENDING, RESOLVED],
+        async (kv: { [RESOLVED]?: Resolved[]; [PENDING]?: Pending[] }) => {
           // if objects have not been crearted, initialize
           if (!kv.pending) {
             kv.pending = []
@@ -344,10 +346,10 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
       this.logger.debug(`Entry: ${JSON.stringify(newEntry, undefined, 4)}`)
       await db.withKey(
-        [hash, "pending"],
+        [hash, PENDING],
         // note _hash is actually the value of the variable `hash`, but ts will not
         // let this be expressed
-        async (kv: { pending: Pending[]; _hash: Entry }) => {
+        async (kv: { [PENDING]: Pending[]; _hash: Entry }) => {
           // @ts-ignore
           let oldEntry: Entry | null = kv[hash]
           if (oldEntry?.allFetched) {
