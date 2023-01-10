@@ -186,6 +186,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           )
 
           // todo: gc resolved eventually
+          // todo: currently not used, but the idea is to refire resolved events 
+          // in the case of a restart or smt. Maybe should just remove it for now...
           kv.resolved.push(
             ...Array.from(newlyResolved.keys()).map((hash) => ({
               hash,
