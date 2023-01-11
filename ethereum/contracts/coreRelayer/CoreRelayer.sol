@@ -155,7 +155,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //REVISE consider deducting the cost of this process from the refund amount?
 
-        if(funded) {
+        if (funded) {
             //find the delivery instruction for the rollover chain
             uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
 
@@ -186,7 +186,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         //clear forwarding request from cache
         clearForwardingRequest();
 
-      
         return (sequence, funded);
     }
 
@@ -260,7 +259,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 return (0, false, "25"); //"Insufficient funds were provided to cover the delivery fees.");
             }
         }
-   
+
         return (totalFees, true, "");
     }
 
@@ -618,7 +617,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         returns (uint256 maximumRefund)
     {
         uint256 deliveryOverhead = provider.quoteDeliveryOverhead(targetChain);
-        if(computeBudget >= deliveryOverhead) {
+        if (computeBudget >= deliveryOverhead) {
             uint256 remainder = computeBudget - deliveryOverhead;
             maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
         } else {

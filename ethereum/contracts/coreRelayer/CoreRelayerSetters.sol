@@ -12,7 +12,7 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.initializedImplementations[implementation] = true;
     }
 
-    function setConsumedGovernanceAction(bytes32 hash) internal{
+    function setConsumedGovernanceAction(bytes32 hash) internal {
         _state.consumedGovernanceActions[hash] = true;
     }
 

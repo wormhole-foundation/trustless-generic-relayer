@@ -17,11 +17,11 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.consumedGovernanceActions[hash];
     }
 
-    function governanceChainId() public view returns (uint16){
+    function governanceChainId() public view returns (uint16) {
         return _state.provider.governanceChainId;
     }
 
-    function governanceContract() public view returns (bytes32){
+    function governanceContract() public view returns (bytes32) {
         return _state.provider.governanceContract;
     }
 

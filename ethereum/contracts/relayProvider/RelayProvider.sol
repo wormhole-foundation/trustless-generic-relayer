@@ -94,7 +94,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         returns (uint64 sequence)
     {
         ICoreRelayer cr = ICoreRelayer(coreRelayer());
-        return cr.redeliverSingle{value:msg.value}(targetParams);
+        return cr.redeliverSingle{value: msg.value}(targetParams);
     }
 
     function deliverSingle(ICoreRelayer.TargetDeliveryParametersSingle memory targetParams)
@@ -104,6 +104,6 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         returns (uint64 sequence)
     {
         ICoreRelayer cr = ICoreRelayer(coreRelayer());
-        return cr.deliverSingle{value:msg.value}(targetParams);
+        return cr.deliverSingle{value: msg.value}(targetParams);
     }
 }

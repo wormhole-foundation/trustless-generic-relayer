@@ -7,10 +7,6 @@ src = "contracts"
 out = "build"
 test = "forge-test"
 
-[fuzz]
-runs = 512
-max_test_rejects = 655360
-
 libs = [
     "lib",
     "node_modules",

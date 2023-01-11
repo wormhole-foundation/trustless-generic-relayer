@@ -8,7 +8,15 @@ import "./CoreRelayerGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
-    function setup(address implementation, uint16 chainId, address wormhole, address defaultRelayProvider, uint16 governanceChainId, bytes32 governanceContract, uint256 evmChainId) public {
+    function setup(
+        address implementation,
+        uint16 chainId,
+        address wormhole,
+        address defaultRelayProvider,
+        uint16 governanceChainId,
+        bytes32 governanceContract,
+        uint256 evmChainId
+    ) public {
         // sanity check initial values
         require(implementation != address(0), "1"); //"implementation cannot be address(0)");
         require(wormhole != address(0), "2"); //wormhole cannot be address(0)");
