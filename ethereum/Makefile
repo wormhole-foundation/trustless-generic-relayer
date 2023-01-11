@@ -27,7 +27,7 @@ wormhole_dependencies: wormhole/ethereum/build
 
 wormhole/ethereum/build:
 	git clone --depth 1 --branch feat/batch_vaa_alternative --single-branch https://github.com/certusone/wormhole.git
-	cd wormhole/ethereum && npm ci && npm run build && make .env4
+	cd wormhole/ethereum && npm ci && npm run build && make .env
 
 dependencies: node_modules forge_dependencies wormhole_dependencies
 
