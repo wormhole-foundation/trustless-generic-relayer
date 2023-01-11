@@ -126,5 +126,4 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         require(owner() == _msgSender(), "owner() != _msgSender()");
         _;
     }
-
 }

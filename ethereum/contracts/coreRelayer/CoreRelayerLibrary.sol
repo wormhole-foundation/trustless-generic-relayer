@@ -5,9 +5,13 @@ import "../libraries/external/BytesLib.sol";
 
 library CoreRelayerLibrary {
     using BytesLib for bytes;
-    
-    function parseUpgrade(bytes memory encodedUpgrade, bytes32 module) public pure returns (ContractUpgrade memory cu) {
-        uint index = 0;
+
+    function parseUpgrade(bytes memory encodedUpgrade, bytes32 module)
+        public
+        pure
+        returns (ContractUpgrade memory cu)
+    {
+        uint256 index = 0;
 
         cu.module = encodedUpgrade.toBytes32(index);
         index += 32;
@@ -28,8 +32,12 @@ library CoreRelayerLibrary {
         require(encodedUpgrade.length == index, "invalid ContractUpgrade");
     }
 
-    function parseRegisterChain(bytes memory encodedRegistration, bytes32 module) public pure returns (RegisterChain memory registerChain) {
-        uint index = 0;
+    function parseRegisterChain(bytes memory encodedRegistration, bytes32 module)
+        public
+        pure
+        returns (RegisterChain memory registerChain)
+    {
+        uint256 index = 0;
 
         registerChain.module = encodedRegistration.toBytes32(index);
         index += 32;
@@ -53,8 +61,12 @@ library CoreRelayerLibrary {
         require(encodedRegistration.length == index, "invalid RegisterChain");
     }
 
-    function parseUpdateDefaultProvider(bytes memory encodedDefaultProvider, bytes32 module) public pure returns (UpdateDefaultProvider memory defaultProvider) {
-        uint index = 0;
+    function parseUpdateDefaultProvider(bytes memory encodedDefaultProvider, bytes32 module)
+        public
+        pure
+        returns (UpdateDefaultProvider memory defaultProvider)
+    {
+        uint256 index = 0;
 
         defaultProvider.module = encodedDefaultProvider.toBytes32(index);
         index += 32;
@@ -65,7 +77,7 @@ library CoreRelayerLibrary {
         index += 1;
 
         require(defaultProvider.action == 3, "invalid DefaultProvider");
-        
+
         defaultProvider.chain = encodedDefaultProvider.toUint16(index);
         index += 2;
 
@@ -86,7 +98,6 @@ library CoreRelayerLibrary {
         bytes32 module;
         uint8 action;
         uint16 chain; //TODO Why is this on this object?
-
         uint16 emitterChain;
         bytes32 emitterAddress;
     }
@@ -98,5 +109,4 @@ library CoreRelayerLibrary {
         uint16 chain;
         address newProvider;
     }
-
-    }
+}

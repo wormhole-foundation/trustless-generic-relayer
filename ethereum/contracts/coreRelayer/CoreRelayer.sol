@@ -155,18 +155,20 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //REVISE consider deducting the cost of this process from the refund amount?
 
-        //find the delivery instruction for the rollover chain
-        uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
+        if (funded) {
+            //find the delivery instruction for the rollover chain
+            uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
 
-        //calc how much budget is used by chains other than the rollover chain
-        uint256 rolloverChainCostEstimate = container.requests[rolloverInstructionIndex].computeBudget
-            + container.requests[rolloverInstructionIndex].applicationBudget;
-        //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
-        uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate)
-            - container.requests[rolloverInstructionIndex].applicationBudget;
+            //calc how much budget is used by chains other than the rollover chain
+            uint256 rolloverChainCostEstimate = container.requests[rolloverInstructionIndex].computeBudget
+                + container.requests[rolloverInstructionIndex].applicationBudget;
+            //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
+            uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate)
+                - container.requests[rolloverInstructionIndex].applicationBudget;
 
-        //overwrite the gas budget on the rollover chain to the remaining budget amount
-        container.requests[rolloverInstructionIndex].computeBudget = rolloverBudget;
+            //overwrite the gas budget on the rollover chain to the remaining budget amount
+            container.requests[rolloverInstructionIndex].computeBudget = rolloverBudget;
+        }
 
         //emit forwarding instruction
         bytes memory reencoded = convertToEncodedDeliveryInstructions(container, funded);
@@ -239,7 +241,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             (
                 uint256 requestFee,
                 uint256 applicationBudgetTarget,
-                uint256 maximumReund,
+                uint256 maximumRefund,
                 bool isSufficient,
                 string memory reason
             ) = verifyFunding(
@@ -614,8 +616,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 maximumRefund)
     {
-        uint256 remainder = computeBudget - provider.quoteDeliveryOverhead(targetChain);
-        maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
+        uint256 deliveryOverhead = provider.quoteDeliveryOverhead(targetChain);
+        if (computeBudget >= deliveryOverhead) {
+            uint256 remainder = computeBudget - deliveryOverhead;
+            maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
+        } else {
+            maximumRefund = 0;
+        }
     }
 
     /**

@@ -22,6 +22,7 @@ abstract contract CoreRelayerGovernance is
     ERC1967Upgrade
 {
     using BytesLib for bytes;
+
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
 
     // "CoreRelayer" (left padded)
@@ -61,7 +62,8 @@ abstract contract CoreRelayerGovernance is
 
         setConsumedGovernanceAction(vm.hash);
 
-        CoreRelayerLibrary.UpdateDefaultProvider memory provider = CoreRelayerLibrary.parseUpdateDefaultProvider(vm.payload, module);
+        CoreRelayerLibrary.UpdateDefaultProvider memory provider =
+            CoreRelayerLibrary.parseUpdateDefaultProvider(vm.payload, module);
 
         require((provider.chain == chainId() && !isFork()) || provider.chain == 0, "invalid chain id");
 
@@ -81,7 +83,11 @@ abstract contract CoreRelayerGovernance is
         emit ContractUpgraded(currentImplementation, newImplementation);
     }
 
-    function verifyGovernanceVM(bytes memory encodedVM) internal view returns (IWormhole.VM memory parsedVM, bool isValid, string memory invalidReason){
+    function verifyGovernanceVM(bytes memory encodedVM)
+        internal
+        view
+        returns (IWormhole.VM memory parsedVM, bool isValid, string memory invalidReason)
+    {
         (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole().parseAndVerifyVM(encodedVM);
 
         if (!valid) {
