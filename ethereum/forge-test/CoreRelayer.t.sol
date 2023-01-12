@@ -181,7 +181,7 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.sourceGasPrice > 0 && gasParams.sourceGasPrice < halfMaxUint128);
         vm.assume(gasParams.sourceNativePrice > 0 && gasParams.sourceNativePrice < halfMaxUint128);
         vm.assume(gasParams.sourceNativePrice < halfMaxUint128 / gasParams.sourceGasPrice);
-      vm.assume(gasParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice);
+        vm.assume(gasParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice);
         vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
 
         sourceId = 1;
