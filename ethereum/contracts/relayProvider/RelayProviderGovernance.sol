@@ -12,9 +12,10 @@ import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
 abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProviderSetters, ERC1967Upgrade {
+
     error ChainIdIsZero();
     error GasPriceIsZero();
-    error NativeCurrencyPriceIsZero();
+    error NativeCurrencyIsZero();
     error FailedToInitializeImplementation(string reason);
     error WrongChainId();
     error AddressIsZero();
@@ -71,7 +72,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
             revert GasPriceIsZero();
         }
         if (updateNativeCurrencyPrice == 0) {
-            revert NativeCurrencyPriceIsZero();
+            revert NativeCurrencyIsZero();
         }
 
         setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
