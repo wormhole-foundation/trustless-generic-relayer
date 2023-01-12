@@ -9,8 +9,13 @@ import "../interfaces/IRelayProvider.sol";
 import "../interfaces/ICoreRelayer.sol";
 
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
+
+    error CallerNotApproved(address msgSender);
+
     modifier onlyApprovedSender() {
-        require(approvedSender(_msgSender()), "_msgSender() not approved");
+        if (!approvedSender(_msgSender())) {
+            revert CallerNotApproved(_msgSender());
+        }
         _;
     }
 

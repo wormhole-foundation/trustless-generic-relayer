@@ -8,9 +8,15 @@ import "./RelayProviderGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract RelayProviderSetup is RelayProviderSetters, ERC1967Upgrade {
+
+    error ImplementationAddressIsZero();
+    error FailedToInitializeImplementation(string reason);
+
     function setup(address implementation, uint16 chainId) public {
         // sanity check initial values
-        require(implementation != address(0), "implementation cannot be address(0)");
+        if (implementation == address(0)) {
+            revert ImplementationAddressIsZero();
+        }
 
         setOwner(_msgSender());
 
@@ -20,6 +26,8 @@ contract RelayProviderSetup is RelayProviderSetters, ERC1967Upgrade {
 
         // call initialize function of the new implementation
         (bool success, bytes memory reason) = implementation.delegatecall(abi.encodeWithSignature("initialize()"));
-        require(success, string(reason));
+        if (!success) {
+            revert FailedToInitializeImplementation(string(reason));
+        }
     }
 }
