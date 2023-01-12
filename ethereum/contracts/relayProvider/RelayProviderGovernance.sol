@@ -15,7 +15,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
 
     error ChainIdIsZero();
     error GasPriceIsZero();
-    error NativeCurrencyIsZero();
+    error NativeCurrencyPriceIsZero();
     error FailedToInitializeImplementation(string reason);
     error WrongChainId();
     error AddressIsZero();
@@ -71,7 +71,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
             revert GasPriceIsZero();
         }
         if (updateNativeCurrencyPrice == 0) {
-            revert NativeCurrencyIsZero();
+            revert NativeCurrencyPriceIsZero();
         }
 
         setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
