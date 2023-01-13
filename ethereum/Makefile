@@ -43,7 +43,7 @@ test: unit-test integration-test
 
 .PHONY: unit-test
 unit-test: dependencies build
-	forge test -vvvvv --via-ir
+	npm run unit-test
 
 .PHONY: integration-test
 integration-test: dependencies build
