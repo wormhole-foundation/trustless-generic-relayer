@@ -28,7 +28,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider)
-        public
+        public payable
     {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
