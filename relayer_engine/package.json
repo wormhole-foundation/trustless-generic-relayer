@@ -5,19 +5,20 @@
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
   "scripts": {
-    "testnet": "ts-node src/main --testnet",
-    "testnet-watch": "nodemon src/main --testnet",
-    "tilt": "ts-node src/main --tilt",
-    "mainnet": "ts-node src/main --mainnet",
+    "k8s-testnet": "ts-node src/main --k8s-testnet",
+    "testnet": "bash build.sh; ts-node src/main --testnet",
+    "testnet-watch": "bash build.sh; nodemon src/main --testnet",
+    "tilt": "bash build.sh; ts-node src/main --tilt",
+    "mainnet": "bash build.sh; ts-node src/main --mainnet",
     "typecheck": "tsc --noEmit",
-    "build": "tsc",
+    "build": "bash build.sh; tsc",
     "watch": "tsc --watch",
     "start": "ts-node src/main.ts"
   },
   "dependencies": {
     "@certusone/wormhole-sdk": "^0.9.6",
     "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
-    "@wormhole-foundation/relayer-engine": "file:../../relayer-engine",
+    "@wormhole-foundation/relayer-engine": "github:wormhole-foundation/relayer-engine#f6491e6e59e905a9c9590cd8b6f62a58f730b4d6",
     "lodash": "^4.17.21",
     "ts-retry": "^4.1.1"
   },
