@@ -25,9 +25,15 @@ lib/forge-std:
 .PHONY: wormhole_dependencies
 wormhole_dependencies: wormhole/ethereum/build
 
-wormhole/ethereum/build:
-	git clone --depth 1 --branch feat/batch_vaa_alternative --single-branch https://github.com/certusone/wormhole.git
-	cd wormhole/ethereum && npm ci && npm run build && make .env
+wormhole:
+	git clone --depth 1 --branch feat/batch_vaa_alternative --single-branch https://github.com/wormhole-foundation/wormhole.git
+
+.PHONY: wormhole/ethereum/build
+wormhole/ethereum/build: wormhole wormhole/ethereum/node_modules
+	cd wormhole/ethereum && npm run build && make .env
+
+wormhole/ethereum/node_modules:
+	cd wormhole/ethereum && npm ci
 
 dependencies: node_modules forge_dependencies wormhole_dependencies
 
