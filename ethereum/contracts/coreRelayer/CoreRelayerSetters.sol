@@ -8,6 +8,9 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayerSetters is CoreRelayerState, Context {
+
+    error InvalidEvmChainId();
+
     function setInitialized(address implementation) internal {
         _state.initializedImplementations[implementation] = true;
     }
@@ -57,7 +60,9 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
     }
 
     function setEvmChainId(uint256 evmChainId) internal {
-        require(evmChainId == block.chainid, "invalid evmChainId ");
+        if (evmChainId != block.chainid) {
+            revert InvalidEvmChainId();
+        }
         _state.evmChainId = evmChainId;
     }
 }

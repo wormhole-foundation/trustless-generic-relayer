@@ -6,6 +6,14 @@ import "../libraries/external/BytesLib.sol";
 library CoreRelayerLibrary {
     using BytesLib for bytes;
 
+    error WrongModule(bytes32 module);
+    error InvalidContractUpgradeAction(uint8 action);
+    error InvalidContractUpgradeLength(uint256 length);
+    error InvalidRegisterChainAction(uint8);
+    error InvalidRegisterChainLength(uint256);
+    error InvalidDefaultProviderAction(uint8);
+    error InvalidDefaultProviderLength(uint256);
+
     function parseUpgrade(bytes memory encodedUpgrade, bytes32 module)
         public
         pure
@@ -16,12 +24,16 @@ library CoreRelayerLibrary {
         cu.module = encodedUpgrade.toBytes32(index);
         index += 32;
 
-        require(cu.module == module, "wrong module");
+        if (cu.module != module) {
+            revert WrongModule(cu.module);
+        }
 
         cu.action = encodedUpgrade.toUint8(index);
         index += 1;
 
-        require(cu.action == 1, "invalid ContractUpgrade");
+        if (cu.action != 1) {
+            revert InvalidContractUpgradeAction(cu.action);
+        }
 
         cu.chain = encodedUpgrade.toUint16(index);
         index += 2;
@@ -29,7 +41,9 @@ library CoreRelayerLibrary {
         cu.newContract = address(uint160(uint256(encodedUpgrade.toBytes32(index))));
         index += 32;
 
-        require(encodedUpgrade.length == index, "invalid ContractUpgrade");
+        if (encodedUpgrade.length != index) {
+            revert InvalidContractUpgradeLength(encodedUpgrade.length);
+        }
     }
 
     function parseRegisterChain(bytes memory encodedRegistration, bytes32 module)
@@ -42,7 +56,9 @@ library CoreRelayerLibrary {
         registerChain.module = encodedRegistration.toBytes32(index);
         index += 32;
 
-        require(registerChain.module == module, "wrong module");
+        if (registerChain.module != module) {
+            revert WrongModule(registerChain.module);
+        }
 
         registerChain.action = encodedRegistration.toUint8(index);
         index += 1;
@@ -50,7 +66,9 @@ library CoreRelayerLibrary {
         registerChain.chain = encodedRegistration.toUint16(index);
         index += 2;
 
-        require(registerChain.action == 2, "invalid RegisterChain");
+        if (registerChain.action != 2) {
+            revert InvalidRegisterChainAction(registerChain.action);
+        }
 
         registerChain.emitterChain = encodedRegistration.toUint16(index);
         index += 2;
@@ -58,7 +76,9 @@ library CoreRelayerLibrary {
         registerChain.emitterAddress = encodedRegistration.toBytes32(index);
         index += 32;
 
-        require(encodedRegistration.length == index, "invalid RegisterChain");
+        if (encodedRegistration.length != index) {
+            revert InvalidRegisterChainLength(encodedRegistration.length);
+        }
     }
 
     function parseUpdateDefaultProvider(bytes memory encodedDefaultProvider, bytes32 module)
@@ -71,12 +91,16 @@ library CoreRelayerLibrary {
         defaultProvider.module = encodedDefaultProvider.toBytes32(index);
         index += 32;
 
-        require(defaultProvider.module == module, "wrong module");
+        if (defaultProvider.module != module) {
+            revert WrongModule(defaultProvider.module);
+        }
 
         defaultProvider.action = encodedDefaultProvider.toUint8(index);
         index += 1;
 
-        require(defaultProvider.action == 3, "invalid DefaultProvider");
+        if (defaultProvider.action != 3) {
+            revert InvalidDefaultProviderAction(defaultProvider.action);
+        }
 
         defaultProvider.chain = encodedDefaultProvider.toUint16(index);
         index += 2;
@@ -84,7 +108,9 @@ library CoreRelayerLibrary {
         defaultProvider.newProvider = address(uint160(uint256(encodedDefaultProvider.toBytes32(index))));
         index += 32;
 
-        require(encodedDefaultProvider.length == index, "invalid DefaultProvider");
+        if (encodedDefaultProvider.length != index) {
+            revert InvalidDefaultProviderLength(encodedDefaultProvider.length);
+        }
     }
 
     struct ContractUpgrade {

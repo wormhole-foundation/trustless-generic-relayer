@@ -11,6 +11,10 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
+    error InvalidPayloadId(uint8 payloadId);
+    error InvalidDeliveryInstructionsPayload(uint256 length);
+    error InvalidDeliveryRequestsPayload(uint256 length);
+
     function decodeRedeliveryByTxHashInstruction(bytes memory encoded)
         internal
         pure
@@ -57,7 +61,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint256 index = 0;
 
         uint8 payloadId = encoded.toUint8(index);
-        require(payloadId == 1, "invalid payloadId");
+        if (payloadId != 1) {
+            revert InvalidPayloadId(payloadId);
+        }
         index += 1;
         bool sufficientlyFunded = encoded.toUint8(index) == 1;
         index += 1;
@@ -99,7 +105,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instructionArray[i] = instruction;
         }
 
-        require(index == encoded.length, "invalid delivery instructions payload");
+        if (index != encoded.length) {
+            revert InvalidDeliveryInstructionsPayload(encoded.length);
+        }
 
         return DeliveryInstructionsContainer(payloadId, sufficientlyFunded, instructionArray);
     }
@@ -140,7 +148,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint256 index = 0;
 
         uint8 payloadId = encoded.toUint8(index);
-        require(payloadId == 1, "invalid payloadId");
+        if (payloadId != 1) {
+            revert InvalidPayloadId(payloadId);
+        }
         index += 1;
         address relayProviderAddress = encoded.toAddress(index);
         index += 20;
@@ -181,7 +191,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             requestArray[i] = request;
         }
 
-        require(index == encoded.length, "invalid delivery requests payload");
+        if (index != encoded.length) {
+            revert InvalidDeliveryRequestsPayload(encoded.length);
+        }
 
         return DeliveryRequestsContainer(payloadId, relayProviderAddress, requestArray);
     }
