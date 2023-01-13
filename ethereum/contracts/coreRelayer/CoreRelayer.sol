@@ -600,10 +600,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         returns (uint32 gasAmount)
     {
         IWormhole wormhole = wormhole();
-        if (computeBudget <= wormhole.messageFee() + provider.quoteDeliveryOverhead(targetChain)) {
+        if (computeBudget <= provider.quoteDeliveryOverhead(targetChain)) {
             return 0;
         } else {
-            uint256 remainder = computeBudget - wormhole.messageFee() - provider.quoteDeliveryOverhead(targetChain);
+            uint256 remainder = computeBudget - provider.quoteDeliveryOverhead(targetChain);
             uint256 gas = remainder / provider.quoteGasPrice(targetChain);
 
             if (gas >= 2 ** 32) return uint32(2 ** 32 - 1);
