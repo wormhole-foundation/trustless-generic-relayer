@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simple-gr
+  namespace: default
+  labels:
+    app: simple-gr
+spec:
+  type: LoadBalancer
+  selector:
+    app: simple-gr
+  ports:
+  - name: simple-gr
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
+    # Do we actually need a service for the relayer??
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  simple-gr
+  namespace: default
+  labels:
+    app:  simple-gr
+spec:
+  selector:
+    matchLabels:
+      app: simple-gr
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app:  simple-gr
+    spec:
+      restartPolicy: Always 
+      containers:
+      - name:  simple-gr
+        image:  simple-gr:latest
+        imagePullPolicy: Never
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 900m
+            memory: 900Mi
+        ports:
+        - containerPort:  8000
+          name:  simple-gr
+        env:
+        - name: PRIVATE_KEYS_CHAIN_14 
+          valueFrom:
+            secretKeyRef:
+              name: private-keys
+              key: PRIVATE_KEYS_CHAIN_14
+              optional: false 
+        - name: PRIVATE_KEYS_CHAIN_6
+          valueFrom:
+            secretKeyRef:
+              name: private-keys
+              key: PRIVATE_KEYS_CHAIN_6
+              optional: false 

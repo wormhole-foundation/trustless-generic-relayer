@@ -9,14 +9,16 @@ async function main() {
   // load plugin config
   const envType = selectPluginConfig(process.argv[2] || "")
   const pluginConfig = (await relayerEngine.loadFileAndParseToObject(
-    `./src/plugin/config/${envType.toLowerCase()}.json`
+    `./src/plugin/config/${envType}.json`
   )) as GenericRelayerPluginConfig
 
+
   const contracts = await relayerEngine.loadFileAndParseToObject(
-    `../ethereum/ts-scripts/config/${envType
-      .toLocaleLowerCase()
-      .replace("devnet", "testnet")}/contracts.json`
+    `./contracts.json`
   )
+  // const contracts = await relayerEngine.loadFileAndParseToObject(
+  //   `../ethereum/ts-scripts/config/${envType.replace("devnet", "testnet")}/contracts.json`
+  // )
   const supportedChains = pluginConfig.supportedChains as unknown as Record<
     any,
     ChainInfo
@@ -39,16 +41,18 @@ async function main() {
   })
 }
 
-function selectPluginConfig(flag: string) {
+function selectPluginConfig(flag: string): string {
   switch (flag) {
     case "--testnet":
-      return relayerEngine.EnvType.DEVNET
+      return relayerEngine.EnvType.DEVNET.toLowerCase()
     case "--mainnet":
-      return relayerEngine.EnvType.MAINNET
+      return relayerEngine.EnvType.MAINNET.toLowerCase()
     case "--tilt":
-      return relayerEngine.EnvType.TILT
+      return relayerEngine.EnvType.TILT.toLowerCase()
+    case "--k8s-testnet":
+      return "k8s-testnet"
     default:
-      return relayerEngine.EnvType.TILT
+      return relayerEngine.EnvType.TILT.toLowerCase()
   }
 }
 

@@ -18,15 +18,14 @@ import {
 import * as wh from "@certusone/wormhole-sdk"
 import { Logger } from "winston"
 import { PluginError } from "./utils"
-import { logNearGas, parseSequencesFromLogEth, SignedVaa } from "@certusone/wormhole-sdk"
-import { CoreRelayer__factory, IWormhole, IWormhole__factory } from "../../../../sdk/src"
+import { SignedVaa } from "@certusone/wormhole-sdk"
+import { CoreRelayer__factory, IWormhole, IWormhole__factory } from "../../../sdk/src"
 import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
-import { LogMessagePublishedEvent } from "../../../../sdk/src/ethers-contracts/IWormhole"
-import { CoreRelayerStructs } from "../../../../sdk/src/ethers-contracts/CoreRelayer"
+import { LogMessagePublishedEvent } from "../../../sdk/src/ethers-contracts/IWormhole"
+import { CoreRelayerStructs } from "../../../sdk/src/ethers-contracts/CoreRelayer"
 import * as _ from "lodash"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
-import { retryAsync } from "ts-retry"
 
 const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
 
@@ -335,16 +334,16 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         allFetched: false,
       }
 
-      // const maybeResolvedEntry = await this.fetchEntry(hash, newEntry, this.logger)
-      // if (maybeResolvedEntry.allFetched) {
-      //   this.logger.info("Resolved entry immediately")
-      //   return {
-      //     workflowData: {
-      //       coreRelayerVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
-      //       vaas: maybeResolvedEntry.vaas.map((v) => v.bytes),
-      //     },
-      //   }
-      // }
+      const maybeResolvedEntry = await this.fetchEntry(hash, newEntry, this.logger)
+      if (maybeResolvedEntry.allFetched) {
+        this.logger.info("Resolved entry immediately")
+        return {
+          workflowData: {
+            coreRelayerVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
+            vaas: maybeResolvedEntry.vaas.map((v) => v.bytes),
+          },
+        }
+      }
 
       this.logger.debug(`Entry: ${JSON.stringify(newEntry, undefined, 4)}`)
       await db.withKey(

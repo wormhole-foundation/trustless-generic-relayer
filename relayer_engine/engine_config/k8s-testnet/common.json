@@ -1,7 +1,9 @@
 {
   "mode": "BOTH",
   "logLevel": "debug",
-  "storeType": "InMemory",
+  "storeType": "Redis",
+  "redisPort": 6379,
+  "redisHost": "redis-master.default.svc.cluster.local",
   "readinessPort": 2000,
   "numGuardians": 1,
   "supportedChains": [
