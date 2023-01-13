@@ -17,7 +17,8 @@
     "ts-node": "^10.9.1"
   },
   "scripts": {
-    "build": "forge build -o build",
+    "build": "forge build -o build --via-ir",
+    "unit-test": "forge test -vvvvv --via-ir",
     "integration-test": "bash shell-scripts/run_integration_tests.sh",
     "typechain": "bash ../sdk/scripts/make_ethers_types.sh",
     "flatten": "mkdir -p node_modules/@poanet/solidity-flattener/contracts && cp -r contracts/* node_modules/@poanet/solidity-flattener/contracts/ && poa-solidity-flattener",
