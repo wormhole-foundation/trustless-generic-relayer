@@ -12,7 +12,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     error InsufficientFunds(string reason);
-    error MsgValueTooLow(); // msg.value must cover the budget specified
+    error MsgValueTooLow(uint256 expectedValue); // msg.value must be equal or greater than `expectedValue`
     error NonceIsZero();
     error NoDeliveryInProcess();
     error CantRequestMultipleForwards();
@@ -31,8 +31,8 @@ contract CoreRelayer is CoreRelayerGovernance {
     error InvalidEmitter();
     error DeliveryRequestNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
     error UnexpectedRelayer(); // Specified relayer is not the relayer delivering the message
-    error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
-    error AlreadyDelivered(); // The message was already delivered.
+    error InsufficientRelayerFunds(uint256 expectedFunds); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
+    error AlreadyDelivered(bytes32 hash); // The message was already delivered.
     error TargetChainIsNotThisChain(uint16 targetChainId);
     error SrcNativeCurrencyPriceIsZero();
     error DstNativeCurrencyPriceIsZero();
@@ -94,7 +94,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //Make sure the msg.value covers the budget they specified
         if (msg.value < totalFee) {
-            revert MsgValueTooLow();
+            revert MsgValueTooLow(totalFee);
         }
 
         emitRedelivery(request, nonce, provider.getConsistencyLevel(), applicationBudgetTarget, maximumRefund, provider);
@@ -536,7 +536,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (!valid) {
             revert InvalidRedeliveryVM(reason);
         }
-        if (!verifyRelayerVM(redeliveryVM)) {
+        if(!verifyRelayerVM(redeliveryVM)) {
             // Redelivery VM has an invalid emitter
             revert InvalidEmitterInRedeliveryVM();
         }
@@ -547,8 +547,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
 
         //redelivery request cannot have already been attempted
-        if (isDeliveryCompleted(redeliveryVM.hash)) {
-            revert AlreadyDelivered();
+        if (isDeliveryCompleted(redeliveryVM.hash)){
+            revert AlreadyDelivered(redeliveryVM.hash);
         }
 
         //mark redelivery as attempted
@@ -565,17 +565,20 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // The same relay provider must be specified when doing a single VAA redeliver.
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
-        if (providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)) {
+        if (
+            providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)
+        ) {
             revert MismatchingRelayProvidersInRedelivery();
         }
 
+
         // msg.sender must be the provider
-        if (msg.sender != providerAddress) {
+        if(msg.sender != providerAddress) {
             revert ProviderAddressIsNotSender();
         }
 
         //redelivery must target this chain
-        if (chainId() != redeliveryInstruction.targetChain) {
+        if(chainId() != redeliveryInstruction.targetChain) {
             revert RedeliveryRequestDoesNotTargetThisChain();
         }
 
@@ -585,12 +588,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         //relayer must have covered the necessary funds
-        if (
-            msg.value
-                < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget
-                    + wormhole().messageFee()
+        if ( msg.value <
+                redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee()
         ) {
-            revert InsufficientRelayerFunds();
+            revert InsufficientRelayerFunds(redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee());
         }
 
         //Overwrite compute budget and application budget on the original request and proceed.
@@ -614,13 +615,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (!valid) {
             revert InvalidVaa(targetParams.deliveryIndex);
         }
-        if (!verifyRelayerVM(deliveryVM)) {
+        if(!verifyRelayerVM(deliveryVM)) {
             revert InvalidEmitter();
         }
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
         //ensure this is a funded delivery, not a failed forward.
-        if (!container.sufficientlyFunded) {
+        if(!container.sufficientlyFunded) {
             revert DeliveryRequestNotSufficientlyFunded();
         }
 
@@ -628,22 +629,20 @@ contract CoreRelayer is CoreRelayerGovernance {
         DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
-        if (fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
+        if(fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
             revert UnexpectedRelayer();
         }
 
         //make sure relayer passed in sufficient funds
-        if (
-            msg.value
-                < deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget
-                    + wormhole.messageFee()
+        if (msg.value <
+            deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee()
         ) {
-            revert InsufficientRelayerFunds();
+            revert InsufficientRelayerFunds(deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee());
         }
 
         //make sure this has not already been delivered
         if (isDeliveryCompleted(deliveryVM.hash)) {
-            revert AlreadyDelivered();
+            revert AlreadyDelivered(deliveryVM.hash);
         }
 
         //mark as delivered, so it can't be reattempted
