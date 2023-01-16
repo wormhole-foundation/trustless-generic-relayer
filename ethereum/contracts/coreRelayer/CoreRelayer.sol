@@ -12,7 +12,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
     error InsufficientFunds(string reason);
-    error MsgValueTooLow(uint256 expectedValue); // msg.value must be equal or greater than `expectedValue`
+    error MsgValueTooLow(); // msg.value must cover the budget specified
     error NonceIsZero();
     error NoDeliveryInProcess();
     error CantRequestMultipleForwards();
@@ -31,8 +31,8 @@ contract CoreRelayer is CoreRelayerGovernance {
     error InvalidEmitter();
     error DeliveryRequestNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
     error UnexpectedRelayer(); // Specified relayer is not the relayer delivering the message
-    error InsufficientRelayerFunds(uint256 expectedFunds); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
-    error AlreadyDelivered(bytes32 hash); // The message was already delivered.
+    error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
+    error AlreadyDelivered(); // The message was already delivered.
     error TargetChainIsNotThisChain(uint16 targetChainId);
     error SrcNativeCurrencyPriceIsZero();
     error DstNativeCurrencyPriceIsZero();
@@ -86,7 +86,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //Make sure the msg.value covers the budget they specified
         if (msg.value < totalFee) {
-            revert MsgValueTooLow(totalFee);
+            revert MsgValueTooLow();
         }
 
         emitRedelivery(request, nonce, provider.getConsistencyLevel(), applicationBudgetTarget, maximumRefund, provider);
@@ -527,7 +527,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //redelivery request cannot have already been attempted
         if (isDeliveryCompleted(redeliveryVM.hash)){
-            revert AlreadyDelivered(redeliveryVM.hash);
+            revert AlreadyDelivered();
         }
 
         //mark redelivery as attempted
@@ -570,7 +570,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         if ( msg.value <
                 redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee()
         ) {
-            revert InsufficientRelayerFunds(redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee());
+            revert InsufficientRelayerFunds();
         }
 
         //Overwrite compute budget and application budget on the original request and proceed.
@@ -616,12 +616,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (msg.value <
             deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee()
         ) {
-            revert InsufficientRelayerFunds(deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee());
+            revert InsufficientRelayerFunds();
         }
 
         //make sure this has not already been delivered
         if (isDeliveryCompleted(deliveryVM.hash)) {
-            revert AlreadyDelivered(deliveryVM.hash);
+            revert AlreadyDelivered();
         }
 
         //mark as delivered, so it can't be reattempted
