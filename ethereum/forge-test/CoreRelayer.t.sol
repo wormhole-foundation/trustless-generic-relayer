@@ -560,7 +560,10 @@ contract TestCoreRelayer is Test {
         }
     }
 
-    function testRevertRedeliveryErrors(GasParameters memory gasParams, bytes memory message) public {
+    function testRevertRedeliveryErrors(
+        GasParameters memory gasParams,
+        bytes memory message
+    ) public {
         (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) =
             standardAssumeAndSetupTwoChains(gasParams, 1000000);
 
@@ -627,7 +630,7 @@ contract TestCoreRelayer is Test {
             + target.wormhole.messageFee();
 
         vm.prank(target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint256)", 1));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint256)",1));
         target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[1] = stack.originalDelivery.encodedVMs[0];
@@ -664,7 +667,7 @@ contract TestCoreRelayer is Test {
         });
 
         vm.prank(target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidRedeliveryVM(string)", "VM signature invalid"));
+        vm.expectRevert(abi.encodeWithSignature("InvalidRedeliveryVM(string)","VM signature invalid"));
         target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
 
         fakeVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
@@ -791,7 +794,9 @@ contract TestCoreRelayer is Test {
         ICoreRelayer.DeliveryInstruction instruction;
     }
 
-    function testRevertDeliveryErrors(GasParameters memory gasParams, bytes memory message) public {
+    function testRevertDeliveryErrors(GasParameters memory gasParams, bytes memory message)
+        public
+    {
         (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) =
             standardAssumeAndSetupTwoChains(gasParams, 1000000);
 
@@ -885,7 +890,7 @@ contract TestCoreRelayer is Test {
             + target.wormhole.messageFee();
 
         vm.prank(target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint256)", 1));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint256)",1));
         target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
 
         stack.encodedVMs[1] = stack.encodedVMs[0];
@@ -958,7 +963,7 @@ contract TestCoreRelayer is Test {
             source.coreRelayer.getDefaultRelayParams()
         );
 
-        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "25"));
+        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)","25"));
         source.coreRelayer.requestDelivery{value: stack.payment - 1}(stack.deliveryRequest, 1, source.relayProvider);
 
         source.relayProvider.updateDeliverGasOverhead(TARGET_CHAIN_ID, gasParams.evmGasOverhead);
@@ -975,7 +980,7 @@ contract TestCoreRelayer is Test {
             source.coreRelayer.getDefaultRelayParams()
         );
 
-        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "26"));
+        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)","26"));
         source.coreRelayer.requestDelivery{value: stack.deliveryOverhead - 1}(
             stack.badDeliveryRequest, 1, source.relayProvider
         );
@@ -986,7 +991,7 @@ contract TestCoreRelayer is Test {
             TARGET_CHAIN_ID, uint256(gasParams.targetGasLimit - 1) * gasParams.targetGasPrice
         );
 
-        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "27"));
+        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)","27"));
         source.coreRelayer.requestDelivery{value: stack.payment}(stack.deliveryRequest, 1, source.relayProvider);
     }
 
