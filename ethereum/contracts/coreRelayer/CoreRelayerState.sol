@@ -29,8 +29,6 @@ contract CoreRelayerStorage {
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains
         mapping(uint16 => bytes32) registeredCoreRelayerContract;
-        // mapping of delivered relayer VAAs
-        mapping(bytes32 => bool) completedDeliveries;
         // storage gap to reduce risk of storage collisions
         uint256[50] ______gap;
     }

@@ -48,10 +48,6 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         delete _state.forwardingRequest; //TODO is this the best way to accomplish this?
     }
 
-    function markAsDelivered(bytes32 deliveryHash) internal {
-        _state.completedDeliveries[deliveryHash] = true;
-    }
-
     function setContractLock(bool status) internal {
         _state.contractLock = status;
     }

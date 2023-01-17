@@ -492,12 +492,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[targetParams.multisendIndex]
         );
 
-        //redelivery request cannot have already been attempted
-        require(!isDeliveryCompleted(redeliveryVM.hash));
-
-        //mark redelivery as attempted
-        markAsDelivered(redeliveryVM.hash);
-
         return _executeDelivery(wormhole, instruction, targetParams.sourceEncodedVMs, originalDeliveryVM.hash);
     }
 
@@ -568,12 +562,6 @@ contract CoreRelayer is CoreRelayerGovernance {
                     + wormhole.messageFee(),
             "22"
         ); //"Relayer did not pass in sufficient funds");
-
-        //make sure this has not already been delivered
-        require(!isDeliveryCompleted(deliveryVM.hash), "23"); //"delivery is already completed");
-
-        //mark as delivered, so it can't be reattempted
-        markAsDelivered(deliveryVM.hash);
 
         //make sure this delivery is intended for this chain
         require(chainId() == deliveryInstruction.targetChain, "24"); //"targetChain is not this chain");

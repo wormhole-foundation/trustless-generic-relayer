@@ -880,9 +880,6 @@ contract TestCoreRelayer is Test {
         vm.prank(target.relayer);
         target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
 
-        vm.prank(target.relayer);
-        vm.expectRevert(bytes("23"));
-        target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
     }
 
     struct RequestDeliveryStackTooDeep {
