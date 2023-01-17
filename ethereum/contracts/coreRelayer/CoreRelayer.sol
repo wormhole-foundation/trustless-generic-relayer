@@ -23,24 +23,19 @@ contract CoreRelayer is CoreRelayerGovernance {
     {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
-        DeliveryRequestsContainer memory container = DeliveryRequestsContainer({
-            payloadId: 1,
-            relayProviderAddress: address(provider),
-            requests: requests
-        });
+        DeliveryRequestsContainer memory container =
+            DeliveryRequestsContainer({payloadId: 1, relayProviderAddress: address(provider), requests: requests});
         return requestMultidelivery(container, nonce);
     }
 
     function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider)
-        public payable
+        public
+        payable
     {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
-        DeliveryRequestsContainer memory container = DeliveryRequestsContainer({
-            payloadId: 1,
-            relayProviderAddress: address(provider),
-            requests: requests
-        });
+        DeliveryRequestsContainer memory container =
+            DeliveryRequestsContainer({payloadId: 1, relayProviderAddress: address(provider), requests: requests});
         return requestMultiforward(container, rolloverChain, nonce);
     }
 
@@ -152,13 +147,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
 
         bytes memory encodedDeliveryRequestsContainer = encodeDeliveryRequestsContainer(deliveryRequests);
-        setForwardingRequest(ForwardingRequest({
-            deliveryRequestsContainer: encodedDeliveryRequestsContainer,
-            rolloverChain: rolloverChain,
-            nonce: nonce,
-            msgValue: msg.value,
-            isValid: true
-        }));
+        setForwardingRequest(
+            ForwardingRequest({
+                deliveryRequestsContainer: encodedDeliveryRequestsContainer,
+                rolloverChain: rolloverChain,
+                nonce: nonce,
+                msgValue: msg.value,
+                isValid: true
+            })
+        );
     }
 
     function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
