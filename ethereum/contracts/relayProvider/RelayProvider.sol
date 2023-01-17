@@ -58,13 +58,13 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
 
     //Returns a a buffer amount, and a buffer denominator, whereby the bufferAmount / bufferDenominator will be reduced from
     //applicationBudget conversions, giving an overhead to the provider on each conversion
-    function assetConversionBuffer(uint16 sourceChain, uint16 targetChain)
+    function getAssetConversionBuffer(uint16 targetChain)
         public
         view
         override
         returns (uint16 tolerance, uint16 toleranceDenominator)
     {
-        return (5, 100);
+        return assetConversionBuffer(targetChain);
     }
 
     /**

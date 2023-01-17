@@ -19,6 +19,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
     event CoreRelayerUpdated(address coreRelayer);
     event ApprovedSenderUpdated(address sender, bool approved);
+    event AssetConversionBufferUpdated(uint16 targetChain, uint16 buffer, uint16 bufferDenominator);
 
     function updateCoreRelayer(address payable newAddress) public onlyOwner {
         setCoreRelayer(newAddress);
@@ -72,6 +73,11 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
 
     function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) public onlyOwner {
         setMaximumBudget(targetChainId, maximumTotalBudget);
+    }
+
+    function updateAssetConversionBuffer(uint16 targetChain, uint16 buffer, uint16 bufferDenominator) public onlyOwner {
+        setAssetConversionBuffer(targetChain, buffer, bufferDenominator);
+        emit AssetConversionBufferUpdated(targetChain, buffer, bufferDenominator);
     }
 
     /// @dev upgrade serves to upgrade contract implementations

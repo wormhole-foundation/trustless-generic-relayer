@@ -21,6 +21,8 @@ contract RelayProviderStorage {
         mapping(uint16 => uint256) maximumBudget;
         mapping(uint16 => bytes32) deliveryAddressMap;
         mapping(address => bool) approvedSenders;
+        mapping(uint16 => uint16) assetConversionBuffer;
+        mapping(uint16 => uint16) assetConversionBufferDenominator;
         address rewardAddress;
     }
 }

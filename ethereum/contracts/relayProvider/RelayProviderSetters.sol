@@ -56,4 +56,9 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.data[updateChainId].gasPrice = updateGasPrice;
         _state.data[updateChainId].nativeCurrencyPrice = updateNativeCurrencyPrice;
     }
+
+    function setAssetConversionBuffer(uint16 targetChain, uint16 tolerance, uint16 toleranceDenominator) internal {
+        _state.assetConversionBuffer[targetChain] = tolerance;
+        _state.assetConversionBufferDenominator[targetChain] = toleranceDenominator;
+    }
 }
