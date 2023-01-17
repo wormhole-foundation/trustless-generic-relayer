@@ -25,13 +25,13 @@ export type Deployment = {
 export let env = ""
 let lastRunOverride: boolean | undefined
 
-export function init(overrides: { lastRunOverride?: boolean }): string {
+export function init(overrides?: { lastRunOverride?: boolean }): string {
   env = get_env_var("ENV")
   if (!env) {
     console.log("No environment was specified, using default environment files")
     env = "default"
   }
-  lastRunOverride = overrides.lastRunOverride
+  lastRunOverride = overrides?.lastRunOverride
 
   require("dotenv").config({
     path: `./ts-scripts/.env${env != "default" ? "." + env : ""}`,
