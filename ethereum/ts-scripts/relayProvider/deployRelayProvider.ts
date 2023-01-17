@@ -3,7 +3,13 @@ import {
   deployRelayProviderProxy,
   deployRelayProviderSetup,
 } from "../helpers/deployments"
-import { init, loadChains, loadPrivateKey, writeOutputFiles } from "../helpers/env"
+import {
+  getSigner,
+  init,
+  loadChains,
+  loadPrivateKey,
+  writeOutputFiles,
+} from "../helpers/env"
 
 const processName = "deployRelayProvider"
 init()
@@ -11,7 +17,7 @@ const chains = loadChains()
 const privateKey = loadPrivateKey()
 
 async function run() {
-  console.log("Start!")
+  console.log(`Start ${processName}!`)
   const output: any = {
     relayProviderImplementations: [],
     relayProviderSetups: [],
