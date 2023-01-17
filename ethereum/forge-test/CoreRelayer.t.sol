@@ -357,7 +357,11 @@ contract TestCoreRelayer is Test {
         );
     }
 
-    function testFundsCorrectIfApplicationCallReverts(GasParameters memory gasParams, bytes memory message, uint32 applicationBudget) public {
+    function testFundsCorrectIfApplicationCallReverts(
+        GasParameters memory gasParams,
+        bytes memory message,
+        uint32 applicationBudget
+    ) public {
         (uint16 SOURCE_CHAIN_ID, uint16 TARGET_CHAIN_ID, Contracts memory source, Contracts memory target) =
             standardAssumeAndSetupTwoChains(gasParams, 1000000);
 
@@ -367,12 +371,17 @@ contract TestCoreRelayer is Test {
         uint256 relayerBalance = target.relayer.balance;
         uint256 rewardAddressBalance = source.rewardAddress.balance;
 
-        uint256 payment = source.coreRelayer.quoteGasDeliveryFee(
-            TARGET_CHAIN_ID, 21000, source.relayProvider
-        ) + source.wormhole.messageFee() + applicationBudget; 
+        uint256 payment = source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, 21000, source.relayProvider)
+            + source.wormhole.messageFee() + applicationBudget;
 
         source.integration.sendMessageGeneral{value: payment}(
-            abi.encodePacked(uint8(0), message), TARGET_CHAIN_ID, address(target.integration), address(target.refundAddress), applicationBudget, 1);
+            abi.encodePacked(uint8(0), message),
+            TARGET_CHAIN_ID,
+            address(target.integration),
+            address(target.refundAddress),
+            applicationBudget,
+            1
+        );
 
         genericRelayer(SOURCE_CHAIN_ID, 2);
 
