@@ -1,7 +1,7 @@
-FROM node:lts as builder
+FROM --platform=linux/amd64 node:lts-alpine as builder
 
 # Create app directory
-WORKDIR /usr/src
+WORKDIR /usr/src/app
 
 # COPY package.json package-lock.json /src/
 
@@ -11,7 +11,6 @@ WORKDIR /usr/src
 # Install app dependencies
 # COPY . /src
 
-COPY node_modules .
 COPY . .
 
 CMD [ "npm", "run", "k8s-testnet" ]

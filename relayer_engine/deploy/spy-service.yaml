@@ -4,10 +4,12 @@ kind: Service
 metadata:
   name: spy
   namespace: default
+  annotations:
+    "service.beta.kubernetes.io/aws-load-balancer-internal": "0.0.0.0/0"
   labels:
     app: spy
 spec:
-  type: LoadBalancer
+  # type: LoadBalancer
   selector:
     app: spy
   ports:

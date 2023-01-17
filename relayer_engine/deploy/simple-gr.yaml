@@ -18,18 +18,22 @@ spec:
       restartPolicy: Always 
       containers:
       - name:  simple-gr
-        image:  simple-gr:latest
-        imagePullPolicy: Never
+        image:  joehowarth/simple-gr:latest
+        imagePullPolicy: IfNotPresent
+        # command: [ "/bin/sh", "-c", "--" ]
+        # args: [ "while true; do sleep 30; done;" ]
         resources:
           requests:
-            cpu: 100m
+            cpu: 1
             memory: 100Mi
           limits:
-            cpu: 900m
-            memory: 900Mi
-        ports:
-        - containerPort:  8000
-          name:  simple-gr
+            cpu: 2
+            memory: 2000Mi
+        volumeMounts:
+        - name: relayer-engine-config
+          mountPath: /usr/src/app/engine_config/k8s-testnet
+        - name: generic-relayer-plugin-config
+          mountPath: /usr/src/app/src/plugin/config
         env:
         - name: PRIVATE_KEYS_CHAIN_14 
           valueFrom:
@@ -43,3 +47,10 @@ spec:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_6
               optional: false 
+      volumes:
+        - name: relayer-engine-config
+          configMap:
+            name: relayer-engine-config
+        - name: generic-relayer-plugin-config
+          configMap:
+            name: generic-relayer-plugin-config
