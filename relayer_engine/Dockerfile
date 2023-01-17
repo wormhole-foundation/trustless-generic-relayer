@@ -11,6 +11,7 @@ WORKDIR /usr/src/app
 # Install app dependencies
 # COPY . /src
 
+COPY ../sdk ../sdk
 COPY . .
 
 CMD [ "npm", "run", "k8s-testnet" ]
