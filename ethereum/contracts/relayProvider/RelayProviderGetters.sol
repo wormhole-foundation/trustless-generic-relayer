@@ -60,9 +60,11 @@ contract RelayProviderGetters is RelayProviderState {
         return _state.deliveryAddressMap[targetChain];
     }
 
-    function assetConversionBuffer(uint16 targetChain) public view returns (uint16 tolerance, uint16 toleranceDenominator) {
+    function assetConversionBuffer(uint16 targetChain)
+        public
+        view
+        returns (uint16 tolerance, uint16 toleranceDenominator)
+    {
         return (_state.assetConversionBuffer[targetChain], _state.assetConversionBufferDenominator[targetChain]);
     }
-    
-
 }

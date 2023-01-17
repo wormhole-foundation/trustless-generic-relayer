@@ -75,7 +75,10 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         setMaximumBudget(targetChainId, maximumTotalBudget);
     }
 
-    function updateAssetConversionBuffer(uint16 targetChain, uint16 buffer, uint16 bufferDenominator) public onlyOwner {
+    function updateAssetConversionBuffer(uint16 targetChain, uint16 buffer, uint16 bufferDenominator)
+        public
+        onlyOwner
+    {
         setAssetConversionBuffer(targetChain, buffer, bufferDenominator);
         emit AssetConversionBufferUpdated(targetChain, buffer, bufferDenominator);
     }
