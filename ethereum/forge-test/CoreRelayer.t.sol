@@ -1033,12 +1033,11 @@ contract TestCoreRelayer is Test {
             for (uint8 k = 0; k < container.instructions.length; k++) {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].applicationBudgetTarget;
-                ICoreRelayer.TargetDeliveryParametersSingle memory package =
-                    ICoreRelayer.TargetDeliveryParametersSingle({
-                        encodedVMs: deliveryInstructions,
-                        deliveryIndex: counter,
-                        multisendIndex: k
-                    });
+                ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle({
+                    encodedVMs: deliveryInstructions,
+                    deliveryIndex: counter,
+                    multisendIndex: k
+                });
                 uint16 targetChain = container.instructions[k].targetChain;
                 uint256 wormholeFee = map[targetChain].wormhole.messageFee();
                 vm.prank(map[targetChain].relayer);
