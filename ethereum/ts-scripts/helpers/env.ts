@@ -22,18 +22,21 @@ export type Deployment = {
   address: string
 }
 
-let env = ""
+export let env = ""
+let lastRunOverride: boolean | undefined
 
-export function init() {
+export function init(overrides: { lastRunOverride?: boolean }): string {
   env = get_env_var("ENV")
   if (!env) {
     console.log("No environment was specified, using default environment files")
     env = "default"
   }
+  lastRunOverride = overrides.lastRunOverride
 
   require("dotenv").config({
     path: `./ts-scripts/.env${env != "default" ? "." + env : ""}`,
   })
+  return env
 }
 
 function get_env_var(env: string): string {
@@ -84,7 +87,7 @@ export function loadRelayProviders(): Deployment[] {
     throw Error("Failed to find contracts file for this process!")
   }
   const contracts = JSON.parse(contractsFile.toString())
-  if (contracts.useLastRun) {
+  if (contracts.useLastRun || lastRunOverride) {
     const lastRunFile = fs.readFileSync(
       `./ts-scripts/output/${env}/deployRelayProvider/lastrun.json`
     )
@@ -106,7 +109,7 @@ export function loadCoreRelayers(): Deployment[] {
     throw Error("Failed to find contracts file for this process!")
   }
   const contracts = JSON.parse(contractsFile.toString())
-  if (contracts.useLastRun) {
+  if (contracts.useLastRun || lastRunOverride) {
     const lastRunFile = fs.readFileSync(
       `./ts-scripts/output/${env}/deployCoreRelayer/lastrun.json`
     )
@@ -126,7 +129,7 @@ export function loadMockIntegrations(): Deployment[] {
     throw Error("Failed to find contracts file for this process!")
   }
   const contracts = JSON.parse(contractsFile.toString())
-  if (contracts.useLastRun) {
+  if (contracts.useLastRun || lastRunOverride) {
     const lastRunFile = fs.readFileSync(
       `./ts-scripts/output/${env}/deployMockIntegration/lastrun.json`
     )

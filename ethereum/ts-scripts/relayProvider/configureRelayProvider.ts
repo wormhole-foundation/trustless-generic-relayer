@@ -38,7 +38,7 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
     throw new Error("Failed to find approvedSenders info for chain " + chain.chainId)
   }
 
-  //Set address info
+  console.log("Set address info...")
   await relayProvider.updateRewardAddress(thisChainsConfigInfo.rewardAddress).then(wait)
   for (let i = 0; i < thisChainsConfigInfo.approvedSenders.length; i++) {
     await relayProvider
@@ -50,6 +50,7 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
   }
 
   //TODO refactor to use the batch price update, probably
+  console.log("Set gas and native prices...")
   for (let i = 0; i < chains.length; i++) {
     const targetChainPriceUpdate = config.pricingInfo.find(
       (x: any) => x.chainId == chains[i].chainId

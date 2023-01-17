@@ -18,16 +18,16 @@
     },
     {
       "description": "BSC",
-      "rpc": "https://data-seed-prebsc-2-s1.binance.org:8545",
-      "chainId": 4,
       "evmNetworkId": 97,
+      "chainId": 4,
+      "rpc": "https://bsc-testnet.public.blastapi.io",
       "wormholeAddress": "0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D"
     },
     {
       "description": "Mumbai",
-      "rpc": "https://matic-mumbai.chainstacklabs.com",
-      "chainId": 5,
       "evmNetworkId": 80001,
+      "chainId": 5,
+      "rpc": "https://matic-mumbai.chainstacklabs.com",
       "wormholeAddress": "0x0CBE91CF822c73C2315FB05100C2F714765d5c20"
     }
   ]
