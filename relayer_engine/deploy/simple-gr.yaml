@@ -19,27 +19,36 @@ spec:
       containers:
       - name:  simple-gr
         image:  joehowarth/simple-gr:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
+        # uncomment to explore filesystem during crash loop
         # command: [ "/bin/sh", "-c", "--" ]
         # args: [ "while true; do sleep 30; done;" ]
         resources:
           requests:
-            cpu: 1
-            memory: 100Mi
+            cpu: 1000m
+            memory: 600Mi
           limits:
-            cpu: 2
+            cpu: 1000m
             memory: 2000Mi
         volumeMounts:
+        - name: relayer-contracts
+          mountPath: /usr/src/ethereum/ts-scripts/config/k8s-testnet
         - name: relayer-engine-config
           mountPath: /usr/src/app/engine_config/k8s-testnet
         - name: generic-relayer-plugin-config
           mountPath: /usr/src/app/src/plugin/config
         env:
-        - name: PRIVATE_KEYS_CHAIN_14 
+        - name: PRIVATE_KEYS_CHAIN_4
           valueFrom:
             secretKeyRef:
               name: private-keys
-              key: PRIVATE_KEYS_CHAIN_14
+              key: PRIVATE_KEYS_CHAIN_4
+              optional: false 
+        - name: PRIVATE_KEYS_CHAIN_5
+          valueFrom:
+            secretKeyRef:
+              name: private-keys
+              key: PRIVATE_KEYS_CHAIN_5
               optional: false 
         - name: PRIVATE_KEYS_CHAIN_6
           valueFrom:
@@ -47,7 +56,16 @@ spec:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_6
               optional: false 
+        - name: PRIVATE_KEYS_CHAIN_14 
+          valueFrom:
+            secretKeyRef:
+              name: private-keys
+              key: PRIVATE_KEYS_CHAIN_14
+              optional: false 
       volumes:
+        - name: relayer-contracts
+          configMap:
+            name: relayer-contracts
         - name: relayer-engine-config
           configMap:
             name: relayer-engine-config

@@ -2,7 +2,8 @@
   "name": "generic-relayer-sdk",
   "version": "1.0.0",
   "description": "",
-  "main": "networks.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "devDependencies": {
     "@openzeppelin/contracts": "^4.7.3",
     "@poanet/solidity-flattener": "^3.0.8",
@@ -15,6 +16,8 @@
   },
   "scripts": {
     "clean": "rm -rf node_modules src/ethers-contracts",
+    "typecheck": "tsc --noEmit",
+    "tsc": "tsc",
     "build": "bash scripts/make_ethers_types.sh",
     "test": "ts-mocha src/__tests__/*.ts --timeout 60000"
   },

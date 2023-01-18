@@ -25,7 +25,7 @@ export type Deployment = {
 export let env = ""
 let lastRunOverride: boolean | undefined
 
-export function init(overrides?: { lastRunOverride?: boolean }): string {
+export function init(overrides: { lastRunOverride?: boolean } = {}): string {
   env = get_env_var("ENV")
   if (!env) {
     console.log("No environment was specified, using default environment files")
