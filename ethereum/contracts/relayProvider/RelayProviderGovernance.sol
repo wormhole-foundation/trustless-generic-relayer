@@ -12,7 +12,6 @@ import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
 abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProviderSetters, ERC1967Upgrade {
-
     /// Attempted to call function updatePrice with updateChainId=0.
     error ChainIdIsZero();
     /// Attempted to call function updatePrice with updateGasPrice=0.

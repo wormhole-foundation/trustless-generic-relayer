@@ -8,7 +8,6 @@ import "./CoreRelayerGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
-
     /// @notice Attempted to initialize the proxy implementation address to 0
     error ImplementationAddressIsZero();
     /// @notice Attempted to initialize the wormhole contract address to 0
