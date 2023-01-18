@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@certusone/wormhole-sdk": "^0.9.6",
-    "generic-relayer-sdk": "file:../../../sdk",
+    "generic-relayer-sdk": "file:../../pkgs/sdk",
     "relayer-engine": "github:wormhole-foundation/relayer-engine"
   },
   "author": "Chase Moran",
