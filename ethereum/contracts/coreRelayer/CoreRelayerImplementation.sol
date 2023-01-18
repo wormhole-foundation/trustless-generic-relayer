@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 import "./CoreRelayer.sol";
 
 contract CoreRelayerImplementation is CoreRelayer {
+
+    /// @notice The proxy implementation is already initialized.
     error ImplementationAlreadyInitialized();
 
     function initialize() public virtual initializer {

@@ -8,9 +8,15 @@ import "./CoreRelayerGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
+
+    /// @notice Attempted to initialize the proxy implementation address to 0
     error ImplementationAddressIsZero();
+    /// @notice Attempted to initialize the wormhole contract address to 0
     error WormholeAddressIsZero();
+    /// @notice Attempted to initialize the default relay provider address to 0
     error DefaultRelayProviderAddressIsZero();
+    /// @notice Failed to initialize the proxy implementation.
+    /// @param reason A string that further specifies the reason for the failure.
     error FailedToInitializeImplementation(string reason);
 
     function setup(

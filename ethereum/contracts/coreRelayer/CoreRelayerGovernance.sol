@@ -23,10 +23,16 @@ abstract contract CoreRelayerGovernance is
 {
     using BytesLib for bytes;
 
+    /// @notice evmChainId in state does not match block.chainid
     error InvalidFork();
+    /// @notice Verification of the GovernanceVM failed.
+    /// @param reason A string further specifying the cause why the GovernanceVM is invalid.
     error InvalidGovernanceVM(string reason);
-    error WrongChainId(uint16 chainId);
+    /// @notice Encountered an unexpected chainId in governance message.
+    /// @param chainId The unexpected chain ID found in the message.
     error InvalidChainId(uint16 chainId);
+    /// @notice Failed to initialize the proxy implementation.
+    /// @param reason A string that further identifies the cause of failure.
     error FailedToInitializeImplementation(string reason);
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
@@ -48,7 +54,7 @@ abstract contract CoreRelayerGovernance is
 
         CoreRelayerLibrary.ContractUpgrade memory contractUpgrade = CoreRelayerLibrary.parseUpgrade(vm.payload, module);
         if (contractUpgrade.chain != chainId()) {
-            revert WrongChainId(contractUpgrade.chain);
+            revert InvalidChainId(contractUpgrade.chain);
         }
 
         upgradeImplementation(contractUpgrade.newContract);

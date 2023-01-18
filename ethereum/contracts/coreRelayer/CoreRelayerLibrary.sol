@@ -6,12 +6,19 @@ import "../libraries/external/BytesLib.sol";
 library CoreRelayerLibrary {
     using BytesLib for bytes;
 
-    error WrongModule(bytes32 module);
+    /// @notice Encountered unexpected module while parsing.
+    error UnexpectedModule(bytes32 module);
+    /// @notice Encountered an invalid action while parsing an encoded upgrade.
     error InvalidContractUpgradeAction(uint8 action);
+    /// @notice Encoded upgrade has an invalid length.
     error InvalidContractUpgradeLength(uint256 length);
+    /// @notice Encountered an invalid action while parsing an encoded registration.
     error InvalidRegisterChainAction(uint8);
+    /// @notice Encoded registration has an invalid length.
     error InvalidRegisterChainLength(uint256);
+    /// @notice Encountered an invalid action while parsing encoded default provider.
     error InvalidDefaultProviderAction(uint8);
+    /// @notice Encoded default provider has an invalid length.
     error InvalidDefaultProviderLength(uint256);
 
     function parseUpgrade(bytes memory encodedUpgrade, bytes32 module)
@@ -25,7 +32,7 @@ library CoreRelayerLibrary {
         index += 32;
 
         if (cu.module != module) {
-            revert WrongModule(cu.module);
+            revert UnexpectedModule(cu.module);
         }
 
         cu.action = encodedUpgrade.toUint8(index);
@@ -57,7 +64,7 @@ library CoreRelayerLibrary {
         index += 32;
 
         if (registerChain.module != module) {
-            revert WrongModule(registerChain.module);
+            revert UnexpectedModule(registerChain.module);
         }
 
         registerChain.action = encodedRegistration.toUint8(index);
@@ -92,7 +99,7 @@ library CoreRelayerLibrary {
         index += 32;
 
         if (defaultProvider.module != module) {
-            revert WrongModule(defaultProvider.module);
+            revert UnexpectedModule(defaultProvider.module);
         }
 
         defaultProvider.action = encodedDefaultProvider.toUint8(index);

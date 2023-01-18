@@ -11,8 +11,14 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
 
+    /// @notice Unexpected payloadId found in delivery instructions.
+    /// @param payloadId The payload ID found in the delivery instructions container.
     error InvalidPayloadId(uint8 payloadId);
+    /// @notice Delivery instructions payload has an invalid length.
+    /// @param length The size in bytes of the delivery instructions.
     error InvalidDeliveryInstructionsPayload(uint256 length);
+    /// @notice Delivery requests payload has an invalid length.
+    /// @param length The size in bytes of the delivery requests.
     error InvalidDeliveryRequestsPayload(uint256 length);
 
     function decodeRedeliveryByTxHashInstruction(bytes memory encoded)

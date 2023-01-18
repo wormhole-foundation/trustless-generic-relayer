@@ -11,28 +11,46 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
+    /// @notice msg.value was too low.
+    /// @param reason An internal error code that further identifies the cause of failure.
     error InsufficientFunds(string reason);
-    error MsgValueTooLow(); // msg.value must cover the budget specified
+    /// @notice msg.value must cover the budget specified.
+    error MsgValueTooLow();
     error NonceIsZero();
     error NoDeliveryInProcess();
     error CantRequestMultipleForwards();
     error RelayProviderDoesNotSupportTargetChain();
-    error RolloverChainNotIncluded(); // Rollover chain was not included in the forwarding request
-    error ChainNotFoundInDeliveryRequests(uint16 chainId); // Required chain not found in the delivery requests
+    /// @notice Rollover chain was not included in the forwarding request.
+    error RolloverChainNotIncluded();
+    /// @notice Required chain not found in the delivery requests.
+    /// @param chainId the required chain ID.
+    error ChainNotFoundInDeliveryRequests(uint16 chainId);
     error ReentrantCall();
     error InvalidEmitterInOriginalDeliveryVM();
+    /// @notice Tried to redeliver a VM that is invalid.
+    /// @param reason An error string further detailing the reason why the VM is invalid.
     error InvalidRedeliveryVM(string reason);
     error InvalidEmitterInRedeliveryVM();
-    error MismatchingRelayProvidersInRedelivery(); // The same relay provider must be specified when doing a single VAA redeliver
-    error ProviderAddressIsNotSender(); // msg.sender must be the provider
+    /// @notice The same relay provider must be specified when doing a single VAA redeliver.
+    error MismatchingRelayProvidersInRedelivery();
+    /// @notice msg.sender must be the provider.
+    error ProviderAddressIsNotSender();
     error RedeliveryRequestDoesNotTargetThisChain();
     error OriginalDeliveryRequestDidNotTargetThisChain();
-    error InvalidVaa(uint256 deliveryIndex); // Invalid VAA at delivery index
+    /// @notice Invalid VAA at delivery index.
+    /// @param deliveryIndex the delivery index at which the invalid VAA was found.
+    error InvalidVaa(uint256 deliveryIndex);
     error InvalidEmitter();
-    error DeliveryRequestNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
-    error UnexpectedRelayer(); // Specified relayer is not the relayer delivering the message
-    error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
-    error AlreadyDelivered(); // The message was already delivered.
+    /// @notice This delivery request was not sufficiently funded, and must request redelivery.
+    error DeliveryRequestNotSufficientlyFunded();
+    /// @notice Specified relayer is not the relayer delivering the message.
+    error UnexpectedRelayer();
+    /// @notice The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees).
+    error InsufficientRelayerFunds();
+    /// @notice The message was already delivered.
+    error AlreadyDelivered();
+    /// @notice The destination chain is not this chain.
+    /// @param targetChainId the destination chain ID found in the message.
     error TargetChainIsNotThisChain(uint16 targetChainId);
     error SrcNativeCurrencyPriceIsZero();
     error DstNativeCurrencyPriceIsZero();
