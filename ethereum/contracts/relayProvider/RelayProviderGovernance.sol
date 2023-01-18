@@ -12,13 +12,23 @@ import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
 abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProviderSetters, ERC1967Upgrade {
+
+    /// Attempted to call function updatePrice with updateChainId=0.
     error ChainIdIsZero();
+    /// Attempted to call function updatePrice with updateGasPrice=0.
     error GasPriceIsZero();
+    /// Attempted to call function updatePrice with updateNativeCurrencyPrice=0.
     error NativeCurrencyPriceIsZero();
+    /// @notice Failed to initialize the implementation behind the proxy.
+    /// @param reason An error string further specifying the details of the failure.
     error FailedToInitializeImplementation(string reason);
+    /// @notice Input chainId is different from the current chain.
     error WrongChainId();
-    error AddressIsZero();
+    /// @notice The new owner can't be the zero address.
+    error NewOwnerAddressIsZero();
+    /// @notice In order to call the function confirmOwnershipTransferRequest, the sender must be a pending owner.
     error CallerMustBePendingOwner();
+    /// @notice Caller must be the owner address.
     error CallerMustBeOwner();
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
@@ -128,7 +138,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
             revert WrongChainId();
         }
         if (newOwner == address(0)) {
-            revert AddressIsZero();
+            revert NewOwnerAddressIsZero();
         }
 
         setPendingOwner(newOwner);

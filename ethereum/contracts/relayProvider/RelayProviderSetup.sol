@@ -8,7 +8,11 @@ import "./RelayProviderGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract RelayProviderSetup is RelayProviderSetters, ERC1967Upgrade {
+
+    /// @notice Attempted to call function setup with implementation=address(0).
     error ImplementationAddressIsZero();
+    /// @notice Failed to initialize the implementation behind the proxy.
+    /// @param reason A string that further identifies the cause of failure.
     error FailedToInitializeImplementation(string reason);
 
     function setup(address implementation, uint16 chainId) public {

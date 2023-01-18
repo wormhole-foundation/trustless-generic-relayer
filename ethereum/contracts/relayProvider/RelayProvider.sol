@@ -9,6 +9,9 @@ import "../interfaces/IRelayProvider.sol";
 import "../interfaces/ICoreRelayer.sol";
 
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
+
+    /// @notice The caller is not an approved address.
+    /// @param msgSender The caller address that triggered this error.
     error CallerNotApproved(address msgSender);
 
     modifier onlyApprovedSender() {
