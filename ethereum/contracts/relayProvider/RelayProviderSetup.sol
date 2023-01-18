@@ -8,7 +8,6 @@ import "./RelayProviderGovernance.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 contract RelayProviderSetup is RelayProviderSetters, ERC1967Upgrade {
-
     error ImplementationAddressIsZero();
     error FailedToInitializeImplementation(string reason);
 

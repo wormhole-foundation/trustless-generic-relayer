@@ -7,9 +7,7 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 import "./RelayProvider.sol";
 
-
 contract RelayProviderImplementation is RelayProvider {
-
     error ImplementationAlreadyInitialized();
 
     function initialize() public virtual initializer {

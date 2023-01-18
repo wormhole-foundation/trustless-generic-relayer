@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayerSetters is CoreRelayerState, Context {
-
     error InvalidEvmChainId();
 
     function setInitialized(address implementation) internal {
