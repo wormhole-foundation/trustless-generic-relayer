@@ -40,13 +40,9 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
 
   console.log("Set address info...")
   await relayProvider.updateRewardAddress(thisChainsConfigInfo.rewardAddress).then(wait)
-  for (let i = 0; i < thisChainsConfigInfo.approvedSenders.length; i++) {
-    await relayProvider
-      .updateApprovedSender(
-        thisChainsConfigInfo.approvedSenders[i].address,
-        thisChainsConfigInfo.approvedSenders[i].approved
-      )
-      .then(wait)
+  for (const { address, approved } of thisChainsConfigInfo.approvedSenders) {
+    console.log(`Setting approved sender: ${address}, approved: ${approved}`)
+    await relayProvider.updateApprovedSender(address, approved).then(wait)
   }
 
   //TODO refactor to use the batch price update, probably
