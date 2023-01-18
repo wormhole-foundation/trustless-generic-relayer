@@ -12,7 +12,6 @@ import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
 abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProviderSetters, ERC1967Upgrade {
-
     error ChainIdIsZero();
     error GasPriceIsZero();
     error NativeCurrencyPriceIsZero();

@@ -536,7 +536,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (!valid) {
             revert InvalidRedeliveryVM(reason);
         }
-        if(!verifyRelayerVM(redeliveryVM)) {
+        if (!verifyRelayerVM(redeliveryVM)) {
             // Redelivery VM has an invalid emitter
             revert InvalidEmitterInRedeliveryVM();
         }
@@ -547,7 +547,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
 
         //redelivery request cannot have already been attempted
-        if (isDeliveryCompleted(redeliveryVM.hash)){
+        if (isDeliveryCompleted(redeliveryVM.hash)) {
             revert AlreadyDelivered();
         }
 
@@ -565,20 +565,17 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // The same relay provider must be specified when doing a single VAA redeliver.
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
-        if (
-            providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)
-        ) {
+        if (providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)) {
             revert MismatchingRelayProvidersInRedelivery();
         }
 
-
         // msg.sender must be the provider
-        if(msg.sender != providerAddress) {
+        if (msg.sender != providerAddress) {
             revert ProviderAddressIsNotSender();
         }
 
         //redelivery must target this chain
-        if(chainId() != redeliveryInstruction.targetChain) {
+        if (chainId() != redeliveryInstruction.targetChain) {
             revert RedeliveryRequestDoesNotTargetThisChain();
         }
 
@@ -588,8 +585,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         //relayer must have covered the necessary funds
-        if ( msg.value <
-                redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget + wormhole().messageFee()
+        if (
+            msg.value
+                < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget
+                    + wormhole().messageFee()
         ) {
             revert InsufficientRelayerFunds();
         }
@@ -615,13 +614,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (!valid) {
             revert InvalidVaa(targetParams.deliveryIndex);
         }
-        if(!verifyRelayerVM(deliveryVM)) {
+        if (!verifyRelayerVM(deliveryVM)) {
             revert InvalidEmitter();
         }
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
         //ensure this is a funded delivery, not a failed forward.
-        if(!container.sufficientlyFunded) {
+        if (!container.sufficientlyFunded) {
             revert DeliveryRequestNotSufficientlyFunded();
         }
 
@@ -629,13 +628,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
 
         //make sure the specified relayer is the relayer delivering this message
-        if(fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
+        if (fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
             revert UnexpectedRelayer();
         }
 
         //make sure relayer passed in sufficient funds
-        if (msg.value <
-            deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget + wormhole.messageFee()
+        if (
+            msg.value
+                < deliveryInstruction.maximumRefundTarget + deliveryInstruction.applicationBudgetTarget
+                    + wormhole.messageFee()
         ) {
             revert InsufficientRelayerFunds();
         }
