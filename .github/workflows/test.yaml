@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: |
             ethereum/package-lock.json
             ethereum/wormhole/ethereum/package-lock.json
@@ -47,33 +47,25 @@ jobs:
           repository: wormhole-foundation/wormhole
           path: trustless-generic-relayer/ethereum/wormhole
           ref: feat/batch_vaa_alternative
-      - name: Checkout relayer-engine
-        uses: actions/checkout@v3
-        with:
-          repository: wormhole-foundation/relayer-engine
-          path: relayer-engine
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: |
             trustless-generic-relayer/ethereum/package-lock.json
             trustless-generic-relayer/ethereum/wormhole/ethereum/package-lock.json
             trustless-generic-relayer/relayer_engine/package-lock.json
             trustless-generic-relayer/sdk/package-lock.json
-            relayer-engine/package-lock.json
       - name: Generate contract typechain typings
         run: |
           cd trustless-generic-relayer/ethereum
           ../scripts/install-foundry
           PATH=$PATH:$HOME/.foundry/bin/ make build
-      - run: cd trustless-generic-relayer/sdk && npm ci
       - name: Typecheck ethereum/ts-scripts
         run: |
           cd trustless-generic-relayer/ethereum
           npm ci
           npx tsc --noEmit --project ts-scripts
-      - run: cd relayer-engine && npm ci
       - name: Typecheck relayer engine plugin
         run: |
           cd trustless-generic-relayer/relayer_engine
