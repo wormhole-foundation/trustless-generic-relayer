@@ -61,6 +61,7 @@ jobs:
           cd trustless-generic-relayer/ethereum
           ../scripts/install-foundry
           PATH=$PATH:$HOME/.foundry/bin/ make build
+      - run: cd trustless-generic-relayer/sdk && npm ci
       - name: Typecheck ethereum/ts-scripts
         run: |
           cd trustless-generic-relayer/ethereum
