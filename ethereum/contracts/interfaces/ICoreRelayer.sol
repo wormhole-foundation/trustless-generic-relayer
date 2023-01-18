@@ -126,6 +126,8 @@ interface ICoreRelayer {
         uint8 deliveryIndex;
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
+        //refund address
+        address payable relayerRefundAddress;
     }
     // Optional gasOverride which can be supplied by the relayer
     // uint32 targetCallGasOverride;
@@ -137,6 +139,8 @@ interface ICoreRelayer {
         uint8 deliveryIndex;
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
+        //refund address
+        address payable relayerRefundAddress;
     }
     // Optional gasOverride which can be supplied by the relayer
     // uint32 targetCallGasOverride;
@@ -146,6 +150,7 @@ interface ICoreRelayer {
         bytes[] sourceEncodedVMs;
         uint8 deliveryIndex;
         uint8 multisendIndex;
+        address payable relayerRefundAddress;
     }
 
     //REVISE consider removing this, or keeping for future compatibility

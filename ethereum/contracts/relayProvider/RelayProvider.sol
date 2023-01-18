@@ -94,6 +94,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         returns (uint64 sequence)
     {
         ICoreRelayer cr = ICoreRelayer(coreRelayer());
+        targetParams.relayerRefundAddress = payable(msg.sender);
         return cr.redeliverSingle{value: msg.value}(targetParams);
     }
 
@@ -104,6 +105,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         returns (uint64 sequence)
     {
         ICoreRelayer cr = ICoreRelayer(coreRelayer());
+        targetParams.relayerRefundAddress = payable(msg.sender);
         return cr.deliverSingle{value: msg.value}(targetParams);
     }
 }
