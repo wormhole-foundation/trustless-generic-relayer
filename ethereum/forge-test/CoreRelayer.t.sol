@@ -251,6 +251,7 @@ contract TestCoreRelayer is Test {
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
+                map[i].relayProvider.updateAssetConversionBuffer(j, 5, 100);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
                 registerCoreRelayerContract(
                     map[i].coreRelayerGovernance, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))

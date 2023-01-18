@@ -59,4 +59,12 @@ contract RelayProviderGetters is RelayProviderState {
     function deliveryAddress(uint16 targetChain) public view returns (bytes32 whFormatAddress) {
         return _state.deliveryAddressMap[targetChain];
     }
+
+    function assetConversionBuffer(uint16 targetChain)
+        public
+        view
+        returns (uint16 tolerance, uint16 toleranceDenominator)
+    {
+        return (_state.assetConversionBuffer[targetChain], _state.assetConversionBufferDenominator[targetChain]);
+    }
 }
