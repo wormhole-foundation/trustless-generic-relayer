@@ -39,13 +39,9 @@ interface ICoreRelayer {
         IRelayProvider provider
     ) external payable;
 
-    function deliverSingle(TargetDeliveryParametersSingle memory targetParams)
-        external
-        payable;
+    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable;
 
-    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams)
-        external
-        payable;
+    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) external payable;
 
     // function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
 

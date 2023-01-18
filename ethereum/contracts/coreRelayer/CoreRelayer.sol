@@ -15,8 +15,12 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     event DeliverySuccess(bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
     event DeliveryFailure(bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
-    event ForwardRequestFailure(bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
-    event ForwardRequestSuccess(bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
+    event ForwardRequestFailure(
+        bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence
+    );
+    event ForwardRequestSuccess(
+        bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence
+    );
     event InvalidRedelivery(bytes32 redeliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
 
     function requestDelivery(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider)
@@ -390,7 +394,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (getForwardingRequest().isValid) {
             (, success) = emitForward(weiToRefund);
             if (success) {
-                emit ForwardRequestSuccess(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence);
+                emit ForwardRequestSuccess(
+                    deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence
+                    );
             } else {
                 (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
 
@@ -398,7 +404,9 @@ contract CoreRelayer is CoreRelayerGovernance {
                     // if refunding fails, pay out full refund to relayer
                     weiToRefund = 0;
                 }
-                emit ForwardRequestFailure(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence);
+                emit ForwardRequestFailure(
+                    deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence
+                    );
             }
         } else {
             (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
@@ -409,15 +417,19 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
 
             if (success) {
-                emit DeliverySuccess(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence);
+                emit DeliverySuccess(
+                    deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence
+                    );
             } else {
-                emit DeliveryFailure(deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence);
+                emit DeliveryFailure(
+                    deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence
+                    );
             }
         }
 
         console.log(relayerRefund);
         uint256 relayerRefundAmount = msg.value - weiToRefund - internalInstruction.applicationBudgetTarget
-                - (getForwardingRequest().isValid ? wormhole.messageFee() : 0);
+            - (getForwardingRequest().isValid ? wormhole.messageFee() : 0);
         console.log(relayerRefundAmount);
         // refund the rest to relayer
         relayerRefund.call{value: relayerRefundAmount}("");
@@ -471,10 +483,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return defaultRelayProvider();
     }
 
-    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams)
-        public
-        payable
-    {
+    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
         //cache wormhole
         IWormhole wormhole = wormhole();
 
@@ -497,14 +506,26 @@ contract CoreRelayer is CoreRelayerGovernance {
             decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[targetParams.multisendIndex]
         );
 
-
-        if(!valid){
-            emit InvalidRedelivery(redeliveryVM.hash, fromWormholeFormat(instruction.targetAddress), redeliveryVM.emitterChainId, redeliveryVM.sequence);
+        if (!valid) {
+            emit InvalidRedelivery(
+                redeliveryVM.hash,
+                fromWormholeFormat(instruction.targetAddress),
+                redeliveryVM.emitterChainId,
+                redeliveryVM.sequence
+                );
             targetParams.relayerRefundAddress.send(msg.value);
             return;
         }
 
-        _executeDelivery(wormhole, instruction, targetParams.sourceEncodedVMs, originalDeliveryVM.hash,targetParams.relayerRefundAddress, originalDeliveryVM.emitterChainId, originalDeliveryVM.sequence);
+        _executeDelivery(
+            wormhole,
+            instruction,
+            targetParams.sourceEncodedVMs,
+            originalDeliveryVM.hash,
+            targetParams.relayerRefundAddress,
+            originalDeliveryVM.emitterChainId,
+            originalDeliveryVM.sequence
+        );
     }
 
     function validateRedeliverySingle(
@@ -521,28 +542,28 @@ contract CoreRelayer is CoreRelayerGovernance {
         ); //"The same relay provider must be specified when doing a single VAA redeliver");
 
         //msg.sender must be the provider
-        if(msg.sender != providerAddress){
-            isValid = false; //"Relay provider differed from the specified address"); 
-        } 
+        if (msg.sender != providerAddress) {
+            isValid = false; //"Relay provider differed from the specified address");
+        }
 
         //redelivery must target this chain
-        if(chainId() != redeliveryInstruction.targetChain){
+        if (chainId() != redeliveryInstruction.targetChain) {
             isValid = false; //"Redelivery request does not target this chain.");
-        } 
+        }
 
         //original delivery must target this chain
-        if(chainId() != originalInstruction.targetChain){
-            isValid = false;  //"Original delivery request did not target this chain.");
-        } 
+        if (chainId() != originalInstruction.targetChain) {
+            isValid = false; //"Original delivery request did not target this chain.");
+        }
 
         //computeBudget & applicationBudget must be at least as large as the initial delivery
-        if(originalInstruction.applicationBudgetTarget > redeliveryInstruction.newApplicationBudgetTarget){
+        if (originalInstruction.applicationBudgetTarget > redeliveryInstruction.newApplicationBudgetTarget) {
             isValid = false; //new application budget is smaller than the original
-        } 
+        }
 
-        if(originalInstruction.executionParameters.gasLimit > redeliveryInstruction.executionParameters.gasLimit){
+        if (originalInstruction.executionParameters.gasLimit > redeliveryInstruction.executionParameters.gasLimit) {
             isValid = false; //new gasLimit is smaller than the original
-        } 
+        }
 
         //relayer must have covered the necessary funds
         require(
@@ -559,10 +580,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         deliveryInstruction = originalInstruction;
     }
 
-    function deliverSingle(TargetDeliveryParametersSingle memory targetParams)
-        public
-        payable
-    {
+    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) public payable {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
 
@@ -593,7 +611,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         //make sure this delivery is intended for this chain
         require(chainId() == deliveryInstruction.targetChain, "24"); //"targetChain is not this chain");
 
-        _executeDelivery(wormhole, deliveryInstruction, targetParams.encodedVMs, deliveryVM.hash, targetParams.relayerRefundAddress, deliveryVM.emitterChainId, deliveryVM.sequence);
+        _executeDelivery(
+            wormhole,
+            deliveryInstruction,
+            targetParams.encodedVMs,
+            deliveryVM.hash,
+            targetParams.relayerRefundAddress,
+            deliveryVM.emitterChainId,
+            deliveryVM.sequence
+        );
     }
 
     function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {

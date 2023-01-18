@@ -662,7 +662,7 @@ contract TestCoreRelayer is Test {
             relayerRefundAddress: payable(target.relayer)
         });
 
-       /* vm.prank(target.relayer);
+        /* vm.prank(target.relayer);
         vm.expectRevert(bytes("13"));
         target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
 
@@ -1042,8 +1042,8 @@ contract TestCoreRelayer is Test {
                 ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle({
                     encodedVMs: deliveryInstructions,
                     deliveryIndex: counter,
-                    multisendIndex: k ,
-                    relayerRefundAddress: payable( map[targetChain].relayer)
+                    multisendIndex: k,
+                    relayerRefundAddress: payable(map[targetChain].relayer)
                 });
                 uint256 wormholeFee = map[targetChain].wormhole.messageFee();
                 vm.prank(map[targetChain].relayer);
