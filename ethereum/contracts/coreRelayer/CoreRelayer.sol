@@ -8,6 +8,8 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
+import "forge-std/console.sol";
+
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
@@ -413,10 +415,12 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
         }
 
+        console.log(relayerRefund);
+        uint256 relayerRefundAmount = msg.value - weiToRefund - internalInstruction.applicationBudgetTarget
+                - (getForwardingRequest().isValid ? wormhole.messageFee() : 0);
+        console.log(relayerRefundAmount);
         // refund the rest to relayer
-        relayerRefund.send( msg.value - weiToRefund - internalInstruction.applicationBudgetTarget
-                - (getForwardingRequest().isValid ? wormhole.messageFee() : 0)
-        );
+        relayerRefund.call{value: relayerRefundAmount}("");
     }
 
     //REVISE, consider implementing this system into the RelayProvider.

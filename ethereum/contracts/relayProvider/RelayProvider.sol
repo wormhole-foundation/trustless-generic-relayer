@@ -91,21 +91,19 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         public
         payable
         onlyApprovedSender
-        returns (uint64 sequence)
     {
         ICoreRelayer cr = ICoreRelayer(coreRelayer());
         targetParams.relayerRefundAddress = payable(msg.sender);
-        return cr.redeliverSingle{value: msg.value}(targetParams);
+        cr.redeliverSingle{value: msg.value}(targetParams);
     }
 
     function deliverSingle(ICoreRelayer.TargetDeliveryParametersSingle memory targetParams)
         public
         payable
         onlyApprovedSender
-        returns (uint64 sequence)
     {
         ICoreRelayer cr = ICoreRelayer(coreRelayer());
         targetParams.relayerRefundAddress = payable(msg.sender);
-        return cr.deliverSingle{value: msg.value}(targetParams);
+        cr.deliverSingle{value: msg.value}(targetParams);
     }
 }

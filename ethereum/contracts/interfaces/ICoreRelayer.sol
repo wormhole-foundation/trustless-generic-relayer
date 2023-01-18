@@ -41,13 +41,11 @@ interface ICoreRelayer {
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams)
         external
-        payable
-        returns (uint64 sequence);
+        payable;
 
     function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams)
         external
-        payable
-        returns (uint64 sequence);
+        payable;
 
     // function requestRewardPayout(uint16 rewardChain, bytes32 receiver, uint32 nonce) external payable returns (uint64 sequence);
 
