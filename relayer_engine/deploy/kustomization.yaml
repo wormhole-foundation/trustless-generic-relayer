@@ -8,6 +8,9 @@ configMapGenerator:
   - k8s-testnet/common.json
   - k8s-testnet/executor.json
   - k8s-testnet/listener.json
+- name: relayer-contracts
+  files:
+  - k8s-testnet/contracts.json
 - name: generic-relayer-plugin-config
   files:
   - k8s-testnet/k8s-testnet.json
