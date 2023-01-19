@@ -456,7 +456,7 @@ contract TestCoreRelayer is Test {
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
-        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
+        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].topics[1];
 
         ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest({
             sourceChain: SOURCE_CHAIN_ID,
@@ -580,7 +580,7 @@ contract TestCoreRelayer is Test {
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
-        stack.deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
+        stack.deliveryVaaHash =  vm.getRecordedLogs()[0].topics[1];
 
         stack.payment =
             source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
