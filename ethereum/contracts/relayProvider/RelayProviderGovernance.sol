@@ -12,6 +12,15 @@ import "./RelayProviderSetters.sol";
 import "./RelayProviderStructs.sol";
 
 abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProviderSetters, ERC1967Upgrade {
+    error ChainIdIsZero();
+    error GasPriceIsZero();
+    error NativeCurrencyPriceIsZero();
+    error FailedToInitializeImplementation(string reason);
+    error WrongChainId();
+    error AddressIsZero();
+    error CallerMustBePendingOwner();
+    error CallerMustBeOwner();
+
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event RewardAddressUpdated(address indexed newAddress);
@@ -55,9 +64,16 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         public
         onlyOwner
     {
-        require(updateChainId > 0, "updateChainId == 0");
-        require(updateGasPrice > 0, "updateGasPrice == 0");
-        require(updateNativeCurrencyPrice > 0, "updateNativeCurrencyPrice == 0");
+        if (updateChainId == 0) {
+            revert ChainIdIsZero();
+        }
+        if (updateGasPrice == 0) {
+            revert GasPriceIsZero();
+        }
+        if (updateNativeCurrencyPrice == 0) {
+            revert NativeCurrencyPriceIsZero();
+        }
+
         setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
     }
 
@@ -85,7 +101,9 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
 
     /// @dev upgrade serves to upgrade contract implementations
     function upgrade(uint16 relayProviderChainId, address newImplementation) public onlyOwner {
-        require(relayProviderChainId == chainId(), "wrong chain id");
+        if (relayProviderChainId != chainId()) {
+            revert WrongChainId();
+        }
 
         address currentImplementation = _getImplementation();
 
@@ -94,7 +112,9 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         // call initialize function of the new implementation
         (bool success, bytes memory reason) = newImplementation.delegatecall(abi.encodeWithSignature("initialize()"));
 
-        require(success, string(reason));
+        if (!success) {
+            revert FailedToInitializeImplementation(string(reason));
+        }
 
         emit ContractUpgraded(currentImplementation, newImplementation);
     }
@@ -104,8 +124,12 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
      * - it saves an address for the new owner in the pending state
      */
     function submitOwnershipTransferRequest(uint16 thisRelayerChainId, address newOwner) public onlyOwner {
-        require(thisRelayerChainId == chainId(), "incorrect chainId");
-        require(newOwner != address(0), "new owner cannot be address(0)");
+        if (thisRelayerChainId != chainId()) {
+            revert WrongChainId();
+        }
+        if (newOwner == address(0)) {
+            revert AddressIsZero();
+        }
 
         setPendingOwner(newOwner);
     }
@@ -119,7 +143,9 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         // cache the new owner address
         address newOwner = pendingOwner();
 
-        require(msg.sender == newOwner, "caller must be pending owner");
+        if (msg.sender != newOwner) {
+            revert CallerMustBePendingOwner();
+        }
 
         // cache currentOwner for Event
         address currentOwner = owner();
@@ -132,7 +158,9 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     }
 
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "owner() != _msgSender()");
+        if (owner() != _msgSender()) {
+            revert CallerMustBeOwner();
+        }
         _;
     }
 }

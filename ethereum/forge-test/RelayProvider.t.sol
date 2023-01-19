@@ -42,7 +42,7 @@ contract TestRelayProvider is Test {
         initializeRelayProvider();
 
         // you shall not pass
-        vm.expectRevert("updateChainId == 0");
+        vm.expectRevert(abi.encodeWithSignature("ChainIdIsZero()"));
         relayProvider.updatePrice(
             0, // updateChainId
             updateGasPrice,
@@ -57,7 +57,7 @@ contract TestRelayProvider is Test {
         initializeRelayProvider();
 
         // you shall not pass
-        vm.expectRevert("updateGasPrice == 0");
+        vm.expectRevert(abi.encodeWithSignature("GasPriceIsZero()"));
         relayProvider.updatePrice(
             updateChainId,
             0, // updateGasPrice == 0
@@ -72,7 +72,7 @@ contract TestRelayProvider is Test {
         initializeRelayProvider();
 
         // you shall not pass
-        vm.expectRevert("updateNativeCurrencyPrice == 0");
+        vm.expectRevert(abi.encodeWithSignature("NativeCurrencyPriceIsZero()"));
         relayProvider.updatePrice(
             updateChainId,
             updateGasPrice,
@@ -96,7 +96,7 @@ contract TestRelayProvider is Test {
 
         // you shall not pass
         vm.prank(oracleOwner);
-        vm.expectRevert("owner() != _msgSender()");
+        vm.expectRevert(abi.encodeWithSignature("CallerMustBeOwner()"));
         relayProvider.updatePrice(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
     }
 
