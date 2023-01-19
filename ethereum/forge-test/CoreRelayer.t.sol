@@ -928,13 +928,6 @@ contract TestCoreRelayer is Test {
 
         vm.prank(target.relayer);
         target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
-<<<<<<< HEAD
-=======
-
-        vm.prank(target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("AlreadyDelivered()"));
-        target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
->>>>>>> origin/main
     }
 
     struct RequestDeliveryStackTooDeep {
