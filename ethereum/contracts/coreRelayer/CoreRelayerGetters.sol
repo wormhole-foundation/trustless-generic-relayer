@@ -53,24 +53,8 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IRelayProvider(_state.defaultRelayProvider);
     }
 
-    // function getSelectedRelayProvider(bytes memory relayerParams) internal view returns (IRelayProvider) {
-    //     if(relayerParams.length == 0){
-    //         return defaultRelayProvider();
-    //     } else {
-    //         require(relayerParams.length == 33, "Wrong length of relayerParams");
-    //         if(relayerParams.toUint8(0) == 0) {
-    //             return defaultRelayProvider();
-    //         }
-    //         return IRelayProvider(address(uint160(uint256(relayerParams.toBytes32(1)))));
-    //     }
-    // }
-
     function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
         return _state.forwardingRequest;
-    }
-
-    function isDeliveryCompleted(bytes32 deliveryHash) public view returns (bool) {
-        return _state.completedDeliveries[deliveryHash];
     }
 
     function isContractLocked() internal view returns (bool) {

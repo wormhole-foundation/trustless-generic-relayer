@@ -31,6 +31,8 @@ abstract contract CoreRelayerStructs {
         uint8 deliveryIndex;
         // Index of the target chain inside the delivery VM
         uint8 multisendIndex;
+        // relayer refund address
+        address payable relayerRefundAddress;
     }
     // Optional gasOverride which can be supplied by the relayer
     // uint32 targetCallGasOverride;
@@ -40,6 +42,7 @@ abstract contract CoreRelayerStructs {
         bytes[] sourceEncodedVMs;
         uint8 deliveryIndex;
         uint8 multisendIndex;
+        address payable relayerRefundAddress;
     }
 
     struct DeliveryRequest {

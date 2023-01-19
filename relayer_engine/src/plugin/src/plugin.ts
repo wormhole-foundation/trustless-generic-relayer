@@ -441,11 +441,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
       // todo: add wormhole fee
       const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget).add(100)
-      const input: CoreRelayerStructs.TargetDeliveryParametersSingleStruct = {
-        encodedVMs: payload.vaas,
-        deliveryIndex: payload.coreRelayerVaaIndex,
-        multisendIndex: i,
-      }
+      
 
       const chainId = ix.targetChain as wh.EVMChainId
       // todo: consider parallelizing this
@@ -456,6 +452,13 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             this.pluginConfig.supportedChains.get(chainId)!.relayProvider,
             wallet
           )
+
+          const input: CoreRelayerStructs.TargetDeliveryParametersSingleStruct = {
+            encodedVMs: payload.vaas,
+            deliveryIndex: payload.coreRelayerVaaIndex,
+            multisendIndex: i,
+            relayerRefundAddress: relayProvider.address
+          }
 
           if (!(await relayProvider.approvedSender(wallet.address))) {
             this.logger.warn(
