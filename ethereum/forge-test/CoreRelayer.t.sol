@@ -580,7 +580,7 @@ contract TestCoreRelayer is Test {
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
-        stack.deliveryVaaHash =  vm.getRecordedLogs()[0].topics[1];
+        stack.deliveryVaaHash = vm.getRecordedLogs()[0].topics[1];
 
         stack.payment =
             source.coreRelayer.quoteGasDeliveryFee(TARGET_CHAIN_ID, gasParams.targetGasLimit, source.relayProvider);
