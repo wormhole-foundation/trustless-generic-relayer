@@ -19,12 +19,15 @@ import * as wh from "@certusone/wormhole-sdk"
 import { Logger } from "winston"
 import { PluginError } from "./utils"
 import { SignedVaa } from "@certusone/wormhole-sdk"
-import { CoreRelayer__factory, IWormhole, IWormhole__factory } from "../../../sdk/src"
+import {
+  IWormhole,
+  IWormhole__factory,
+  RelayProvider__factory,
+  LogMessagePublishedEvent,
+  CoreRelayerStructs,
+} from "../../../pkgs/sdk/src"
 import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
-import { LogMessagePublishedEvent } from "../../../sdk/src/ethers-contracts/IWormhole"
-import { CoreRelayerStructs } from "../../../sdk/src/ethers-contracts/CoreRelayer"
-import * as _ from "lodash"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
 
 const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
@@ -32,6 +35,7 @@ const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
 let PLUGIN_NAME: string = "GenericRelayerPlugin"
 
 export interface ChainInfo {
+  relayProvider: string
   coreContract?: IWormhole
   relayerAddress: string
   mockIntegrationContractAddress: string
@@ -112,11 +116,10 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         this.logger.error("No known core contract for chain", chainName)
         throw new PluginError("No known core contract for chain", { chainName })
       }
-      info.coreContract = IWormhole__factory.connect(
-        core,
-        providers.evm[chainId as wh.EVMChainId]
-      )
+      const provider = providers.evm[chainId as wh.EVMChainId]
+      info.coreContract = IWormhole__factory.connect(core, provider)
     }
+
     if (listenerResources) {
       setTimeout(
         () => this.fetchVaaWorker(listenerResources.eventSource, listenerResources.db),
@@ -185,7 +188,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           )
 
           // todo: gc resolved eventually
-          // todo: currently not used, but the idea is to refire resolved events 
+          // todo: currently not used, but the idea is to refire resolved events
           // in the case of a restart or smt. Maybe should just remove it for now...
           kv.resolved.push(
             ...Array.from(newlyResolved.keys()).map((hash) => ({
@@ -449,11 +452,19 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       await execute.onEVM({
         chainId,
         f: async ({ wallet }) => {
-          const coreRelayer = CoreRelayer__factory.connect(
-            this.pluginConfig.supportedChains.get(chainId)!.relayerAddress,
+          const relayProvider = RelayProvider__factory.connect(
+            this.pluginConfig.supportedChains.get(chainId)!.relayProvider,
             wallet
           )
-          const rx = await coreRelayer
+
+          if (!(await relayProvider.approvedSender(wallet.address))) {
+            this.logger.warn(
+              `Approved sender not set correctly for chain ${chainId}, should be ${wallet.address}`
+            )
+            return
+          }
+
+          relayProvider
             .deliverSingle(input, { value: budget, gasLimit: 3000000 })
             .then((x) => x.wait())
 

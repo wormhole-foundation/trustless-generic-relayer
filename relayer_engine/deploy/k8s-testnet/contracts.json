@@ -1,0 +1,58 @@
+{
+  "description": "This file contains the addresses for the contracts on each chain. If useLastRun is true, this file will be ignored, and the addresses will be taken from the lastrun.json of the deployment scripts.",
+  "useLastRun": false,
+  "relayProviders": [
+    {
+      "chainId": 6,
+      "address": "0xb19eBF87f3b957B6e99d8bACC994c987805C74E2"
+    },
+    {
+      "chainId": 14,
+      "address": "0xb4e6BcD5dBbD502443bb4480aA5213DfCC9F1fC8"
+    },
+    {
+      "chainId": 4,
+      "address": "0x128eE477E3DEC6b97978E7EC41a95C5cBE111c44"
+    },
+    {
+      "chainId": 5,
+      "address": "0xde609ED85F6EaaD58AA422Fd95Fea213cDA83650"
+    }
+  ],
+  "coreRelayers": [
+    {
+      "chainId": 6,
+      "address": "0x74D59cBFEBAf363769C78E2e2165503228F2b92F"
+    },
+    {
+      "chainId": 14,
+      "address": "0x22baa6Ff6454C1B5f514CfE09DFDc77f44a6be56"
+    },
+    {
+      "chainId": 4,
+      "address": "0x8bCce102F34C6DbF53655958586d7Bc196dCB3c5"
+    },
+    {
+      "chainId": 5,
+      "address": "0x128eE477E3DEC6b97978E7EC41a95C5cBE111c44"
+    }
+  ],
+  "mockIntegrations": [
+    {
+      "chainId": 6,
+      "address": "0xbFEA8140309070f0dB56c1970fc9de61970F464E"
+    },
+    {
+      "chainId": 14,
+      "address": "0x3Af9D81E5AE37fE3828234E3dBC06c7b2983c7fD"
+    },
+    {
+      "chainId": 4,
+      "address": "0x26Dc6Fa3a53Ab99187176e0E445065E054ca5CB3"
+    },
+    {
+      "chainId": 5,
+      "address": "0x660fF93943d6741ECc60a97D695760F13f094628"
+    }
+  ]
+}

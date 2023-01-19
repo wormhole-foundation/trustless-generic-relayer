@@ -760,7 +760,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         returns (uint256 nativeQuote)
     {
         uint256 sourceAmount = quoteAssetConversion(targetChain, targetAmount, chainId(), provider);
-        (uint16 buffer, uint16 denominator) = provider.assetConversionBuffer(chainId(), targetChain);
+        (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
         nativeQuote = (sourceAmount * (denominator + buffer) + denominator - 1) / denominator;
     }
 
@@ -772,7 +772,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         returns (uint256 targetAmount)
     {
         uint256 amount = quoteAssetConversion(chainId(), sourceAmount, targetChain, provider);
-        (uint16 buffer, uint16 denominator) = provider.assetConversionBuffer(chainId(), targetChain);
+        (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
         targetAmount = amount * denominator / (denominator + buffer);
     }
 

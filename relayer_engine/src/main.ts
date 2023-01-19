@@ -5,33 +5,28 @@ import GenericRelayerPluginDef, {
   GenericRelayerPluginConfig,
 } from "./plugin/src/plugin"
 
+type ContractConfigEntry = { chainId: EVMChainId; address: "string" }
+type ContractsJson = {
+  relayProviders: ContractConfigEntry[]
+  coreRelayers: ContractConfigEntry[]
+  mockIntegrations: ContractConfigEntry[]
+}
+
 async function main() {
   // load plugin config
-  const envType = selectPluginConfig(process.argv[2] || "")
+  const envType = selectPluginConfig(process.argv[2] ?? "")
   const pluginConfig = (await relayerEngine.loadFileAndParseToObject(
     `./src/plugin/config/${envType}.json`
   )) as GenericRelayerPluginConfig
 
-
-  const contracts = await relayerEngine.loadFileAndParseToObject(
-    `./contracts.json`
-  )
-  // const contracts = await relayerEngine.loadFileAndParseToObject(
-  //   `../ethereum/ts-scripts/config/${envType.replace("devnet", "testnet")}/contracts.json`
-  // )
-  const supportedChains = pluginConfig.supportedChains as unknown as Record<
-    any,
-    ChainInfo
-  >
-  contracts.coreRelayers.forEach(
-    ({ chainId, address }: contractConfigEntry) =>
-      (supportedChains[chainId].relayerAddress = address)
-  )
-  contracts.mockIntegrations.forEach(
-    ({ chainId, address }: contractConfigEntry) =>
-      (supportedChains[chainId].mockIntegrationContractAddress = address)
-  )
-  pluginConfig.supportedChains = supportedChains as any
+  // generate supportedChains config from contracts.json
+  const contracts = (await relayerEngine.loadFileAndParseToObject(
+    `../ethereum/ts-scripts/config/${envType.replace("devnet", "testnet")}/contracts.json`
+  )) as ContractsJson
+  pluginConfig.supportedChains = transfromContractsToSupportedChains(
+    contracts,
+    pluginConfig.supportedChains as any
+  ) as any
 
   // run relayer engine
   await relayerEngine.run({
@@ -56,10 +51,27 @@ function selectPluginConfig(flag: string): string {
   }
 }
 
+function transfromContractsToSupportedChains(
+  contracts: ContractsJson,
+  supportedChains: Record<EVMChainId, ChainInfo>
+): Record<EVMChainId, ChainInfo> {
+  contracts.relayProviders.forEach(
+    ({ chainId, address }: ContractConfigEntry) =>
+      (supportedChains[chainId].relayProvider = address)
+  )
+  contracts.coreRelayers.forEach(
+    ({ chainId, address }: ContractConfigEntry) =>
+      (supportedChains[chainId].relayerAddress = address)
+  )
+  contracts.mockIntegrations.forEach(
+    ({ chainId, address }: ContractConfigEntry) =>
+      (supportedChains[chainId].mockIntegrationContractAddress = address)
+  )
+  return supportedChains
+}
+
 // allow main to be an async function and block until it rejects or resolves
 main().catch((e) => {
   console.error(e)
   process.exit(1)
 })
-
-type contractConfigEntry = { chainId: EVMChainId; address: "string" }

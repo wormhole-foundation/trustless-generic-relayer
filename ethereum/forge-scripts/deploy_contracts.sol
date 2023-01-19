@@ -140,6 +140,7 @@ contract ContractScript is Script {
         for (uint16 i = 0; i < chains.length; i++) {
             console.log("about to set delivery address");
             provider.updateDeliveryAddress(chains[i], core_relayer.toWormholeFormat(currentAddress));
+            provider.updateAssetConversionBuffer(chains[i], 5, 100);
             provider.updateDeliverGasOverhead(chains[i], 350000);
             provider.updatePrice(chains[i], uint128(300000000000), uint128(100000));
             provider.updateMaximumBudget(chains[i], uint256(1000000000000000000));

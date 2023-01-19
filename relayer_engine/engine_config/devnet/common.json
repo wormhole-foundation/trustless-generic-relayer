@@ -14,6 +14,16 @@
       "chainId": 14,
       "chainName": "Celo",
       "nodeUrl": "https://alfajores-forno.celo-testnet.org"
+    },
+    {
+      "chainName": "BSC",
+      "chainId": 4,
+      "nodeUrl": "https://bsc-testnet.public.blastapi.io"
+    },
+    {
+      "chainName": "Mumbai",
+      "chainId": 5,
+      "nodeUrl": "https://matic-mumbai.chainstacklabs.com"
     }
   ]
 }
