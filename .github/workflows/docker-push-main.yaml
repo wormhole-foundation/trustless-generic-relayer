@@ -11,7 +11,7 @@ name: Create and publish a Docker image
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
 env:
   REGISTRY: ghcr.io
@@ -20,9 +20,6 @@ env:
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout trustless-generic-relayer
         uses: actions/checkout@v3
