@@ -23,49 +23,68 @@ abstract contract CoreRelayerGovernance is
 {
     using BytesLib for bytes;
 
+    error InvalidFork();
+    error InvalidGovernanceVM(string reason);
+    error WrongChainId(uint16 chainId);
+    error InvalidChainId(uint16 chainId);
+    error FailedToInitializeImplementation(string reason);
+
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
 
     // "CoreRelayer" (left padded)
     bytes32 constant module = 0x000000000000000000000000000000000000000000436f726552656c61796572;
 
     function submitContractUpgrade(bytes memory _vm) public {
-        require(!isFork(), "invalid fork");
+        if (isFork()) {
+            revert InvalidFork();
+        }
 
         (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(_vm);
-        require(valid, reason);
+        if (!valid) {
+            revert InvalidGovernanceVM(string(reason));
+        }
 
         setConsumedGovernanceAction(vm.hash);
 
         CoreRelayerLibrary.ContractUpgrade memory contractUpgrade = CoreRelayerLibrary.parseUpgrade(vm.payload, module);
-
-        require(contractUpgrade.chain == chainId(), "wrong chain id");
+        if (contractUpgrade.chain != chainId()) {
+            revert WrongChainId(contractUpgrade.chain);
+        }
 
         upgradeImplementation(contractUpgrade.newContract);
     }
 
     function registerCoreRelayerContract(bytes memory vaa) public {
         (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(vaa);
-        require(valid, reason);
+        if (!valid) {
+            revert InvalidGovernanceVM(string(reason));
+        }
 
         setConsumedGovernanceAction(vm.hash);
 
         CoreRelayerLibrary.RegisterChain memory rc = CoreRelayerLibrary.parseRegisterChain(vm.payload, module);
 
-        require((rc.chain == chainId() && !isFork()) || rc.chain == 0, "invalid chain id");
+        if ((rc.chain != chainId() || isFork()) && rc.chain != 0) {
+            revert InvalidChainId(rc.chain);
+        }
 
         setRegisteredCoreRelayerContract(rc.emitterChain, rc.emitterAddress);
     }
 
     function setDefaultRelayProvider(bytes memory vaa) public {
         (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(vaa);
-        require(valid, reason);
+        if (!valid) {
+            revert InvalidGovernanceVM(string(reason));
+        }
 
         setConsumedGovernanceAction(vm.hash);
 
         CoreRelayerLibrary.UpdateDefaultProvider memory provider =
             CoreRelayerLibrary.parseUpdateDefaultProvider(vm.payload, module);
 
-        require((provider.chain == chainId() && !isFork()) || provider.chain == 0, "invalid chain id");
+        if ((provider.chain != chainId() || isFork()) && provider.chain != 0) {
+            revert InvalidChainId(provider.chain);
+        }
 
         setRelayProvider(provider.newProvider);
     }
@@ -78,7 +97,9 @@ abstract contract CoreRelayerGovernance is
         // Call initialize function of the new implementation
         (bool success, bytes memory reason) = newImplementation.delegatecall(abi.encodeWithSignature("initialize()"));
 
-        require(success, string(reason));
+        if (!success) {
+            revert FailedToInitializeImplementation(string(reason));
+        }
 
         emit ContractUpgraded(currentImplementation, newImplementation);
     }
