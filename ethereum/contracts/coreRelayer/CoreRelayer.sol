@@ -358,7 +358,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 postGas = gasleft();
 
         // refund unused gas budget
-        uint256 weiToRefund = 0;
+        uint256 weiToRefund = internalInstruction.applicationBudgetTarget;
         if (success) {
             weiToRefund = (internalInstruction.executionParameters.gasLimit - (preGas - postGas))
                 * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
@@ -409,11 +409,11 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
         }
 
+        uint256 applicationBudgetPaid = (success ? internalInstruction.applicationBudgetTarget : 0);
+        uint256 wormholeFeePaid = getForwardingRequest().isValid ? wormhole.messageFee() : 0;
+        uint256 relayerRefundAmount = msg.value - weiToRefund - applicationBudgetPaid - wormholeFeePaid;
         // refund the rest to relayer
-        msg.sender.call{
-            value: msg.value - weiToRefund - internalInstruction.applicationBudgetTarget
-                - (getForwardingRequest().isValid ? wormhole.messageFee() : 0)
-        }("");
+        msg.sender.call{value: relayerRefundAmount}("");
     }
 
     //REVISE, consider implementing this system into the RelayProvider.

@@ -74,7 +74,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
-            computeBudget: msg.value - 2 * wormhole.messageFee(),
+            computeBudget: msg.value - 2 * wormhole.messageFee() - applicationBudget,
             applicationBudget: applicationBudget, // not needed in this case.
             relayParameters: relayer.getDefaultRelayParams() //no overrides
         });
