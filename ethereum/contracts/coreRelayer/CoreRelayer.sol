@@ -13,15 +13,15 @@ import "forge-std/console.sol";
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
-    event DeliverySuccess(bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
-    event DeliveryFailure(bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
+    event DeliverySuccess(bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence);
+    event DeliveryFailure(bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence);
     event ForwardRequestFailure(
-        bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence
+        bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence
     );
     event ForwardRequestSuccess(
-        bytes32 deliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence
+        bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence
     );
-    event InvalidRedelivery(bytes32 redeliveryVaaHash, address recipientContract, uint16 sourceChain, uint64 sequence);
+    event InvalidRedelivery(bytes32 indexed redeliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence);
 
     error InsufficientFunds(string reason);
     error MsgValueTooLow(); // msg.value must cover the budget specified
