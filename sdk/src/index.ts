@@ -6,3 +6,4 @@ export type { IWormhole, LogMessagePublishedEvent } from "./ethers-contracts/IWo
 export { IWormhole__factory } from "./ethers-contracts/factories/IWormhole__factory"
 export type { RelayProvider } from "./ethers-contracts/RelayProvider"
 export { RelayProvider__factory } from "./ethers-contracts/factories/RelayProvider__factory"
+export * from './structs'
