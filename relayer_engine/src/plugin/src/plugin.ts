@@ -30,12 +30,12 @@ import {
   parseRedeliveryByTxHashInstruction,
   parsePayloadType,
   RelayerPayloadId,
+  RedeliveryByTxHashInstruction,
 } from "../../../pkgs/sdk/src"
 import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
-import { entropyToMnemonic } from "ethers/lib/utils"
 
 const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
 
@@ -57,18 +57,21 @@ export interface GenericRelayerPluginConfig {
 
 interface WorkflowPayload {
   payloadId: RelayerPayloadId
-  coreRelayerDeliveryVaaIndex: number
+  deliveryVaaIndex: number
   vaas: string[] // base64
   // only present when payload type is Redelivery
-  coreRelayerRedeliveryVaa?: string // base64
+  redeliveryVaa?: string // base64
 }
 
 interface WorkflowPayloadParsed {
   payloadId: RelayerPayloadId
   deliveryInstructionsContainer: DeliveryInstructionsContainer
-  coreRelayerDeliveryVaaIndex: number
-  coreRelayerDeliveryVaa: ParsedVaaWithBytes
-  coreRelayerRedeliveryVaa?: ParsedVaaWithBytes
+  deliveryVaaIndex: number
+  deliveryVaa: ParsedVaaWithBytes
+  redelivery?: {
+    vaa: ParsedVaaWithBytes
+    ix: RedeliveryByTxHashInstruction
+  }
   vaas: Buffer[]
 }
 
@@ -343,7 +346,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         {
           workflowData: {
             payloadId: RelayerPayloadId.Delivery,
-            coreRelayerDeliveryVaaIndex: fetched.deliveryVaaIdx,
+            deliveryVaaIndex: fetched.deliveryVaaIdx,
             vaas: fetched.vaas.map((v) => v.bytes),
           },
         },
@@ -382,7 +385,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         return {
           workflowData: {
             payloadId: RelayerPayloadId.Delivery,
-            coreRelayerDeliveryVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
+            deliveryVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
             vaas: maybeResolvedEntry.vaas.map((v) => v.bytes),
           },
         }
@@ -516,34 +519,25 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     }
     return { vaas, deliveryVaaIdx }
   }
-
   async handleWorkflow(
-    workflow: Workflow<WorkflowPayload>,
-    _providers: Providers,
-    execute: ActionExecutor
-  ): Promise<void> {
-    const payload = this.parseWorkflowPayload(workflow)
-    switch (payload.payloadId) {
-      case RelayerPayloadId.Delivery:
-    }
-  }
-
-  async handleDeliveryWorkflow(
     workflow: Workflow<WorkflowPayload>,
     _providers: Providers,
     execute: ActionExecutor
   ): Promise<void> {
     this.logger.info("Got workflow")
     this.logger.info(JSON.stringify(workflow, undefined, 2))
-    this.logger.info(workflow.data.coreRelayerDeliveryVaaIndex)
+    this.logger.info(workflow.data.deliveryVaaIndex)
     this.logger.info(workflow.data.vaas)
-    console.log("sanity console log")
-
     const payload = this.parseWorkflowPayload(workflow)
+  }
+
+  async handleDeliveryWorkflow(
+    payload: WorkflowPayloadParsed,
+    execute: ActionExecutor
+  ): Promise<void> {
     for (let i = 0; i < payload.deliveryInstructionsContainer.instructions.length; i++) {
       const ix = payload.deliveryInstructionsContainer.instructions[i]
-
-      // todo: add wormhole fee
+      const chainId = assertEvmChainId(ix.targetChain)
       const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget).add(100)
       
 
@@ -585,6 +579,46 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     }
   }
 
+  async handleRedeliveryWorkflow(
+    payload: WorkflowPayloadParsed,
+    execute: ActionExecutor
+  ): Promise<void> {
+    const redelivery = payload.redelivery!
+    const chainId = assertEvmChainId(redelivery.ix.targetChain)
+    // todo: consider parallelizing this
+    await execute.onEVM({
+      chainId,
+      f: async ({ wallet }) => {
+        const relayProvider = RelayProvider__factory.connect(
+          this.pluginConfig.supportedChains.get(chainId)!.relayProvider,
+          wallet
+        )
+
+        if (!(await relayProvider.approvedSender(wallet.address))) {
+          this.logger.warn(
+            `Approved sender not set correctly for chain ${chainId}, should be ${wallet.address}`
+          )
+          return
+        }
+
+        const { newApplicationBudgetTarget, newMaximumRefundTarget } = redelivery.ix
+        const budget = newApplicationBudgetTarget.add(newMaximumRefundTarget).add(100)
+      const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
+        sourceEncodedVMs: payload.vaas,
+        deliveryIndex: payload.deliveryVaaIndex,
+        multisendIndex: redelivery.ix.mul
+      }
+
+          relayProvider
+            .redeliverSingle(input, { value: budget, gasLimit: 3000000 })
+            .then((x) => x.wait())
+
+
+        this.logger.info(`Redelivered instruction to chain ${chainId}`)
+      },
+    })
+  }
+
   static validateConfig(
     pluginConfigRaw: Record<string, any>
   ): GenericRelayerPluginConfig {
@@ -593,7 +627,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         ? pluginConfigRaw.supportedChains
         : new Map(
             Object.entries(pluginConfigRaw.supportedChains).map(([chainId, info]) => [
-              Number(chainId) as wh.EVMChainId,
+              assertEvmChainId(Number(chainId)),
               info,
             ])
           )
@@ -614,19 +648,21 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     const payloadId = workflow.data.payloadId
     const vaas = workflow.data.vaas.map((s) => Buffer.from(s, "base64"))
     const coreRelayerRedeliveryVaa =
-      (workflow.data.coreRelayerRedeliveryVaa &&
-        parseVaaWithBytes(
-          Buffer.from(workflow.data.coreRelayerRedeliveryVaa, "base64")
-        )) ||
+      (workflow.data.redeliveryVaa &&
+        parseVaaWithBytes(Buffer.from(workflow.data.redeliveryVaa, "base64"))) ||
       undefined
-    const coreRelayerVaa = parseVaaWithBytes(
-      vaas[workflow.data.coreRelayerDeliveryVaaIndex]
-    )
+    const coreRelayerRedelivery = coreRelayerRedeliveryVaa
+      ? {
+          vaa: coreRelayerRedeliveryVaa,
+          ix: parseRedeliveryByTxHashInstruction(coreRelayerRedeliveryVaa.payload),
+        }
+      : undefined
+    const coreRelayerVaa = parseVaaWithBytes(vaas[workflow.data.deliveryVaaIndex])
     return {
       payloadId,
-      coreRelayerDeliveryVaa: coreRelayerVaa,
-      coreRelayerDeliveryVaaIndex: workflow.data.coreRelayerDeliveryVaaIndex,
-      coreRelayerRedeliveryVaa,
+      deliveryVaa: coreRelayerVaa,
+      deliveryVaaIndex: workflow.data.deliveryVaaIndex,
+      redelivery: coreRelayerRedelivery,
       vaas,
       deliveryInstructionsContainer: parseDeliveryInstructionsContainer(
         coreRelayerVaa.payload
@@ -649,6 +685,15 @@ class Definition implements PluginDefinition<GenericRelayerPluginConfig, Plugin>
       pluginName: this.pluginName,
     }
   }
+}
+
+function assertEvmChainId(chainId: number): wh.EVMChainId {
+  if (!wh.isEVMChain(chainId as wh.ChainId)) {
+    throw new PluginError("Expected wh evm chainId for target chain", {
+      chainId,
+    })
+  }
+  return chainId as wh.EVMChainId
 }
 
 // todo: move to sdk
