@@ -1,18 +1,8 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# GitHub recommends pinning actions to a commit SHA.
-# To get a newer version, you will need to update the SHA.
-# You can also reference a tag or branch, but the action may change without warning.
-
 name: Create and publish a Docker image
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
+    branches: ["main", "build-docker-images-on-main-too"]
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -23,31 +13,30 @@ jobs:
     steps:
       - name: Checkout trustless-generic-relayer
         uses: actions/checkout@v3
-        with:
-          path: trustless-generic-relayer
       - name: Checkout wormhole
         uses: actions/checkout@v3
         with:
           repository: wormhole-foundation/wormhole
-          path: trustless-generic-relayer/ethereum/wormhole
+          path: ethereum/wormhole
           ref: feat/batch_vaa_alternative
       - uses: actions/setup-node@v3
         with:
           node-version: 18
           cache: "npm"
           cache-dependency-path: |
-            trustless-generic-relayer/ethereum/package-lock.json
-            trustless-generic-relayer/ethereum/wormhole/ethereum/package-lock.json
-            trustless-generic-relayer/relayer_engine/package-lock.json
-            trustless-generic-relayer/sdk/package-lock.json
+            ethereum/package-lock.json
+            ethereum/wormhole/ethereum/package-lock.json
+            relayer_engine/package-lock.json
+            sdk/package-lock.json
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
       - name: Generate contract typechain typings
         run: |
-          cd trustless-generic-relayer/ethereum
-          ../scripts/install-foundry
-          PATH=$PATH:$HOME/.foundry/bin/ make build
-      - name: npm ci generic relayer plugin
+          cd ethereum
+          make build
+      - name: Install relayer engine dependencies
         run: |
-          cd trustless-generic-relayer/relayer_engine
+          cd relayer_engine
           npm ci
 
       - name: Log in to the Container registry
@@ -66,7 +55,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
-          context: trustless-generic-relayer/relayer_engine
+          context: relayer_engine
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
