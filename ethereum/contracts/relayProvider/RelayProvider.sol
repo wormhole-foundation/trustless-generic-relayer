@@ -60,7 +60,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         return 200; //REVISE consider adding state variable for this
     }
 
-    //Returns a a buffer amount, and a buffer denominator, whereby the bufferAmount / bufferDenominator will be reduced from
+    //Returns a buffer amount, and a buffer denominator, whereby the bufferAmount / bufferDenominator will be reduced from
     //applicationBudget conversions, giving an overhead to the provider on each conversion
     function getAssetConversionBuffer(uint16 targetChain)
         public
