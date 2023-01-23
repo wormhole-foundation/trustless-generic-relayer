@@ -457,6 +457,8 @@ contract TestCoreRelayer is Test {
         uint256 paymentNotEnough = setup.source.coreRelayer.quoteGasDeliveryFee(setup.targetChainId, 10, setup.source.relayProvider)
             + setup.source.wormhole.messageFee();
 
+        uint256 oldBalance = address(setup.target.integration).balance;
+
         setup.source.integration.sendMessage{value: paymentNotEnough}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
@@ -470,21 +472,28 @@ contract TestCoreRelayer is Test {
 
         bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].topics[1];
 
+        uint256 newApplicationBudgetFee = setup.source.coreRelayer.quoteApplicationBudgetFee(setup.targetChainId, feeParams.applicationBudgetTarget, setup.source.relayProvider);
+
         ICoreRelayer.RedeliveryByTxHashRequest memory redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest({
             sourceChain: setup.sourceChainId,
             sourceTxHash: deliveryVaaHash,
             sourceNonce: 1,
             targetChain: setup.targetChainId,
             newComputeBudget: payment - setup.source.wormhole.messageFee(),
-            newApplicationBudget: 0,
+            newApplicationBudget: newApplicationBudgetFee,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        setup.source.coreRelayer.requestRedelivery{value: payment}(redeliveryRequest, 1, setup.source.relayProvider);
+        console.log(newApplicationBudgetFee);
+        setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee}(redeliveryRequest, 1, setup.source.relayProvider);
 
         genericRelayer(setup.sourceChainId, 1);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+
+        console.log(address(setup.target.integration).balance);
+        console.log((oldBalance + feeParams.applicationBudgetTarget));
+        assertTrue(address(setup.target.integration).balance == oldBalance + feeParams.applicationBudgetTarget);
     }
 
     function testTwoSends(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message, bytes memory secondMessage) public {
