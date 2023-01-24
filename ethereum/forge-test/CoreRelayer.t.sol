@@ -515,7 +515,6 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-
         setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee}(
             redeliveryRequest, 1, setup.source.relayProvider
         );
