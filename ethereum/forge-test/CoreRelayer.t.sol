@@ -375,14 +375,7 @@ contract TestCoreRelayer is Test {
         uint256 howMuchGasRelayerCouldHavePaidForAndStillProfited =
             relayerProfit / gasParams.targetGasPrice / feeParams.targetNativePrice;
         assertTrue(howMuchGasRelayerCouldHavePaidForAndStillProfited >= 30000); // takes around this much gas (seems to go from 36k-200k?!?)
-        console.log(USDcost);
-        console.log(
-            (
-                relayerProfit
-                    + uint256(2) * map[setup.sourceChainId].wormhole.messageFee() * feeParams.sourceNativePrice
-                    + (uint256(1) * feeParams.applicationBudgetTarget * feeParams.targetNativePrice)
-            )
-        );
+
         assertTrue(
             USDcost
                 - (
@@ -522,7 +515,6 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        console.log(newApplicationBudgetFee);
 
         setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee}(
             redeliveryRequest, 1, setup.source.relayProvider
@@ -601,7 +593,6 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        console.log(newApplicationBudgetFee - 1);
         setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee - 1}(
             redeliveryRequest, 1, setup.source.relayProvider
         );
@@ -610,8 +601,6 @@ contract TestCoreRelayer is Test {
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
-        console.log(address(setup.target.integration).balance);
-        console.log((oldBalance + feeParams.applicationBudgetTarget));
         assertTrue(address(setup.target.integration).balance < oldBalance + feeParams.applicationBudgetTarget);
     }
 
