@@ -8,6 +8,8 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
+import "forge-std/console.sol";
+
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
@@ -539,9 +541,10 @@ contract CoreRelayer is CoreRelayerGovernance {
     function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
         //cache wormhole
         IWormhole wormhole = wormhole();
-        
+
         //validate the redelivery VM
-        (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
+        (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) =
+            wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
         if (!valid) {
             revert InvalidRedeliveryVM(reason);
         }
@@ -550,7 +553,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert InvalidEmitterInRedeliveryVM();
         }
 
-        RedeliveryByTxHashInstruction memory redeliveryInstruction = decodeRedeliveryByTxHashInstruction(redeliveryVM.payload);
+        RedeliveryByTxHashInstruction memory redeliveryInstruction =
+            decodeRedeliveryByTxHashInstruction(redeliveryVM.payload);
 
         //validate the original delivery VM
         IWormhole.VM memory originalDeliveryVM;
@@ -564,11 +568,11 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert InvalidEmitterInOriginalDeliveryVM(redeliveryInstruction.deliveryIndex);
         }
 
-
         DeliveryInstruction memory instruction;
         (instruction, valid) = validateRedeliverySingle(
             redeliveryInstruction,
-            decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[redeliveryInstruction.multisendIndex]
+            decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[redeliveryInstruction
+                .multisendIndex]
         );
 
         if (!valid) {
