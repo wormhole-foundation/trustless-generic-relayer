@@ -82,11 +82,17 @@ contract MockRelayerIntegration is IWormholeReceiver {
         relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(
             request, nonce, relayer.getDefaultRelayProvider()
         );
+        console.log("CURRENT BALANCE");
+        console.log(wormhole.chainId());
+        console.log(address(this).balance);
     }
 
     function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
+        console.log("CURRENT BALANCE");
+        console.log(wormhole.chainId());
+        console.log(address(this).balance);
         for (uint256 i = 0; i < numObservations - 1;) {
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
@@ -95,7 +101,9 @@ contract MockRelayerIntegration is IWormholeReceiver {
             bool forward = (parsed.payload.toUint8(0) == 1);
             verifiedPayloads[parsed.hash] = parsed.payload.slice(1, parsed.payload.length - 1);
             message = parsed.payload.slice(1, parsed.payload.length - 1);
-
+            console.log("CURRENT BALANCE");
+            console.log(wormhole.chainId());
+            console.log(address(this).balance);
             if (forward) {
                 wormhole.publishMessage{value: wormhole.messageFee()}(
                     parsed.nonce, abi.encodePacked(uint8(0), bytes("received!")), 200
