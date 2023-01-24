@@ -25,10 +25,16 @@ import {
   RelayProvider__factory,
   LogMessagePublishedEvent,
   CoreRelayerStructs,
+  DeliveryInstructionsContainer,
+  parseDeliveryInstructionsContainer,
+  parseRedeliveryByTxHashInstruction,
+  parsePayloadType,
+  RelayerPayloadId,
 } from "../../../pkgs/sdk/src"
 import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
+import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
 
 const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
 
@@ -49,14 +55,19 @@ export interface GenericRelayerPluginConfig {
 }
 
 interface WorkflowPayload {
-  coreRelayerVaaIndex: number
+  payloadId: RelayerPayloadId
+  coreRelayerDeliveryVaaIndex: number
   vaas: string[] // base64
+  // only present when payload type is Redelivery
+  coreRelayerRedeliveryVaa?: string // base64
 }
 
 interface WorkflowPayloadParsed {
+  payloadId: RelayerPayloadId
   deliveryInstructionsContainer: DeliveryInstructionsContainer
-  coreRelayerVaaIndex: number
-  coreRelayerVaa: ParsedVaaWithBytes
+  coreRelayerDeliveryVaaIndex: number
+  coreRelayerDeliveryVaa: ParsedVaaWithBytes
+  coreRelayerRedeliveryVaa?: ParsedVaaWithBytes
   vaas: Buffer[]
 }
 
@@ -82,6 +93,8 @@ interface Entry {
   deliveryVaaIdx: number
   vaas: { emitter: string; sequence: string; bytes: string }[]
   allFetched: boolean
+  // only present for Redeliveries
+  redeliveryVaa?: string
 }
 
 export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
@@ -138,7 +151,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       await sleep(3_000) // todo: make configurable
 
       // track which delivery vaa hashes have all vaas ready this iteration
-      let newlyResolved = new Map<string, SignedVaa>()
+      let newlyResolved = new Map<string, Entry>()
       await db.withKey(
         [PENDING, RESOLVED],
         async (kv: { [RESOLVED]?: Resolved[]; [PENDING]?: Pending[] }) => {
@@ -174,10 +187,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
                 }
                 const newEntry: Entry = await this.fetchEntry(hash, entry, logger)
                 if (newEntry.allFetched) {
-                  newlyResolved.set(
-                    hash,
-                    Buffer.from(newEntry.vaas[newEntry.deliveryVaaIdx].bytes, "base64")
-                  )
+                  newlyResolved.set(hash, newEntry)
                 }
                 return [hash, newEntry]
               })
@@ -201,9 +211,13 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         }
       )
       // kick off an engine listener event for each resolved delivery vaa
-      for (const deliveryVAA of newlyResolved.values()) {
-        this.logger.info("Kicking off engine listener event for resolved deliveryVAA")
-        eventSource(deliveryVAA)
+      for (const entry of newlyResolved.values()) {
+        this.logger.info("Kicking off engine listener event for resolved entry")
+        if (entry.redeliveryVaa) {
+          eventSource(Buffer.from(entry.redeliveryVaa, "base64"))
+        } else {
+          eventSource(Buffer.from(entry.vaas[entry.deliveryVaaIdx].bytes, "base64"))
+        }
       }
     }
   }
@@ -263,15 +277,27 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         coreRelayerVaa.hash
       ).toString("base64")}`
     )
-    const payloadType = parsePayloadType(coreRelayerVaa.payload)
-    if (payloadType !== RelayerPayloadType.Delivery) {
+    const payloadId = parsePayloadType(coreRelayerVaa.payload)
+    if (payloadId !== RelayerPayloadId.Delivery) {
       // todo: support redelivery
-      this.logger.warn(
-        "Only delivery payloads currently implemented, found type: " + payloadType
-      )
-      return {}
     }
+    switch (payloadId) {
+      case RelayerPayloadId.Delivery:
+        return this.consumeDeliveryEvent(coreRelayerVaa, db)
+      case RelayerPayloadId.Redelivery:
+        return this.consumeRedeliveryEvent(coreRelayerVaa, db)
+    }
+  }
 
+  async consumeRedeliveryEvent(
+    coreRelayerVaa: ParsedVaaWithBytes,
+    db: StagingAreaKeyLock
+  ): Promise<{ workflowData?: WorkflowPayload }> {}
+
+  async consumeDeliveryEvent(
+    coreRelayerVaa: ParsedVaaWithBytes,
+    db: StagingAreaKeyLock
+  ): Promise<{ workflowData?: WorkflowPayload }> {
     const hash = coreRelayerVaa.hash.toString("base64")
     const { [hash]: fetched } = await db.getKeys<Record<typeof hash, Entry>>([hash])
 
@@ -281,7 +307,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       return dbg(
         {
           workflowData: {
-            coreRelayerVaaIndex: fetched.deliveryVaaIdx,
+            payloadId: RelayerPayloadId.Delivery,
+            coreRelayerDeliveryVaaIndex: fetched.deliveryVaaIdx,
             vaas: fetched.vaas.map((v) => v.bytes),
           },
         },
@@ -295,40 +322,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       const rx = await this.fetchReceipt(coreRelayerVaa.sequence, chainId)
       // parse rx for seqs and emitters
 
-      const onlyVAALogs = rx.logs.filter(
-        (log) =>
-          log.address ===
-          this.pluginConfig.supportedChains.get(chainId)?.coreContract?.address
-      )
-      const vaas = onlyVAALogs.flatMap((bridgeLog: ethers.providers.Log) => {
-        const iface = Implementation__factory.createInterface()
-        const log = iface.parseLog(bridgeLog) as unknown as LogMessagePublishedEvent
-        // filter down to just synthetic batch
-        if (log.args.nonce !== coreRelayerVaa.nonce) {
-          return []
-        }
-        return [
-          {
-            sequence: log.args.sequence.toString(),
-            emitter: wh.tryNativeToHexString(log.args.sender, "ethereum"),
-            bytes: "",
-          },
-        ]
-      })
-      this.logger.debug(vaas)
-      const deliveryVaaIdx = vaas.findIndex(
-        (vaa) =>
-          vaa.emitter ===
-          wh.tryNativeToHexString(
-            wh.tryUint8ArrayToNative(coreRelayerVaa.emitterAddress, "ethereum"),
-            "ethereum"
-          )
-      )
-      if (deliveryVaaIdx === -1) {
-        throw new PluginError("CoreRelayerVaa not found in fetched vaas", {
-          vaas,
-        })
-      }
+      const { vaas, deliveryVaaIdx } = this.filterLogs(rx, chainId, coreRelayerVaa)
       vaas[deliveryVaaIdx].bytes = coreRelayerVaa.bytes.toString("base64")
 
       // create entry and pending in db
@@ -344,7 +338,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         this.logger.info("Resolved entry immediately")
         return {
           workflowData: {
-            coreRelayerVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
+            payloadId: RelayerPayloadId.Delivery,
+            coreRelayerDeliveryVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
             vaas: maybeResolvedEntry.vaas.map((v) => v.bytes),
           },
         }
@@ -426,14 +421,74 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     }
   }
 
+  filterLogs(
+    rx: ethers.ContractReceipt,
+    chainId: wh.EVMChainId,
+    coreRelayerVaa: ParsedVaaWithBytes
+  ): {
+    vaas: {
+      sequence: string
+      emitter: string
+      bytes: string
+    }[]
+    deliveryVaaIdx: number
+  } {
+    const onlyVAALogs = rx.logs.filter(
+      (log) =>
+        log.address ===
+        this.pluginConfig.supportedChains.get(chainId)?.coreContract?.address
+    )
+    const vaas = onlyVAALogs.flatMap((bridgeLog: ethers.providers.Log) => {
+      const iface = Implementation__factory.createInterface()
+      const log = iface.parseLog(bridgeLog) as unknown as LogMessagePublishedEvent
+      // filter down to just synthetic batch
+      if (log.args.nonce !== coreRelayerVaa.nonce) {
+        return []
+      }
+      return [
+        {
+          sequence: log.args.sequence.toString(),
+          emitter: wh.tryNativeToHexString(log.args.sender, "ethereum"),
+          bytes: "",
+        },
+      ]
+    })
+    this.logger.debug(vaas)
+    const deliveryVaaIdx = vaas.findIndex(
+      (vaa) =>
+        vaa.emitter ===
+        wh.tryNativeToHexString(
+          wh.tryUint8ArrayToNative(coreRelayerVaa.emitterAddress, "ethereum"),
+          "ethereum"
+        )
+    )
+    if (deliveryVaaIdx === -1) {
+      throw new PluginError("CoreRelayerVaa not found in fetched vaas", {
+        vaas,
+      })
+    }
+    return { vaas, deliveryVaaIdx }
+  }
+
   async handleWorkflow(
+    workflow: Workflow<WorkflowPayload>,
+    _providers: Providers,
+    execute: ActionExecutor
+  ): Promise<void> {
+    const payload = this.parseWorkflowPayload(workflow)
+    switch (payload.payloadId) {
+      case RelayerPayloadId.Delivery:
+    }
+  }
+
+  async handleDeliveryWorkflow(
     workflow: Workflow<WorkflowPayload>,
     _providers: Providers,
     execute: ActionExecutor
   ): Promise<void> {
     this.logger.info("Got workflow")
     this.logger.info(JSON.stringify(workflow, undefined, 2))
-    this.logger.info(workflow.data.coreRelayerVaaIndex)
+    this.logger.info(workflow.data.coreRelayerDeliveryVaaIndex)
     this.logger.info(workflow.data.vaas)
     console.log("sanity console log")
 
@@ -508,11 +563,22 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
   parseWorkflowPayload(workflow: Workflow<WorkflowPayload>): WorkflowPayloadParsed {
     this.logger.info("Parse workflow")
+    const payloadId = workflow.data.payloadId
     const vaas = workflow.data.vaas.map((s) => Buffer.from(s, "base64"))
-    const coreRelayerVaa = parseVaaWithBytes(vaas[workflow.data.coreRelayerVaaIndex])
+    const coreRelayerRedeliveryVaa =
+      (workflow.data.coreRelayerRedeliveryVaa &&
+        parseVaaWithBytes(
+          Buffer.from(workflow.data.coreRelayerRedeliveryVaa, "base64")
+        )) ||
+      undefined
+    const coreRelayerVaa = parseVaaWithBytes(
+      vaas[workflow.data.coreRelayerDeliveryVaaIndex]
+    )
     return {
-      coreRelayerVaa,
-      coreRelayerVaaIndex: workflow.data.coreRelayerVaaIndex,
+      payloadId,
+      coreRelayerDeliveryVaa: coreRelayerVaa,
+      coreRelayerDeliveryVaaIndex: workflow.data.coreRelayerDeliveryVaaIndex,
+      coreRelayerRedeliveryVaa,
       vaas,
       deliveryInstructionsContainer: parseDeliveryInstructionsContainer(
         coreRelayerVaa.payload
@@ -539,115 +605,3 @@ class Definition implements PluginDefinition<GenericRelayerPluginConfig, Plugin>
 
 // todo: move to sdk
 export default new Definition()
-
-import { arrayify } from "ethers/lib/utils"
-import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
-
-export enum RelayerPayloadType {
-  Delivery = 1,
-  Redelivery = 2,
-  // DeliveryStatus = 3,
-}
-
-export interface DeliveryInstructionsContainer {
-  payloadId: number
-  sufficientlyFunded: boolean
-  instructions: DeliveryInstruction[]
-}
-
-export interface DeliveryInstruction {
-  targetChain: number
-  targetAddress: Buffer
-  refundAddress: Buffer
-  maximumRefundTarget: ethers.BigNumber
-  applicationBudgetTarget: ethers.BigNumber
-  executionParameters: ExecutionParameters
-}
-
-export interface ExecutionParameters {
-  version: number
-  gasLimit: number
-  providerDeliveryAddress: Buffer
-}
-
-export function parsePayloadType(
-  stringPayload: string | Buffer | Uint8Array
-): RelayerPayloadType {
-  const payload =
-    typeof stringPayload === "string" ? arrayify(stringPayload) : stringPayload
-  if (payload[0] == 0 || payload[0] >= 3) {
-    throw new Error("Unrecogned payload type " + payload[0])
-  }
-  return payload[0]
-}
-
-export function parseDeliveryInstructionsContainer(
-  bytes: Buffer
-): DeliveryInstructionsContainer {
-  dbg(bytes.length, "payload length")
-  let idx = 0
-  const payloadId = bytes.readUInt8(idx)
-  if (payloadId !== RelayerPayloadType.Delivery) {
-    throw new Error(
-      `Expected Delivery payload type (${RelayerPayloadType.Delivery}), found: ${payloadId}`
-    )
-  }
-  idx += 1
-
-  const sufficientlyFunded = Boolean(bytes.readUInt8(idx))
-  idx += 1
-  dbg(sufficientlyFunded)
-
-  const numInstructions = bytes.readUInt8(idx)
-  dbg(numInstructions)
-  idx += 1
-  let instructions = [] as DeliveryInstruction[]
-  for (let i = 0; i < numInstructions; ++i) {
-    const targetChain = bytes.readUInt16BE(idx)
-    dbg(targetChain)
-    idx += 2
-    const targetAddress = bytes.slice(idx, idx + 32)
-    dbg(targetAddress)
-    idx += 32
-    const refundAddress = bytes.slice(idx, idx + 32)
-    dbg(refundAddress)
-    idx += 32
-    const maximumRefundTarget = ethers.BigNumber.from(
-      Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
-    )
-    dbg(maximumRefundTarget)
-    idx += 32
-    const applicationBudgetTarget = ethers.BigNumber.from(
-      Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
-    )
-    dbg(applicationBudgetTarget)
-    idx += 32
-    const version = bytes.readUInt8(idx)
-    dbg(version)
-    idx += 1
-    const gasLimit = bytes.readUint32BE(idx)
-    dbg(gasLimit)
-    idx += 4
-    const providerDeliveryAddress = bytes.slice(idx, idx + 32)
-    dbg(providerDeliveryAddress)
-    idx += 32
-    const executionParameters = { version, gasLimit, providerDeliveryAddress }
-    instructions.push(
-      // dumb typechain format
-      {
-        targetChain,
-        targetAddress,
-        refundAddress,
-        maximumRefundTarget,
-        applicationBudgetTarget,
-        executionParameters,
-      }
-    )
-  }
-  console.log("here")
-  return {
-    payloadId,
-    sufficientlyFunded,
-    instructions,
-  }
-}

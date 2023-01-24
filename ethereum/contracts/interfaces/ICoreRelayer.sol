@@ -108,6 +108,9 @@ interface ICoreRelayer {
         uint16 targetChain;
         uint8 deliveryIndex;
         uint8 multisendIndex;
+        uint16 targetChain;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint256 newComputeBudget;
         uint256 newApplicationBudget;
         bytes newRelayParameters;
