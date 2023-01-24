@@ -37,6 +37,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.targetChain = encoded.toUint16(index);
         index += 2;
 
+        instruction.deliveryIndex = encoded.toUint8(index);
+        index += 2;
+
+        instruction.multisendIndex = encoded.toUint8(index);
+        index += 2;
+
         instruction.newMaximumRefundTarget = encoded.toUint256(index);
         index += 32;
 

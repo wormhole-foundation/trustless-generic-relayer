@@ -8,8 +8,6 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
-import "forge-std/console.sol";
-
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
@@ -41,14 +39,14 @@ contract CoreRelayer is CoreRelayerGovernance {
     error RolloverChainNotIncluded(); // Rollover chain was not included in the forwarding request
     error ChainNotFoundInDeliveryRequests(uint16 chainId); // Required chain not found in the delivery requests
     error ReentrantCall();
-    error InvalidEmitterInOriginalDeliveryVM();
+    error InvalidEmitterInOriginalDeliveryVM(uint8 index);
     error InvalidRedeliveryVM(string reason);
     error InvalidEmitterInRedeliveryVM();
     error MismatchingRelayProvidersInRedelivery(); // The same relay provider must be specified when doing a single VAA redeliver
     error ProviderAddressIsNotSender(); // msg.sender must be the provider
     error RedeliveryRequestDoesNotTargetThisChain();
     error OriginalDeliveryRequestDidNotTargetThisChain();
-    error InvalidVaa(uint256 deliveryIndex); // Invalid VAA at delivery index
+    error InvalidVaa(uint8 index);
     error InvalidEmitter();
     error DeliveryRequestNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
     error UnexpectedRelayer(); // Specified relayer is not the relayer delivering the message
@@ -541,21 +539,9 @@ contract CoreRelayer is CoreRelayerGovernance {
     function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
         //cache wormhole
         IWormhole wormhole = wormhole();
-
-        //validate the original delivery VM
-        (IWormhole.VM memory originalDeliveryVM, bool valid, string memory reason) =
-            wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[targetParams.deliveryIndex]);
-        if (!valid) {
-            revert InvalidVaa(targetParams.deliveryIndex);
-        }
-        if (!verifyRelayerVM(originalDeliveryVM)) {
-            // Original Delivery VM has a invalid emitter
-            revert InvalidEmitterInOriginalDeliveryVM();
-        }
-
+        
         //validate the redelivery VM
-        IWormhole.VM memory redeliveryVM;
-        (redeliveryVM, valid, reason) = wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
+        (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) = wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
         if (!valid) {
             revert InvalidRedeliveryVM(reason);
         }
@@ -564,10 +550,25 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert InvalidEmitterInRedeliveryVM();
         }
 
+        RedeliveryByTxHashInstruction memory redeliveryInstruction = decodeRedeliveryByTxHashInstruction(redeliveryVM.payload);
+
+        //validate the original delivery VM
+        IWormhole.VM memory originalDeliveryVM;
+        (originalDeliveryVM, valid, reason) =
+            wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[redeliveryInstruction.deliveryIndex]);
+        if (!valid) {
+            revert InvalidVaa(redeliveryInstruction.deliveryIndex);
+        }
+        if (!verifyRelayerVM(originalDeliveryVM)) {
+            // Original Delivery VM has a invalid emitter
+            revert InvalidEmitterInOriginalDeliveryVM(redeliveryInstruction.deliveryIndex);
+        }
+
+
         DeliveryInstruction memory instruction;
         (instruction, valid) = validateRedeliverySingle(
-            decodeRedeliveryByTxHashInstruction(redeliveryVM.payload),
-            decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[targetParams.multisendIndex]
+            redeliveryInstruction,
+            decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[redeliveryInstruction.multisendIndex]
         );
 
         if (!valid) {
@@ -868,7 +869,9 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint16(request.sourceChain),
             bytes32(request.sourceTxHash),
             uint32(request.sourceNonce),
-            uint16(request.targetChain)
+            uint16(request.targetChain),
+            uint8(request.deliveryIndex),
+            uint8(request.multisendIndex)
         );
         encoded = abi.encodePacked(
             encoded,

@@ -107,6 +107,8 @@ interface ICoreRelayer {
         uint16 sourceChain;
         bytes32 sourceTxHash;
         uint32 sourceNonce;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint16 targetChain;
         uint256 newComputeBudget;
         uint256 newApplicationBudget;
@@ -170,6 +172,8 @@ interface ICoreRelayer {
         uint8 payloadId; //2
         uint16 sourceChain;
         bytes32 sourceTxHash;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint32 sourceNonce;
         uint16 targetChain;
         uint256 newMaximumRefundTarget;
