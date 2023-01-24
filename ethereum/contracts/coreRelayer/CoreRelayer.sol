@@ -789,8 +789,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             gasAmount = 0;
         } else {
             uint256 gas = (computeBudget - deliveryOverhead) / provider.quoteGasPrice(targetChain);
-            if (gas >= 2 ** 32) {
-                gasAmount = uint32(2 ** 32 - 1);
+            if (gas > type(uint32).max) {
+                gasAmount = type(uint32).max;
             } else {
                 gasAmount = uint32(gas);
             }

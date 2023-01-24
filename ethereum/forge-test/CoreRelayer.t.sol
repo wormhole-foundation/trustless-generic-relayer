@@ -592,6 +592,8 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
+        vm.deal(address(this), payment + newApplicationBudgetFee - 1);
+
         setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee - 1}(
             redeliveryRequest, 1, setup.source.relayProvider
         );
