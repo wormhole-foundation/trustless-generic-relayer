@@ -8,7 +8,6 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
-
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
