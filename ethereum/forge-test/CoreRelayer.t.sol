@@ -1088,17 +1088,14 @@ contract TestCoreRelayer is Test {
             ICoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
-            console.log("hi0");
             uint256 budget = instruction.newMaximumRefundTarget + instruction.newApplicationBudgetTarget
                 + map[targetChain].wormhole.messageFee();
-            console.log("hi1");
             ICoreRelayer.TargetRedeliveryByTxHashParamsSingle memory package = ICoreRelayer
                 .TargetRedeliveryByTxHashParamsSingle({
                 redeliveryVM: encodedVM,
                 sourceEncodedVMs: originalDelivery.encodedVMs,
                 relayerRefundAddress: payable(map[targetChain].relayer)
             });
-            console.log("hi2");
             vm.prank(map[targetChain].relayer);
             map[targetChain].coreRelayer.redeliverSingle{value: budget}(package);
         }

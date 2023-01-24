@@ -8,7 +8,6 @@ import "../libraries/external/BytesLib.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
-import "forge-std/console.sol";
 
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
