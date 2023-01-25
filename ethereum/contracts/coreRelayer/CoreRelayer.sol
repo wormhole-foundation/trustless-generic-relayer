@@ -68,7 +68,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return requestMultidelivery(container, nonce);
     }
 
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider)
+    function requestForward(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider)
         public
         payable
     {
@@ -76,7 +76,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         requests[0] = request;
         DeliveryRequestsContainer memory container =
             DeliveryRequestsContainer({payloadId: 1, relayProviderAddress: address(provider), requests: requests});
-        return requestMultiforward(container, rolloverChain, nonce);
+        return requestMultiforward(container, request.targetChain, nonce);
     }
 
     //REVISE consider adding requestMultiRedeliveryByTxHash
