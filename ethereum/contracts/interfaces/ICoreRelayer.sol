@@ -14,9 +14,7 @@ interface ICoreRelayer {
         payable
         returns (uint64 sequence);
 
-    function requestForward(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider)
-        external
-        payable;
+    function requestForward(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider) external payable;
 
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider)
         external

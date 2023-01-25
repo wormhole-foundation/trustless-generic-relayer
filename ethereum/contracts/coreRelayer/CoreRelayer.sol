@@ -68,10 +68,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return requestMultidelivery(container, nonce);
     }
 
-    function requestForward(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider)
-        public
-        payable
-    {
+    function requestForward(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider) public payable {
         DeliveryRequest[] memory requests = new DeliveryRequest[](1);
         requests[0] = request;
         DeliveryRequestsContainer memory container =
