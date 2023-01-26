@@ -312,8 +312,8 @@ contract CoreRelayer is CoreRelayerGovernance {
 
             (
                 uint256 requestFee,
-                uint256 applicationBudgetTarget,
                 uint256 maximumRefund,
+                uint256 applicationBudgetTarget,
                 bool isSufficient,
                 string memory reason
             ) = verifyFunding(
@@ -354,8 +354,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (
             uint256 requestFee,
-            uint256 applicationBudgetTarget,
             uint256 maximumRefund,
+            uint256 applicationBudgetTarget,
             bool isSufficient,
             string memory reason
         )
@@ -367,7 +367,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             ? args.provider.quoteDeliveryOverhead(args.targetChain)
             : args.provider.quoteRedeliveryOverhead(args.targetChain);
         uint256 overheadBudgetTarget =
-            quoteAssetConversion(args.sourceChain, overheadFeeSource, args.targetChain, args.provider);
+            assetConversionHelper(args.sourceChain, overheadFeeSource, args.targetChain, 1, 1, true, args.provider);
         maximumRefund = args.isDelivery
             ? calculateTargetDeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider)
             : calculateTargetRedeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider);
@@ -406,7 +406,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert ReentrantCall();
         }
         setContractLock(true);
-
         // store gas budget pre target invocation to calculate unused gas budget
         uint256 preGas = gasleft();
 
@@ -637,7 +636,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         ) {
             revert InsufficientRelayerFunds();
         }
-
         //Overwrite compute budget and application budget on the original request and proceed.
         originalInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
         originalInstruction.applicationBudgetTarget = redeliveryInstruction.newApplicationBudgetTarget;
@@ -740,16 +738,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint32 gasAmount)
     {
-        IWormhole wormhole = wormhole();
-        if (computeBudget <= provider.quoteDeliveryOverhead(targetChain)) {
-            return 0;
-        } else {
-            uint256 remainder = computeBudget - provider.quoteDeliveryOverhead(targetChain);
-            uint256 gas = remainder / provider.quoteGasPrice(targetChain);
-
-            if (gas >= 2 ** 32) return uint32(2 ** 32 - 1);
-            return uint32(gas);
-        }
+        gasAmount = calculateTargetGasDeliveryAmountHelper(
+            targetChain, computeBudget, provider.quoteDeliveryOverhead(targetChain), provider
+        );
     }
 
     function calculateTargetDeliveryMaximumRefund(uint16 targetChain, uint256 computeBudget, IRelayProvider provider)
@@ -757,13 +748,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 maximumRefund)
     {
-        uint256 deliveryOverhead = provider.quoteDeliveryOverhead(targetChain);
-        if (computeBudget >= deliveryOverhead) {
-            uint256 remainder = computeBudget - deliveryOverhead;
-            maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
-        } else {
-            maximumRefund = 0;
-        }
+        maximumRefund = calculateTargetDeliveryMaximumRefundHelper(
+            targetChain, computeBudget, provider.quoteDeliveryOverhead(targetChain), provider
+        );
     }
 
     /**
@@ -775,16 +762,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint32 gasAmount)
     {
-        IWormhole wormhole = wormhole();
-        if (computeBudget <= wormhole.messageFee() + provider.quoteRedeliveryOverhead(targetChain)) {
-            return 0;
-        } else {
-            uint256 remainder = computeBudget - wormhole.messageFee() - provider.quoteRedeliveryOverhead(targetChain);
-            uint256 gas = remainder / provider.quoteGasPrice(targetChain);
-
-            if (gas >= 2 ** 32) return uint32(2 ** 32 - 1);
-            return uint32(gas);
-        }
+        gasAmount = calculateTargetGasDeliveryAmountHelper(
+            targetChain, computeBudget, provider.quoteRedeliveryOverhead(targetChain), provider
+        );
     }
 
     function calculateTargetRedeliveryMaximumRefund(uint16 targetChain, uint256 computeBudget, IRelayProvider provider)
@@ -792,8 +772,41 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 maximumRefund)
     {
-        uint256 remainder = computeBudget - provider.quoteRedeliveryOverhead(targetChain);
-        maximumRefund = quoteAssetConversion(chainId(), remainder, targetChain, provider);
+        maximumRefund = calculateTargetDeliveryMaximumRefundHelper(
+            targetChain, computeBudget, provider.quoteRedeliveryOverhead(targetChain), provider
+        );
+    }
+
+    function calculateTargetGasDeliveryAmountHelper(
+        uint16 targetChain,
+        uint256 computeBudget,
+        uint256 deliveryOverhead,
+        IRelayProvider provider
+    ) internal view returns (uint32 gasAmount) {
+        if (computeBudget <= deliveryOverhead) {
+            gasAmount = 0;
+        } else {
+            uint256 gas = (computeBudget - deliveryOverhead) / provider.quoteGasPrice(targetChain);
+            if (gas > type(uint32).max) {
+                gasAmount = type(uint32).max;
+            } else {
+                gasAmount = uint32(gas);
+            }
+        }
+    }
+
+    function calculateTargetDeliveryMaximumRefundHelper(
+        uint16 targetChain,
+        uint256 computeBudget,
+        uint256 deliveryOverhead,
+        IRelayProvider provider
+    ) internal view returns (uint256 maximumRefund) {
+        if (computeBudget >= deliveryOverhead) {
+            uint256 remainder = computeBudget - deliveryOverhead;
+            maximumRefund = assetConversionHelper(chainId(), remainder, targetChain, 1, 1, false, provider);
+        } else {
+            maximumRefund = 0;
+        }
     }
 
     function quoteGasDeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider provider)
@@ -801,7 +814,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 deliveryQuote)
     {
-        return provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain))
+        deliveryQuote = provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain))
             + wormhole().messageFee();
     }
 
@@ -810,16 +823,19 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 redeliveryQuote)
     {
-        return provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain))
-            + wormhole().messageFee();
+        redeliveryQuote = provider.quoteRedeliveryOverhead(targetChain)
+            + (gasLimit * provider.quoteGasPrice(targetChain)) + wormhole().messageFee();
     }
 
-    //This is used internally to calculate the exchange rate for the provider without deducting the buffer amount
-    function quoteAssetConversion(uint16 sourceChain, uint256 sourceAmount, uint16 targetChain, IRelayProvider provider)
-        internal
-        view
-        returns (uint256 targetAmount)
-    {
+    function assetConversionHelper(
+        uint16 sourceChain,
+        uint256 sourceAmount,
+        uint16 targetChain,
+        uint256 multiplier,
+        uint256 multiplierDenominator,
+        bool roundUp,
+        IRelayProvider provider
+    ) internal view returns (uint256 targetAmount) {
         uint256 srcNativeCurrencyPrice = provider.quoteAssetPrice(sourceChain);
         if (srcNativeCurrencyPrice == 0) {
             revert SrcNativeCurrencyPriceIsZero();
@@ -830,7 +846,14 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert DstNativeCurrencyPriceIsZero();
         }
 
-        return sourceAmount * srcNativeCurrencyPrice / dstNativeCurrencyPrice;
+        uint256 numerator = sourceAmount * srcNativeCurrencyPrice * multiplier;
+        uint256 denominator = dstNativeCurrencyPrice * multiplierDenominator;
+
+        if (roundUp) {
+            targetAmount = (numerator + denominator - 1) / denominator;
+        } else {
+            targetAmount = numerator / denominator;
+        }
     }
 
     //If the integrator pays at least nativeQuote, they should receive at least targetAmount as their application budget
@@ -839,9 +862,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 nativeQuote)
     {
-        uint256 sourceAmount = quoteAssetConversion(targetChain, targetAmount, chainId(), provider);
         (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
-        nativeQuote = (sourceAmount * (denominator + buffer) + denominator - 1) / denominator;
+        nativeQuote = assetConversionHelper(
+            targetChain, targetAmount, chainId(), uint256(0) + denominator + buffer, denominator, true, provider
+        );
     }
 
     //This should invert quoteApplicationBudgetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
@@ -851,9 +875,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 targetAmount)
     {
-        uint256 amount = quoteAssetConversion(chainId(), sourceAmount, targetChain, provider);
         (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
-        targetAmount = amount * denominator / (denominator + buffer);
+
+        targetAmount = assetConversionHelper(
+            chainId(), sourceAmount, targetChain, denominator, uint256(0) + denominator + buffer, false, provider
+        );
     }
 
     function convertToEncodedRedeliveryByTxHashInstruction(
@@ -910,7 +936,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         newEncoded = abi.encodePacked(
             newEncoded,
             calculateTargetDeliveryMaximumRefund(request.targetChain, request.computeBudget, provider),
-            quoteAssetConversion(chainId(), request.applicationBudget, request.targetChain, provider)
+            convertApplicationBudgetAmount(request.applicationBudget, request.targetChain, provider)
         );
         newEncoded = abi.encodePacked(
             newEncoded,
