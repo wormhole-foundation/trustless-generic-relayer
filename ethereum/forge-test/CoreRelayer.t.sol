@@ -316,7 +316,7 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
         );
 
-        setup.source.integration.sendMessage{value: computeBudget + 2*setup.source.wormhole.messageFee()}(
+        setup.source.integration.sendMessage{value: computeBudget + 2 * setup.source.wormhole.messageFee()}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -340,7 +340,7 @@ contract TestCoreRelayer is Test {
         );
         uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-        ) + 2*setup.source.wormhole.messageFee() + applicationBudgetSource;
+        ) + 2 * setup.source.wormhole.messageFee() + applicationBudgetSource;
 
         setup.source.integration.sendMessageGeneral{value: payment}(
             abi.encodePacked(uint8(0), message),
@@ -403,7 +403,7 @@ contract TestCoreRelayer is Test {
 
         uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, 21000, setup.source.relayProvider
-        ) + 2*setup.source.wormhole.messageFee() + applicationBudgetSource;
+        ) + 2 * setup.source.wormhole.messageFee() + applicationBudgetSource;
 
         setup.source.integration.sendMessageGeneral{value: payment}(
             abi.encodePacked(uint8(0), message),
@@ -441,7 +441,7 @@ contract TestCoreRelayer is Test {
         // estimate the cost based on the intialized values
         uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-        ) + 2*setup.source.wormhole.messageFee();
+        ) + 2 * setup.source.wormhole.messageFee();
 
         uint256 payment2 = setup.target.coreRelayer.quoteGasDeliveryFee(
             setup.sourceChainId, 500000, setup.target.relayProvider
@@ -470,10 +470,10 @@ contract TestCoreRelayer is Test {
         // estimate the cost based on the intialized values
         uint256 payment = setup.source.coreRelayer.quoteGasRedeliveryFee(
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-        ) + setup.source.wormhole.messageFee()*2;
+        ) + setup.source.wormhole.messageFee() * 2;
         uint256 paymentNotEnough = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, 10, setup.source.relayProvider
-        ) + setup.source.wormhole.messageFee()*2;
+        ) + setup.source.wormhole.messageFee() * 2;
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
@@ -528,7 +528,7 @@ contract TestCoreRelayer is Test {
         ) + setup.source.wormhole.messageFee();
         uint256 paymentNotEnough = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, 10, setup.source.relayProvider
-        ) + setup.source.wormhole.messageFee()*2;
+        ) + setup.source.wormhole.messageFee() * 2;
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
@@ -605,7 +605,7 @@ contract TestCoreRelayer is Test {
         // estimate the cost based on the intialized values
         uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-        ) + 2*setup.source.wormhole.messageFee();
+        ) + 2 * setup.source.wormhole.messageFee();
 
         // start listening to events
         vm.recordLogs();
@@ -643,7 +643,7 @@ contract TestCoreRelayer is Test {
         );
 
         vm.expectRevert(abi.encodeWithSignature("NonceIsZero()"));
-        setup.source.integration.sendMessageGeneral{value: computeBudget + 2*wormholeFee}(
+        setup.source.integration.sendMessageGeneral{value: computeBudget + 2 * wormholeFee}(
             abi.encodePacked(uint8(0), message),
             setup.targetChainId,
             address(setup.target.integration),
@@ -698,7 +698,7 @@ contract TestCoreRelayer is Test {
 
         setup.source.integration.sendMessage{
             value: setup.source.coreRelayer.quoteGasDeliveryFee(setup.targetChainId, 21000, setup.source.relayProvider)
-                + 2*setup.source.wormhole.messageFee()
+                + 2 * setup.source.wormhole.messageFee()
         }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
         genericRelayer(setup.sourceChainId, 2);
@@ -953,8 +953,9 @@ contract TestCoreRelayer is Test {
             uint256(1) * feeParams.targetNativePrice * gasParams.targetGasPrice
                 < uint256(1) * feeParams.sourceNativePrice * gasParams.sourceGasPrice
         ) {
-            stack.paymentNotEnough =
-                setup.source.coreRelayer.quoteGasDeliveryFee(setup.targetChainId, 600000, setup.source.relayProvider) + setup.source.wormhole.messageFee();
+            stack.paymentNotEnough = setup.source.coreRelayer.quoteGasDeliveryFee(
+                setup.targetChainId, 600000, setup.source.relayProvider
+            ) + setup.source.wormhole.messageFee();
 
             setup.source.integration.sendMessageWithForwardedResponse{
                 value: stack.paymentNotEnough + setup.source.wormhole.messageFee()
@@ -994,7 +995,7 @@ contract TestCoreRelayer is Test {
 
         stack.payment = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-        )  + setup.source.wormhole.messageFee();
+        ) + setup.source.wormhole.messageFee();
 
         setup.source.wormhole.publishMessage{value: setup.source.wormhole.messageFee()}(
             1, abi.encodePacked(uint8(0), bytes("hi!")), 200

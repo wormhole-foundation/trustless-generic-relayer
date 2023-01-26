@@ -820,8 +820,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 redeliveryQuote)
     {
-        redeliveryQuote = provider.quoteRedeliveryOverhead(targetChain)
-            + (gasLimit * provider.quoteGasPrice(targetChain));
+        redeliveryQuote =
+            provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
     }
 
     function assetConversionHelper(
