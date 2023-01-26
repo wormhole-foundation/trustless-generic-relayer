@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from "ethers"
+import { BigNumber, ethers} from "ethers"
 import { arrayify } from "ethers/lib/utils"
 
 export enum RelayerPayloadId {
@@ -34,8 +34,6 @@ export interface RedeliveryByTxHashInstruction {
   sourceTxHash: Buffer
   sourceNonce: BigNumber
   targetChain: number
-  deliveryIndex: number
-  multisendIndex: number
   newMaximumRefundTarget: BigNumber
   newApplicationBudgetTarget: BigNumber
   executionParameters: ExecutionParameters
@@ -125,23 +123,13 @@ export function parseRedeliveryByTxHashInstruction(
 
   const sourceNonce = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
-
   const targetChain = bytes.readUInt16BE(idx)
   idx += 2
-
-  const deliveryIndex = bytes.readUint8(idx)
-  idx += 1
-
-  const multisendIndex = bytes.readUint8(idx)
-  idx += 1
-
   // note: confirmed that BigNumber.from(<Buffer>) assumes big endian
   const newMaximumRefundTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
-
   const newApplicationBudgetTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
-
   const executionParameters = parseExecutionParameters(bytes, idx)
   return {
     payloadId,
@@ -149,8 +137,6 @@ export function parseRedeliveryByTxHashInstruction(
     sourceTxHash,
     sourceNonce,
     targetChain,
-    deliveryIndex,
-    multisendIndex,
     newMaximumRefundTarget,
     newApplicationBudgetTarget,
     executionParameters,

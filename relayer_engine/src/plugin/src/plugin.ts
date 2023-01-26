@@ -280,6 +280,9 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       ).toString("base64")}`
     )
     const payloadId = parsePayloadType(coreRelayerVaa.payload)
+    if (payloadId !== RelayerPayloadId.Delivery) {
+      // todo: support redelivery
+    }
     switch (payloadId) {
       case RelayerPayloadId.Delivery:
         return this.consumeDeliveryEvent(coreRelayerVaa, db)
@@ -556,7 +559,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             encodedVMs: payload.vaas,
             deliveryIndex: payload.deliveryVaaIndex,
             multisendIndex: i,
-            relayerRefundAddress: wallet.address,
+            relayerRefundAddress: relayProvider.address,
           }
 
           if (!(await relayProvider.approvedSender(wallet.address))) {
@@ -606,8 +609,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         const budget = newApplicationBudgetTarget.add(newMaximumRefundTarget).add(100)
         const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
           sourceEncodedVMs: payload.vaas,
-          redeliveryVM: redelivery.vaa.bytes,
-          relayerRefundAddress: wallet.address,
+          deliveryIndex: payload.deliveryVaaIndex,
+          multisendIndex: redelivery.ix.mul,
         }
 
         relayProvider
