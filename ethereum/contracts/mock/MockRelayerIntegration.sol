@@ -112,7 +112,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
                     relayParameters: relayer.getDefaultRelayParams()
                 });
 
-                relayer.requestForward(request, parsed.emitterChainId, parsed.nonce, relayer.getDefaultRelayProvider());
+                relayer.requestForward(request, parsed.nonce, relayer.getDefaultRelayProvider());
             }
 
             unchecked {

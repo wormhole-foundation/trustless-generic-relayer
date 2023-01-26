@@ -40,8 +40,6 @@ abstract contract CoreRelayerStructs {
     struct TargetRedeliveryByTxHashParamsSingle {
         bytes redeliveryVM;
         bytes[] sourceEncodedVMs;
-        uint8 deliveryIndex;
-        uint8 multisendIndex;
         address payable relayerRefundAddress;
     }
 
@@ -59,6 +57,8 @@ abstract contract CoreRelayerStructs {
         bytes32 sourceTxHash;
         uint32 sourceNonce;
         uint16 targetChain;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint256 newComputeBudget;
         uint256 newApplicationBudget;
         bytes newRelayParameters;
@@ -99,6 +99,8 @@ abstract contract CoreRelayerStructs {
         bytes32 sourceTxHash;
         uint32 sourceNonce;
         uint16 targetChain;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
         uint256 newApplicationBudgetTarget;
         ExecutionParameters executionParameters;

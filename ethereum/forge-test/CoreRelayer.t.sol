@@ -510,6 +510,8 @@ contract TestCoreRelayer is Test {
             sourceTxHash: deliveryVaaHash,
             sourceNonce: 1,
             targetChain: setup.targetChainId,
+            deliveryIndex: uint8(1),
+            multisendIndex: uint8(0),
             newComputeBudget: payment - setup.source.wormhole.messageFee(),
             newApplicationBudget: newApplicationBudgetFee,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
@@ -565,6 +567,8 @@ contract TestCoreRelayer is Test {
             sourceTxHash: deliveryVaaHash,
             sourceNonce: 1,
             targetChain: setup.targetChainId,
+            deliveryIndex: 1,
+            multisendIndex: 0,
             newComputeBudget: payment - setup.source.wormhole.messageFee(),
             newApplicationBudget: newApplicationBudgetFee,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
@@ -587,6 +591,8 @@ contract TestCoreRelayer is Test {
             sourceTxHash: deliveryVaaHash,
             sourceNonce: 1,
             targetChain: setup.targetChainId,
+            deliveryIndex: 1,
+            multisendIndex: 0,
             newComputeBudget: payment - setup.source.wormhole.messageFee(),
             newApplicationBudget: newApplicationBudgetFee - 1,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
@@ -730,6 +736,8 @@ contract TestCoreRelayer is Test {
             sourceTxHash: stack.deliveryVaaHash,
             sourceNonce: 1,
             targetChain: setup.targetChainId,
+            deliveryIndex: 1,
+            multisendIndex: 0,
             newComputeBudget: stack.payment - setup.source.wormhole.messageFee(),
             newApplicationBudget: 0,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
@@ -750,7 +758,7 @@ contract TestCoreRelayer is Test {
             stack.entries[0], setup.sourceChainId, address(setup.source.coreRelayer)
         );
 
-        stack.originalDelivery = pastDeliveries[stack.deliveryVaaHash];
+        stack.originalDelivery = pastDeliveries[keccak256(abi.encodePacked(stack.deliveryVaaHash, uint8(0)))];
 
         bytes memory fakeVM = abi.encodePacked(stack.originalDelivery.encodedVMs[1]);
         bytes memory correctVM = abi.encodePacked(stack.originalDelivery.encodedVMs[1]);
@@ -760,8 +768,6 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: stack.redeliveryVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
@@ -772,7 +778,7 @@ contract TestCoreRelayer is Test {
             + setup.target.wormhole.messageFee();
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint256)", 1));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 1));
         setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[1] = stack.originalDelivery.encodedVMs[0];
@@ -780,13 +786,11 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: stack.redeliveryVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidEmitterInOriginalDeliveryVM()"));
+        vm.expectRevert(abi.encodeWithSignature("InvalidEmitterInOriginalDeliveryVM(uint8)", 1));
         setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[1] = correctVM;
@@ -794,8 +798,6 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: stack.redeliveryVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
@@ -806,8 +808,6 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: fakeVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
@@ -821,8 +821,6 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: fakeVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
@@ -846,8 +844,6 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: fakeVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
@@ -914,8 +910,6 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: correctVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
@@ -1050,7 +1044,7 @@ contract TestCoreRelayer is Test {
             + setup.target.wormhole.messageFee();
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint256)", 1));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 1));
         setup.target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
 
         stack.encodedVMs[1] = stack.encodedVMs[0];
@@ -1253,26 +1247,22 @@ contract TestCoreRelayer is Test {
                 uint256 wormholeFee = map[targetChain].wormhole.messageFee();
                 vm.prank(map[targetChain].relayer);
                 map[targetChain].coreRelayer.deliverSingle{value: (budget + wormholeFee)}(package);
-                pastDeliveries[parsed.hash] = package;
+                pastDeliveries[keccak256(abi.encodePacked(parsed.hash, k))] = package;
             }
         } else if (payloadId == 2) {
             ICoreRelayer.RedeliveryByTxHashInstruction memory instruction =
                 contracts.coreRelayer.getRedeliveryByTxHashInstruction(parsed.payload);
             ICoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
-                pastDeliveries[instruction.sourceTxHash];
+                pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
             uint256 budget = instruction.newMaximumRefundTarget + instruction.newApplicationBudgetTarget
                 + map[targetChain].wormhole.messageFee();
-
             ICoreRelayer.TargetRedeliveryByTxHashParamsSingle memory package = ICoreRelayer
                 .TargetRedeliveryByTxHashParamsSingle({
                 redeliveryVM: encodedVM,
                 sourceEncodedVMs: originalDelivery.encodedVMs,
-                deliveryIndex: originalDelivery.deliveryIndex,
-                multisendIndex: originalDelivery.multisendIndex,
                 relayerRefundAddress: payable(map[targetChain].relayer)
             });
-
             vm.prank(map[targetChain].relayer);
             map[targetChain].coreRelayer.redeliverSingle{value: budget}(package);
         }

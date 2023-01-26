@@ -14,9 +14,7 @@ interface ICoreRelayer {
         payable
         returns (uint64 sequence);
 
-    function requestForward(DeliveryRequest memory request, uint16 rolloverChain, uint32 nonce, IRelayProvider provider)
-        external
-        payable;
+    function requestForward(DeliveryRequest memory request, uint32 nonce, IRelayProvider provider) external payable;
 
     function requestRedelivery(RedeliveryByTxHashRequest memory request, uint32 nonce, IRelayProvider provider)
         external
@@ -108,6 +106,8 @@ interface ICoreRelayer {
         bytes32 sourceTxHash;
         uint32 sourceNonce;
         uint16 targetChain;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint256 newComputeBudget;
         uint256 newApplicationBudget;
         bytes newRelayParameters;
@@ -142,8 +142,6 @@ interface ICoreRelayer {
     struct TargetRedeliveryByTxHashParamsSingle {
         bytes redeliveryVM;
         bytes[] sourceEncodedVMs;
-        uint8 deliveryIndex;
-        uint8 multisendIndex;
         address payable relayerRefundAddress;
     }
 
@@ -172,6 +170,8 @@ interface ICoreRelayer {
         bytes32 sourceTxHash;
         uint32 sourceNonce;
         uint16 targetChain;
+        uint8 deliveryIndex;
+        uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
         uint256 newApplicationBudgetTarget;
         ExecutionParameters executionParameters;
