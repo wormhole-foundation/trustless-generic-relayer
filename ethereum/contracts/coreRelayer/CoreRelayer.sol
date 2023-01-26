@@ -814,8 +814,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 deliveryQuote)
     {
-        deliveryQuote = provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain))
-            + wormhole().messageFee();
+        deliveryQuote = provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
     }
 
     function quoteGasRedeliveryFee(uint16 targetChain, uint32 gasLimit, IRelayProvider provider)
@@ -823,8 +822,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (uint256 redeliveryQuote)
     {
-        redeliveryQuote = provider.quoteRedeliveryOverhead(targetChain)
-            + (gasLimit * provider.quoteGasPrice(targetChain)) + wormhole().messageFee();
+        redeliveryQuote =
+            provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
     }
 
     function assetConversionHelper(
