@@ -529,12 +529,6 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     this.logger.info(workflow.data.deliveryVaaIndex)
     this.logger.info(workflow.data.vaas)
     const payload = this.parseWorkflowPayload(workflow)
-    switch (payload.payloadId) {
-      case RelayerPayloadId.Delivery:
-        return await this.handleDeliveryWorkflow(payload, execute)
-      case RelayerPayloadId.Redelivery:
-        return await this.handleRedeliveryWorkflow(payload, execute)
-    }
   }
 
   async handleDeliveryWorkflow(
@@ -545,7 +539,9 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       const ix = payload.deliveryInstructionsContainer.instructions[i]
       const chainId = assertEvmChainId(ix.targetChain)
       const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget).add(100)
+      
 
+      const chainId = ix.targetChain as wh.EVMChainId
       // todo: consider parallelizing this
       await execute.onEVM({
         chainId,
@@ -557,9 +553,9 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
           const input: CoreRelayerStructs.TargetDeliveryParametersSingleStruct = {
             encodedVMs: payload.vaas,
-            deliveryIndex: payload.deliveryVaaIndex,
+            deliveryIndex: payload.coreRelayerVaaIndex,
             multisendIndex: i,
-            relayerRefundAddress: relayProvider.address,
+            relayerRefundAddress: relayProvider.address
           }
 
           if (!(await relayProvider.approvedSender(wallet.address))) {
@@ -607,15 +603,16 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
         const { newApplicationBudgetTarget, newMaximumRefundTarget } = redelivery.ix
         const budget = newApplicationBudgetTarget.add(newMaximumRefundTarget).add(100)
-        const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
-          sourceEncodedVMs: payload.vaas,
-          deliveryIndex: payload.deliveryVaaIndex,
-          multisendIndex: redelivery.ix.mul,
-        }
+      const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
+        sourceEncodedVMs: payload.vaas,
+        deliveryIndex: payload.deliveryVaaIndex,
+        multisendIndex: redelivery.ix.mul
+      }
 
-        relayProvider
-          .redeliverSingle(input, { value: budget, gasLimit: 3000000 })
-          .then((x) => x.wait())
+          relayProvider
+            .redeliverSingle(input, { value: budget, gasLimit: 3000000 })
+            .then((x) => x.wait())
+
 
         this.logger.info(`Redelivered instruction to chain ${chainId}`)
       },
