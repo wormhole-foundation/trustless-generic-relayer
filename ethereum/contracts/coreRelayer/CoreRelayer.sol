@@ -639,10 +639,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         originalInstruction.applicationBudgetTarget = redeliveryInstruction.newApplicationBudgetTarget;
         originalInstruction.executionParameters = redeliveryInstruction.executionParameters;
         deliveryInstruction = originalInstruction;
-        require(
-            deliveryInstruction.applicationBudgetTarget == redeliveryInstruction.newApplicationBudgetTarget,
-            "Hhaha you were right about the error"
-        );
     }
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) public payable {
