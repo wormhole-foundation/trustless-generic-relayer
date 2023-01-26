@@ -95,7 +95,6 @@ contract MockRelayerIntegration is IWormholeReceiver {
             bool forward = (parsed.payload.toUint8(0) == 1);
             verifiedPayloads[parsed.hash] = parsed.payload.slice(1, parsed.payload.length - 1);
             message = parsed.payload.slice(1, parsed.payload.length - 1);
-
             if (forward) {
                 wormhole.publishMessage{value: wormhole.messageFee()}(
                     parsed.nonce, abi.encodePacked(uint8(0), bytes("received!")), 200
