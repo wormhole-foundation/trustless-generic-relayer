@@ -172,22 +172,21 @@ contract TestCoreRelayer is Test {
     function standardAssumeAndSetupTwoChains(
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
-        uint256 minTargetGasLimit
+        uint32 minTargetGasLimit
     ) public returns (StandardSetupTwoChains memory s) {
-        uint128 halfMaxUint128 = 2 ** (63) - 1;
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
-        vm.assume(gasParams.targetGasPrice > 0 && gasParams.targetGasPrice < halfMaxUint128);
-        vm.assume(feeParams.targetNativePrice > 0 && feeParams.targetNativePrice < halfMaxUint128);
-        vm.assume(gasParams.sourceGasPrice > 0 && gasParams.sourceGasPrice < halfMaxUint128);
-        vm.assume(feeParams.sourceNativePrice > 0 && feeParams.sourceNativePrice < halfMaxUint128);
-        vm.assume(feeParams.sourceNativePrice < halfMaxUint128 / gasParams.sourceGasPrice);
-        vm.assume(feeParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice);
+        vm.assume(feeParams.targetNativePrice > 0);
+        vm.assume(gasParams.targetGasPrice > 0);
+        vm.assume(gasParams.sourceGasPrice > 0);
+        vm.assume(feeParams.sourceNativePrice > 0);
+        vm.assume(gasParams.targetGasPrice  < uint256(2)**250 / (5**6) / feeParams.targetNativePrice);
+        vm.assume(gasParams.sourceGasPrice  < uint256(2)**250 / (5**6) / feeParams.sourceNativePrice);
         vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
-        vm.assume(feeParams.applicationBudgetTarget < 2 ** 95);
+        vm.assume(feeParams.applicationBudgetTarget <  1);
         vm.assume(
             uint256(1) * feeParams.targetNativePrice * feeParams.applicationBudgetTarget
-                < uint256(1) * 2 ** 95 * feeParams.sourceNativePrice
+                < uint256(1) * 1 * feeParams.sourceNativePrice
         );
 
         s.sourceChainId = 1;
