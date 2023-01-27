@@ -62,6 +62,12 @@ spec:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_14
               optional: false 
+        - name: PRIVATE_KEYS_CHAIN_16
+          valueFrom:
+            secretKeyRef:
+              name: private-keys
+              key: PRIVATE_KEYS_CHAIN_16
+              optional: false 
       volumes:
         - name: relayer-contracts
           configMap:
