@@ -10,14 +10,14 @@
       "wormholeAddress": "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C"
     },
     {
-      "description": "Celo",
+      "description": "Celo Testnet",
       "evmNetworkId": 44787,
       "chainId": 14,
       "rpc": "https://alfajores-forno.celo-testnet.org",
       "wormholeAddress": "0x88505117CA88e7dd2eC6EA1E13f0948db2D50D56"
     },
     {
-      "description": "BSC",
+      "description": "BSC Testnet",
       "evmNetworkId": 97,
       "chainId": 4,
       "rpc": "https://bsc-testnet.public.blastapi.io",
@@ -29,6 +29,13 @@
       "chainId": 5,
       "rpc": "https://matic-mumbai.chainstacklabs.com",
       "wormholeAddress": "0x0CBE91CF822c73C2315FB05100C2F714765d5c20"
+    },
+    {
+      "description": "Moonbase Alpha",
+      "evmNetworkId": 1287,
+      "chainId": 16,
+      "rpc": "https://rpc.testnet.moonbeam.network",
+      "wormholeAddress": "0xa5B7D85a8f27dd7907dc8FdC21FA5657D5E2F901"
     }
   ]
 }
