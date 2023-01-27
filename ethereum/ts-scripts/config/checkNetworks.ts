@@ -4,7 +4,6 @@ const processName = "checkNetworks"
 
 init()
 const chains = loadChains()
-const privateKey = loadPrivateKey()
 
 async function main() {
   console.log(`Env: ${env}`)
