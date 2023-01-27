@@ -47,7 +47,7 @@ async function run() {
   const mockIntegration = getMockIntegration(sourceChain)
   const targetAddress = getMockIntegrationAddress(targetChain)
 
-  const tx = await mockIntegration.sendMessageWithForwardedResponse(
+  const tx = await mockIntegration.sendMessage(
     Buffer.from("Hello World"),
     targetChain.chainId,
     targetAddress,
