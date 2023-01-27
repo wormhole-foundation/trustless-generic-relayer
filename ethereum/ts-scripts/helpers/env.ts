@@ -66,6 +66,16 @@ export function loadChains(): ChainInfo[] {
   return chains.chains
 }
 
+export function getChain(chain: ChainId): ChainInfo {
+  const chains = loadChains()
+  const output = chains.find((x) => x.chainId == chain)
+  if (!output) {
+    throw Error("bad chain ID")
+  }
+
+  return output
+}
+
 export function loadPrivateKey(): string {
   const privateKey = get_env_var("WALLET_KEY")
   if (!privateKey) {
@@ -175,6 +185,14 @@ export function getSigner(chain: ChainInfo): Signer {
   return signer
 }
 
+export function getProvider(chain: ChainInfo): ethers.providers.StaticJsonRpcProvider {
+  let provider = new ethers.providers.StaticJsonRpcProvider(
+    loadChains().find((x: any) => x.chainId == chain.chainId)?.rpc || ""
+  )
+
+  return provider
+}
+
 export function getRelayProviderAddress(chain: ChainInfo): string {
   const thisChainsProvider = loadRelayProviders().find(
     (x: any) => x.chainId == chain.chainId
@@ -187,9 +205,15 @@ export function getRelayProviderAddress(chain: ChainInfo): string {
   return thisChainsProvider
 }
 
-export function getRelayProvider(chain: ChainInfo): RelayProvider {
+export function getRelayProvider(
+  chain: ChainInfo,
+  provider?: ethers.providers.StaticJsonRpcProvider
+): RelayProvider {
   const thisChainsProvider = getRelayProviderAddress(chain)
-  const contract = RelayProvider__factory.connect(thisChainsProvider, getSigner(chain))
+  const contract = RelayProvider__factory.connect(
+    thisChainsProvider,
+    provider || getSigner(chain)
+  )
   return contract
 }
 
@@ -205,9 +229,15 @@ export function getCoreRelayerAddress(chain: ChainInfo): string {
   return thisChainsRelayer
 }
 
-export function getCoreRelayer(chain: ChainInfo): CoreRelayer {
+export function getCoreRelayer(
+  chain: ChainInfo,
+  provider?: ethers.providers.StaticJsonRpcProvider
+): CoreRelayer {
   const thisChainsRelayer = getCoreRelayerAddress(chain)
-  const contract = CoreRelayer__factory.connect(thisChainsRelayer, getSigner(chain))
+  const contract = CoreRelayer__factory.connect(
+    thisChainsRelayer,
+    provider || getSigner(chain)
+  )
   return contract
 }
 
