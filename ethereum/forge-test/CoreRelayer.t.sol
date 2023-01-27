@@ -193,7 +193,7 @@ contract TestCoreRelayer is Test {
         s.targetChainId = 2;
         s.source = map[s.sourceChainId];
         s.target = map[s.targetChainId];
-
+        vm.deal(address(this), uint256(2)**255);
         vm.deal(s.source.relayer, address(this).balance);
         vm.deal(s.target.relayer, address(this).balance);
         vm.deal(address(s.target.integration), 2 ** 16 * 100);
@@ -256,7 +256,7 @@ contract TestCoreRelayer is Test {
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
-                map[i].relayProvider.updateAssetConversionBuffer(j, 5, 100);
+                map[i].relayProvider.updateAssetConversionBuffer(j, 50000, 1000000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
                 registerCoreRelayerContract(
                     map[i].coreRelayerGovernance, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
