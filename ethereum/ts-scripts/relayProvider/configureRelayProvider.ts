@@ -71,6 +71,7 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
     await relayProvider
       .updateMaximumBudget(chains[i].chainId, targetChainPriceUpdate.maximumBudget)
       .then(wait)
+    await relayProvider.updateAssetConversionBuffer(chains[i].chainId, 5, 100).then(wait)
   }
 
   console.log("done with registrations on " + chain.chainId)
