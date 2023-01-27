@@ -183,10 +183,10 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.targetGasPrice  < uint256(2)**250 / (5**6) / feeParams.targetNativePrice);
         vm.assume(gasParams.sourceGasPrice  < uint256(2)**250 / (5**6) / feeParams.sourceNativePrice);
         vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
-        vm.assume(feeParams.applicationBudgetTarget <  1);
+        vm.assume(feeParams.applicationBudgetTarget <  uint256(2)**255);
         vm.assume(
-            uint256(1) * feeParams.targetNativePrice * feeParams.applicationBudgetTarget
-                < uint256(1) * 1 * feeParams.sourceNativePrice
+            uint256(1) * feeParams.targetNativePrice * feeParams.applicationBudgetTarget /  feeParams.sourceNativePrice
+                < uint256(1) * uint256(2)**255
         );
 
         s.sourceChainId = 1;
@@ -252,11 +252,11 @@ contract TestCoreRelayer is Test {
             mapEntry.chainId = i;
             map[i] = mapEntry;
         }
-        uint256 maxBudget = 2 ** 128 - 1;
+        uint256 maxBudget = type(uint256).max;
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
-                map[i].relayProvider.updateAssetConversionBuffer(j, 50000, 1000000);
+                map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
                 registerCoreRelayerContract(
                     map[i].coreRelayerGovernance, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
