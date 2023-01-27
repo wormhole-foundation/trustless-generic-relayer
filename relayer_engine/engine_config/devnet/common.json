@@ -18,7 +18,12 @@
     {
       "chainName": "BSC",
       "chainId": 4,
-      "nodeUrl": "https://bsc-testnet.public.blastapi.io"
+      "nodeUrl": "https://data-seed-prebsc-1-s3.binance.org:8545"
+    },
+    {
+      "chainName": "Moonbase Alpha",
+      "chainId": 16,
+      "nodeUrl": "https://rpc.testnet.moonbeam.network"
     },
     {
       "chainName": "Mumbai",

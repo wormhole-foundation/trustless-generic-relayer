@@ -257,7 +257,9 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     _providers: Providers
   ): Promise<{ workflowData?: WorkflowPayload }> {
     this.logger.debug(
-      `Consuming event ${coreRelayerVaa.sequence.toString()}, hash: ${Buffer.from(
+      `Consuming event from chain ${
+        coreRelayerVaa.emitterChain
+      } with seq ${coreRelayerVaa.sequence.toString()} and hash ${Buffer.from(
         coreRelayerVaa.hash
       ).toString("base64")}`
     )
@@ -441,7 +443,6 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
       // todo: add wormhole fee
       const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget).add(100)
-      
 
       const chainId = ix.targetChain as wh.EVMChainId
       // todo: consider parallelizing this
@@ -457,7 +458,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             encodedVMs: payload.vaas,
             deliveryIndex: payload.coreRelayerVaaIndex,
             multisendIndex: i,
-            relayerRefundAddress: relayProvider.address
+            relayerRefundAddress: relayProvider.address,
           }
 
           if (!(await relayProvider.approvedSender(wallet.address))) {

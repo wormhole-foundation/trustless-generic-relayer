@@ -4,55 +4,67 @@
   "relayProviders": [
     {
       "chainId": 6,
-      "address": "0xb19eBF87f3b957B6e99d8bACC994c987805C74E2"
+      "address": "0x7903B8CE0FF4480e1c2496123b6623858be738e0"
     },
     {
       "chainId": 14,
-      "address": "0xb4e6BcD5dBbD502443bb4480aA5213DfCC9F1fC8"
+      "address": "0x26dBc4eC46b03410a8B64bc962b83FAf1B84DA5d"
     },
     {
       "chainId": 4,
-      "address": "0x128eE477E3DEC6b97978E7EC41a95C5cBE111c44"
+      "address": "0xEf06AE191B42ac59883815c4cFaCC9164f1d50eE"
     },
     {
       "chainId": 5,
-      "address": "0xde609ED85F6EaaD58AA422Fd95Fea213cDA83650"
+      "address": "0x0a7F4f38a60f48688D9aa99b240b15ddb66e45e8"
+    },
+    {
+      "chainId": 16,
+      "address": "0x55e1411d2d5AF8d9378460b486A9D84619149B5b"
     }
   ],
   "coreRelayers": [
     {
       "chainId": 6,
-      "address": "0x74D59cBFEBAf363769C78E2e2165503228F2b92F"
+      "address": "0x9Dfd308e2450b26290d926Beea2Bb4F0B8553729"
     },
     {
       "chainId": 14,
-      "address": "0x22baa6Ff6454C1B5f514CfE09DFDc77f44a6be56"
+      "address": "0x49181C4fE76E0F28DB04084935d81DaBb26ac26d"
     },
     {
       "chainId": 4,
-      "address": "0x8bCce102F34C6DbF53655958586d7Bc196dCB3c5"
+      "address": "0xaC9EF19ab4F9a3a265809df0C4eB1E821f43391A"
     },
     {
       "chainId": 5,
-      "address": "0x128eE477E3DEC6b97978E7EC41a95C5cBE111c44"
+      "address": "0xEf06AE191B42ac59883815c4cFaCC9164f1d50eE"
+    },
+    {
+      "chainId": 16,
+      "address": "0x414De856795ecA8F0207D83d69C372Df799Ee377"
     }
   ],
   "mockIntegrations": [
     {
       "chainId": 6,
-      "address": "0xbFEA8140309070f0dB56c1970fc9de61970F464E"
+      "address": "0xFE0058B9e4df432Cc3DBf7bA4f97369FF1731002"
     },
     {
       "chainId": 14,
-      "address": "0x3Af9D81E5AE37fE3828234E3dBC06c7b2983c7fD"
+      "address": "0xc00DBff2c041AeF61b92C115d175593ed8C3ED2F"
     },
     {
       "chainId": 4,
-      "address": "0x26Dc6Fa3a53Ab99187176e0E445065E054ca5CB3"
+      "address": "0x0Bc36d19a88341795D69535D3F977Db773ECD5F4"
     },
     {
       "chainId": 5,
-      "address": "0x660fF93943d6741ECc60a97D695760F13f094628"
+      "address": "0x46724E4d7fe534f70ACd7f16fcEBe428B88b47C1"
+    },
+    {
+      "chainId": 16,
+      "address": "0xf3245687961ccED8c4b59c8D50E36CD9a1544A6d"
     }
   ]
 }
