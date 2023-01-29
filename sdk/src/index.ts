@@ -9,3 +9,4 @@ export { RelayProvider__factory } from "./ethers-contracts/factories/RelayProvid
 export type {IDelivery} from "./ethers-contracts/IDelivery"
 export type {IWormholeRelayer} from "./ethers-contracts/IWormholeRelayer"
 export * from './structs'
+export * from "./consts"
