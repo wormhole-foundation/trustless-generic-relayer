@@ -205,6 +205,9 @@ contract TestCoreRelayer is Test {
         s.target.relayProvider.updatePrice(s.targetChainId, gasParams.targetGasPrice, feeParams.targetNativePrice);
         s.target.relayProvider.updatePrice(s.sourceChainId, gasParams.sourceGasPrice, feeParams.sourceNativePrice);
 
+        s.source.relayProvider.updateDeliverGasOverhead(s.targetChainId, gasParams.evmGasOverhead);
+        s.target.relayProvider.updateDeliverGasOverhead(s.sourceChainId, gasParams.evmGasOverhead);
+
         s.source.wormholeSimulator.setMessageFee(feeParams.wormholeFeeOnSource);
         s.target.wormholeSimulator.setMessageFee(feeParams.wormholeFeeOnTarget);
         uint32 wormholeFeeOnTargetInSourceCurrency = uint32(
@@ -562,6 +565,8 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
+        vm.deal(address(this), type(uint256).max);
+
         setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee}(
             redeliveryRequest, 1, setup.source.relayProvider
         );
@@ -624,6 +629,8 @@ contract TestCoreRelayer is Test {
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
         vm.getRecordedLogs();
+
+        vm.deal(address(this), type(uint256).max);
 
         setup.source.integration.sendMessage{value: payment}(
             secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
