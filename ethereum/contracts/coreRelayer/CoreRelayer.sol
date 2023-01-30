@@ -203,6 +203,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 rolloverChain: rolloverChain,
                 nonce: nonce,
                 msgValue: msg.value,
+                sender: msg.sender,
                 isValid: true
             })
         );
@@ -440,8 +441,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         // // set the nonce to zero so a batch VAA is not created
         // sequence =
         //     wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeDeliveryStatus(status), consistencyLevel());
-
-        if (getForwardingRequest().isValid) {
+        ForwardingRequest memory forwardingRequest = getForwardingRequest();
+        if (
+            forwardingRequest.isValid
+                && (forwardingRequest.sender == fromWormholeFormat(internalInstruction.targetAddress))
+        ) {
             (, success) = emitForward(weiToRefund);
             if (success) {
                 emit ForwardRequestSuccess(

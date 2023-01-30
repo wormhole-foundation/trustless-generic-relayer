@@ -121,6 +121,7 @@ abstract contract CoreRelayerStructs {
         bytes deliveryRequestsContainer;
         uint16 rolloverChain;
         uint32 nonce;
+        address sender;
         uint256 msgValue;
         bool isValid;
     }
