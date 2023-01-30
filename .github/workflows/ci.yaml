@@ -24,7 +24,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: |
             ethereum/package-lock.json
-            ethereum/wormhole/ethereum/package-lock.json
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
       - name: Run forge unit tests
@@ -58,7 +57,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: |
             ethereum/package-lock.json
-            ethereum/wormhole/ethereum/package-lock.json
             relayer_engine/package-lock.json
             sdk/package-lock.json
       - name: Install Foundry
@@ -95,7 +93,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: |
             ethereum/package-lock.json
-            ethereum/wormhole/ethereum/package-lock.json
             relayer_engine/package-lock.json
             sdk/package-lock.json
       - name: Install Foundry
