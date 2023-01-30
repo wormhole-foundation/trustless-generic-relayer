@@ -172,29 +172,28 @@ contract TestCoreRelayer is Test {
     function standardAssumeAndSetupTwoChains(
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
-        uint256 minTargetGasLimit
+        uint32 minTargetGasLimit
     ) public returns (StandardSetupTwoChains memory s) {
-        uint128 halfMaxUint128 = 2 ** (63) - 1;
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
-        vm.assume(gasParams.targetGasPrice > 0 && gasParams.targetGasPrice < halfMaxUint128);
-        vm.assume(feeParams.targetNativePrice > 0 && feeParams.targetNativePrice < halfMaxUint128);
-        vm.assume(gasParams.sourceGasPrice > 0 && gasParams.sourceGasPrice < halfMaxUint128);
-        vm.assume(feeParams.sourceNativePrice > 0 && feeParams.sourceNativePrice < halfMaxUint128);
-        vm.assume(feeParams.sourceNativePrice < halfMaxUint128 / gasParams.sourceGasPrice);
-        vm.assume(feeParams.targetNativePrice < halfMaxUint128 / gasParams.targetGasPrice);
+        vm.assume(feeParams.targetNativePrice > 0);
+        vm.assume(gasParams.targetGasPrice > 0);
+        vm.assume(gasParams.sourceGasPrice > 0);
+        vm.assume(feeParams.sourceNativePrice > 0);
+        vm.assume(gasParams.targetGasPrice < uint256(2) ** 239 / feeParams.targetNativePrice);
+        vm.assume(gasParams.sourceGasPrice < uint256(2) ** 239 / feeParams.sourceNativePrice);
         vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
-        vm.assume(feeParams.applicationBudgetTarget < 2 ** 95);
+        vm.assume(feeParams.applicationBudgetTarget < uint256(2) ** 255);
         vm.assume(
-            uint256(1) * feeParams.targetNativePrice * feeParams.applicationBudgetTarget
-                < uint256(1) * 2 ** 95 * feeParams.sourceNativePrice
+            uint256(1) * feeParams.targetNativePrice * feeParams.applicationBudgetTarget / feeParams.sourceNativePrice
+                < uint256(1) * uint256(2) ** 255
         );
 
         s.sourceChainId = 1;
         s.targetChainId = 2;
         s.source = map[s.sourceChainId];
         s.target = map[s.targetChainId];
-
+        
         vm.deal(s.source.relayer, type(uint256).max);
         vm.deal(s.target.relayer, type(uint256).max);
         vm.deal(address(this), type(uint256).max);
@@ -254,11 +253,11 @@ contract TestCoreRelayer is Test {
             mapEntry.chainId = i;
             map[i] = mapEntry;
         }
-        uint256 maxBudget = 2 ** 128 - 1;
+        uint256 maxBudget = type(uint256).max;
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
-                map[i].relayProvider.updateAssetConversionBuffer(j, 5, 100);
+                map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
                 registerCoreRelayerContract(
                     map[i].coreRelayerGovernance, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
