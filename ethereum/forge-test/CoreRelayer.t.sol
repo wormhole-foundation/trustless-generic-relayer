@@ -180,8 +180,8 @@ contract TestCoreRelayer is Test {
         vm.assume(gasParams.targetGasPrice > 0);
         vm.assume(gasParams.sourceGasPrice > 0);
         vm.assume(feeParams.sourceNativePrice > 0);
-        vm.assume(gasParams.targetGasPrice < uint256(2) ** 250 / (5 ** 6) / feeParams.targetNativePrice);
-        vm.assume(gasParams.sourceGasPrice < uint256(2) ** 250 / (5 ** 6) / feeParams.sourceNativePrice);
+        vm.assume(gasParams.targetGasPrice < uint256(2) ** 239 / feeParams.targetNativePrice);
+        vm.assume(gasParams.sourceGasPrice < uint256(2) ** 239 / feeParams.sourceNativePrice);
         vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
         vm.assume(feeParams.applicationBudgetTarget < uint256(2) ** 255);
         vm.assume(
