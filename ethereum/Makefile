@@ -23,17 +23,10 @@ lib/forge-std:
 	forge install foundry-rs/forge-std@2c7cbfc6fbede6d7c9e6b17afe997e3fdfe22fef --no-git --no-commit
 
 .PHONY: wormhole_dependencies
-wormhole_dependencies: wormhole/ethereum/build
+wormhole_dependencies: wormhole
 
 wormhole:
 	git clone --depth 1 --branch feat/batch_vaa_alternative --single-branch https://github.com/wormhole-foundation/wormhole.git
-
-.PHONY: wormhole/ethereum/build
-wormhole/ethereum/build: wormhole wormhole/ethereum/node_modules
-	cd wormhole/ethereum && npm run build && make .env
-
-wormhole/ethereum/node_modules:
-	cd wormhole/ethereum && npm ci
 
 dependencies: node_modules forge_dependencies wormhole_dependencies
 
