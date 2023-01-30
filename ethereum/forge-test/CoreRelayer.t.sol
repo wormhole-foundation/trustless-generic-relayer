@@ -193,7 +193,7 @@ contract TestCoreRelayer is Test {
         s.targetChainId = 2;
         s.source = map[s.sourceChainId];
         s.target = map[s.targetChainId];
-        
+
         vm.deal(s.source.relayer, type(uint256).max);
         vm.deal(s.target.relayer, type(uint256).max);
         vm.deal(address(this), type(uint256).max);
