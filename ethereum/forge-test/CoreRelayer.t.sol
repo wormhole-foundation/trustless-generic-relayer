@@ -193,9 +193,10 @@ contract TestCoreRelayer is Test {
         s.targetChainId = 2;
         s.source = map[s.sourceChainId];
         s.target = map[s.targetChainId];
-        vm.deal(address(this), uint256(2) ** 255);
-        vm.deal(s.source.relayer, address(this).balance);
-        vm.deal(s.target.relayer, address(this).balance);
+
+        vm.deal(s.source.relayer, type(uint256).max);
+        vm.deal(s.target.relayer, type(uint256).max);
+        vm.deal(address(this), type(uint256).max);
         vm.deal(address(s.target.integration), 2 ** 16 * 100);
         vm.deal(address(s.source.integration), 2 ** 16 * 100);
 
@@ -697,6 +698,13 @@ contract TestCoreRelayer is Test {
         }
     }
 
+    event InvalidRedelivery(
+        bytes32 indexed redeliveryVaaHash,
+        address indexed recipientContract,
+        uint16 sourceChain,
+        uint64 indexed sequence
+    );
+
     function testRevertRedeliveryErrors(
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
@@ -842,7 +850,6 @@ contract TestCoreRelayer is Test {
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
-        /*
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("MismatchingRelayProvidersInRedelivery()"));
         setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
@@ -850,12 +857,12 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: stack.redeliveryVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(msg.sender)
         });
 
-        vm.expectRevert(abi.encodeWithSignature("ProviderAddressIsNotSender()"));
+        bytes32 redeliveryVmHash = relayerWormhole.parseVM(stack.redeliveryVM).hash;
+        vm.expectEmit(true, true, true, true, address(setup.target.coreRelayer));
+        emit InvalidRedelivery(redeliveryVmHash, address(setup.target.integration), setup.sourceChainId, 1);
         setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
 
         uint16 differentChainId = 2;
@@ -863,25 +870,33 @@ contract TestCoreRelayer is Test {
             differentChainId = 3;
         }
 
-        vm.deal(map[differentChainId].relayer, stack.budget);
-        vm.expectRevert(abi.encodeWithSignature("RedeliveryRequestDoesNotTargetThisChain()"));
+        vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
+        emit InvalidRedelivery(redeliveryVmHash, address(setup.target.integration), setup.sourceChainId, 1);
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
+
+        vm.deal(setup.target.relayer, type(uint256).max);
 
         stack.redeliveryRequest = ICoreRelayer.RedeliveryByTxHashRequest({
             sourceChain: setup.sourceChainId,
             sourceTxHash: stack.deliveryVaaHash,
             sourceNonce: 1,
             targetChain: differentChainId,
+            deliveryIndex: stack.originalDelivery.deliveryIndex,
+            multisendIndex: stack.originalDelivery.multisendIndex,
             newComputeBudget: stack.payment - setup.source.wormhole.messageFee(),
             newApplicationBudget: 0,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
         setup.source.relayProvider.updatePrice(differentChainId, gasParams.targetGasPrice, feeParams.targetNativePrice);
         setup.source.relayProvider.updatePrice(differentChainId, gasParams.sourceGasPrice, feeParams.sourceNativePrice);
-        setup.source.relayProvider.updateDeliveryAddress(differentChainId, bytes32(uint256(uint160(address(setup.target.relayer)))));
+        setup.source.relayProvider.updateDeliveryAddress(
+            differentChainId, bytes32(uint256(uint160(address(setup.target.relayer))))
+        );
         vm.getRecordedLogs();
-        setup.source.coreRelayer.requestRedelivery{value: stack.payment}(stack.redeliveryRequest, 1, setup.source.relayProvider);
+        setup.source.coreRelayer.requestRedelivery{value: stack.payment}(
+            stack.redeliveryRequest, 1, setup.source.relayProvider
+        );
         stack.entries = vm.getRecordedLogs();
         setup.source.relayProvider.updateDeliveryAddress(
             differentChainId, bytes32(uint256(uint160(address(map[differentChainId].relayer))))
@@ -893,15 +908,19 @@ contract TestCoreRelayer is Test {
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: fakeVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
-            deliveryIndex: stack.originalDelivery.deliveryIndex,
-            multisendIndex: stack.originalDelivery.multisendIndex,
             relayerRefundAddress: payable(setup.target.relayer)
         });
 
-        vm.expectRevert(abi.encodeWithSignature("OriginalDeliveryRequestDidNotTargetThisChain()"));
+        redeliveryVmHash = relayerWormhole.parseVM(fakeVM).hash;
+        vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
+        emit InvalidRedelivery(redeliveryVmHash, address(setup.target.integration), setup.sourceChainId, 3);
         vm.prank(setup.target.relayer);
-        map[differentChainId].coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
-        */
+        map[differentChainId].coreRelayer.redeliverSingle{
+            value: stack.payment + map[differentChainId].wormhole.messageFee()
+        }(stack.package);
+
+        vm.deal(setup.target.relayer, type(uint256).max);
+
         stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: correctVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
@@ -911,6 +930,8 @@ contract TestCoreRelayer is Test {
         vm.expectRevert(abi.encodeWithSignature("InsufficientRelayerFunds()"));
         vm.prank(setup.target.relayer);
         setup.target.coreRelayer.redeliverSingle{value: stack.budget - 1}(stack.package);
+
+        vm.deal(setup.target.relayer, type(uint256).max);
 
         assertTrue(
             (keccak256(setup.target.integration.getMessage()) != keccak256(message))
@@ -1150,10 +1171,6 @@ contract TestCoreRelayer is Test {
             stack.deliveryRequest, 1, setup.source.relayProvider
         );
     }
-
-    /**
-     * asset conversoin 28-29
-     */
 
     /**
      *
