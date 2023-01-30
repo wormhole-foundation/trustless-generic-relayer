@@ -1167,10 +1167,6 @@ contract TestCoreRelayer is Test {
     }
 
     /**
-     * asset conversoin 28-29
-     */
-
-    /**
      *
      *
      * GENERIC RELAYER CODE
