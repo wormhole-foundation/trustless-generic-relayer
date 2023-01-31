@@ -33,6 +33,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     error InsufficientFunds(string reason);
     error MsgValueTooLow(); // msg.value must cover the budget specified
     error NonceIsZero();
+    error ForwardRequestFromWrongAddress();
     error NoDeliveryInProcess();
     error CantRequestMultipleForwards();
     error RelayProviderDoesNotSupportTargetChain();
@@ -264,6 +265,10 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert NonceIsZero();
         }
 
+        if (msg.sender != lockedTargetAddress()) {
+            revert ForwardRequestFromWrongAddress();
+        }
+
         bool foundRolloverChain = false;
         IRelayProvider selectedProvider = IRelayProvider(container.relayProviderAddress);
 
@@ -407,6 +412,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert ReentrantCall();
         }
         setContractLock(true);
+        setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
         // store gas budget pre target invocation to calculate unused gas budget
         uint256 preGas = gasleft();
 
@@ -442,10 +448,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // sequence =
         //     wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeDeliveryStatus(status), consistencyLevel());
         ForwardingRequest memory forwardingRequest = getForwardingRequest();
-        if (
-            forwardingRequest.isValid
-                && (forwardingRequest.sender == fromWormholeFormat(internalInstruction.targetAddress))
-        ) {
+        if (forwardingRequest.isValid) {
             (, success) = emitForward(weiToRefund);
             if (success) {
                 emit ForwardRequestSuccess(

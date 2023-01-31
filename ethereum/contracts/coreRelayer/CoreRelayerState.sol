@@ -17,6 +17,8 @@ contract CoreRelayerStorage {
         Provider provider;
         // delivery lock for reentrancy protection
         bool contractLock;
+        // the target address that is currently being delivered to (if contractLock = true)
+        address targetAddress;
         // EIP-155 Chain ID
         uint256 evmChainId;
         // consumed governance VAAs
