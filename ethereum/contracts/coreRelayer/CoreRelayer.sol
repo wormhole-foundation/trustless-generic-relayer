@@ -209,8 +209,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
     }
 
-    function emitForward(uint256 refundAmount) internal returns (uint64, bool) {
-        ForwardingRequest memory forwardingRequest = getForwardingRequest();
+    function emitForward(uint256 refundAmount, ForwardingRequest memory forwardingRequest)
+        internal
+        returns (uint64, bool)
+    {
         DeliveryRequestsContainer memory container =
             decodeDeliveryRequestsContainer(forwardingRequest.deliveryRequestsContainer);
 
@@ -454,7 +456,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             forwardingRequest.isValid
                 && (forwardingRequest.sender == fromWormholeFormat(internalInstruction.targetAddress))
         ) {
-            (, success) = emitForward(weiToRefund);
+            (, success) = emitForward(weiToRefund, forwardingRequest);
             if (success) {
                 emit ForwardRequestSuccess(
                     deliveryVaaHash, fromWormholeFormat(internalInstruction.targetAddress), sourceChain, sourceSequence
