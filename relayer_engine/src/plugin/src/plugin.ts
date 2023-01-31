@@ -156,7 +156,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       // track which delivery vaa hashes have all vaas ready this iteration
       let newlyResolved = new Map<string, Entry>()
       await db.withKey([PENDING], async (kv: { [PENDING]?: Pending[] }) => {
-        // if objects have not been crearted, initialize
+        // if objects have not been created, initialize
         if (!kv.pending) {
           kv.pending = []
         }
