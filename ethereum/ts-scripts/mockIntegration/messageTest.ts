@@ -123,7 +123,7 @@ async function run() {
   }
 }
 
-function getChainById(id: number | string): ChainInfo {
+export function getChainById(id: number | string): ChainInfo {
   id = Number(id)
   const chain = chains.find((c) => c.chainId === id)
   if (!chain) {
