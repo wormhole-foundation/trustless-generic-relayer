@@ -20,7 +20,8 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
 
     //Returns the delivery overhead fee required to deliver a message to targetChain, denominated in this chain's wei.
     function quoteDeliveryOverhead(uint16 targetChain) public view override returns (uint256 nativePriceQuote) {
-        uint256 targetFees = deliverGasOverhead(targetChain) * gasPrice(targetChain) + wormholeFee(targetChain);
+        uint256 targetFees =
+            uint256(1) * deliverGasOverhead(targetChain) * gasPrice(targetChain) + wormholeFee(targetChain);
         return quoteAssetConversion(targetChain, targetFees, chainId());
     }
 

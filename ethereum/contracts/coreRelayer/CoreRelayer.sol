@@ -844,10 +844,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (dstNativeCurrencyPrice == 0) {
             revert DstNativeCurrencyPriceIsZero();
         }
-
         uint256 numerator = sourceAmount * srcNativeCurrencyPrice * multiplier;
         uint256 denominator = dstNativeCurrencyPrice * multiplierDenominator;
-
         if (roundUp) {
             targetAmount = (numerator + denominator - 1) / denominator;
         } else {
