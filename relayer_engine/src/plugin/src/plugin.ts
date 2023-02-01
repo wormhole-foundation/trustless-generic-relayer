@@ -294,7 +294,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     redeliveryVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
     hash: string
-  ): Promise<{ workflowData?: WorkflowPayload }> {
+  ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     const redeliveryInstruction = parseRedeliveryByTxHashInstruction(
       redeliveryVaa.payload
     )
@@ -336,7 +336,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     coreRelayerVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
     hash: string
-  ): Promise<{ workflowData?: WorkflowPayload }> {
+  ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     this.logger.info(
       `Not fetched, fetching receipt and filtering to synthetic batch for ${hash}...`
     )
