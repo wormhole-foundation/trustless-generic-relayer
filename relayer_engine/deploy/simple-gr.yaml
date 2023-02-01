@@ -18,7 +18,7 @@ spec:
       restartPolicy: Always
       containers:
       - name:  simple-gr
-        image:  ghcr.io/wormhole-foundation/trustless-generic-relayer:pr-65
+        image:  ghcr.io/wormhole-foundation/trustless-generic-relayer:pr-76
         imagePullPolicy: Always
         # uncomment to explore filesystem during crash loop
         # command: [ "/bin/sh", "-c", "--" ]
