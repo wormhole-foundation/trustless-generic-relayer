@@ -416,6 +416,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[],bytes[])", encodedVMs, new bytes[](0)));
 
         uint256 postGas = gasleft();
+        // There's no easy way to measure the exact cost of the CALL instruction.
+        // This is due to the fact that the compiler probably emits DUPN or MSTORE instructions
+        // to setup the arguments for the call just after our measurement.
+        // This means the refund could be off by a few units of gas.
+        // Thus, we ensure the overhead doesn't cause an overflow in our refund formula here.
         uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
             ? internalInstruction.executionParameters.gasLimit
             : (preGas - postGas);
