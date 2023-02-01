@@ -416,15 +416,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         }(abi.encodeWithSignature("receiveWormholeMessages(bytes[],bytes[])", encodedVMs, new bytes[](0)));
 
         uint256 postGas = gasleft();
-        uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit ? internalInstruction.executionParameters.gasLimit : (preGas - postGas);
+        uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
+            ? internalInstruction.executionParameters.gasLimit
+            : (preGas - postGas);
 
         // refund unused gas budget
         uint256 weiToRefund = internalInstruction.applicationBudgetTarget;
         if (success) {
-            weiToRefund = (
-                internalInstruction.executionParameters.gasLimit
-                    - gasUsed
-            ) * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+            weiToRefund = (internalInstruction.executionParameters.gasLimit - gasUsed)
+                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
         }
 
         // unlock the contract
