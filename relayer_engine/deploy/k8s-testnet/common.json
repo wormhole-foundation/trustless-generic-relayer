@@ -7,6 +7,10 @@
     "host": "redis-master.default.svc.cluster.local",
     "tls": true
   },
+  "defaultWorkflowOptions": {
+    "maxRetries": 3
+  },
+  "wormholeRpc": "https://wormhole-v2-testnet-api.certus.one",
   "readinessPort": 2000,
   "numGuardians": 1,
   "supportedChains": [

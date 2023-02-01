@@ -256,7 +256,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     coreRelayerVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
     _providers: Providers
-  ): Promise<{ workflowData?: WorkflowPayload }> {
+  ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     this.logger.debug(
       `Consuming event from chain ${
         coreRelayerVaa.emitterChain
