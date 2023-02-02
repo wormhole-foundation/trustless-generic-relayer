@@ -1,10 +1,10 @@
 {
   "mode": "BOTH",
-  "logLevel": "info",
+  "logLevel": "debug",
   "storeType": "Redis",
   "redis": {
     "port": 6379,
-    "host": "redis-master.default.svc.cluster.local",
+    "host": "OVERRIDEN BY ENV VAR",
     "tls": true,
     "cluster": true
   },
