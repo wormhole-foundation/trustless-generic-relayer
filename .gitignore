@@ -1,2 +1,4 @@
-pkeys.sh
+.idea
 .vscode
+
+**/pkeys.sh
