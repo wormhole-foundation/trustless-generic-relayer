@@ -380,7 +380,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     await this.addEntryToPendingQueue(hash, newEntry, db)
 
     // do not create workflow until we have collected all VAAs
-    return {}
+    return 
   }
 
   async addEntryToPendingQueue(hash: string, newEntry: Entry, db: StagingAreaKeyLock) {
