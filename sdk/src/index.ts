@@ -10,3 +10,4 @@ export type {IDelivery} from "./ethers-contracts/IDelivery"
 export type {IWormholeRelayer} from "./ethers-contracts/IWormholeRelayer"
 export * from './structs'
 export * from "./consts"
+export * from "./main/index"

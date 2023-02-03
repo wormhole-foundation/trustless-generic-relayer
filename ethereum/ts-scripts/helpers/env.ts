@@ -1,4 +1,4 @@
-import { ChainId } from "@certusone/wormhole-sdk"
+import { ChainId, Network } from "@certusone/wormhole-sdk"
 import { ethers, Signer } from "ethers"
 import fs from "fs"
 import {
@@ -39,6 +39,18 @@ export function init(overrides: { lastRunOverride?: boolean } = {}): string {
     path: `./ts-scripts/.env${env != DEFAULT_ENV ? "." + env : ""}`,
   })
   return env
+}
+
+export function getWhNetwork(): Network {
+  if (env == "testnet") {
+    return "TESTNET"
+  } else if (env == "mainnet") {
+    return "MAINNET"
+  } else if (env == "tilt") {
+    return "DEVNET"
+  }
+
+  throw Error("Unsupported wormhole network")
 }
 
 function get_env_var(env: string): string {
