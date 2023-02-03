@@ -1,10 +1,7 @@
 import { ChainId, Network } from "@certusone/wormhole-sdk"
 import { ethers } from "ethers"
-import {
-  CoreRelayer,
-  CoreRelayerGetters__factory,
-  CoreRelayer__factory,
-} from "./ethers-contracts"
+import { CoreRelayer__factory } from "../src/ethers-contracts/factories/CoreRelayer__factory"
+import { CoreRelayer } from "../src"
 
 const TESTNET = [
   { chainId: 4, coreRelayerAddress: "0xaC9EF19ab4F9a3a265809df0C4eB1E821f43391A" },
