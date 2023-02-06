@@ -1219,12 +1219,16 @@ contract TestCoreRelayer is Test {
     mapping(bytes32 => ICoreRelayer.TargetDeliveryParametersSingle) pastDeliveries;
 
     function genericRelayer(uint16 chainId, uint8 num) internal {
-        Vm.Log[] memory entries = vm.getRecordedLogs();
         bytes[] memory encodedVMs = new bytes[](num);
-        for (uint256 i = 0; i < num; i++) {
-            encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
-                entries[i], chainId, address(uint160(uint256(bytes32(entries[i].topics[1]))))
-            );
+        {
+            // Filters all events to just the wormhole messages.
+            Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
+            assertTrue(entries.length >= num);
+            for (uint256 i = 0; i < num; i++) {
+                encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
+                    entries[i], chainId, address(uint160(uint256(bytes32(entries[i].topics[1]))))
+                );
+            }
         }
 
         IWormhole.VM[] memory parsed = new IWormhole.VM[](encodedVMs.length);
