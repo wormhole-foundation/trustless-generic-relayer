@@ -30,12 +30,9 @@ interface ICoreRelayer {
      * @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
      *     the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
      */
-    function requestMultiforward(
-        DeliveryRequestsContainer memory deliveryRequests,
-        uint16 rolloverChain,
-        uint32 nonce,
-        IRelayProvider provider
-    ) external payable;
+    function requestMultiforward(DeliveryRequestsContainer memory deliveryRequests, uint16 rolloverChain, uint32 nonce)
+        external
+        payable;
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable;
 
