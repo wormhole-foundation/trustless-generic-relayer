@@ -515,7 +515,8 @@ contract TestCoreRelayer is Test {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         // Collected funds from the attack are meant to be sent here.
-        address attackerSourceAddress = address(uint160(uint256(keccak256(abi.encodePacked(bytes("attackerAddress"), setup.sourceChainId)))));
+        address attackerSourceAddress =
+            address(uint160(uint256(keccak256(abi.encodePacked(bytes("attackerAddress"), setup.sourceChainId)))));
         assertTrue(attackerSourceAddress.balance == 0);
 
         // Borrowed assumes from testForward. They should help since this test is similar.
@@ -534,15 +535,14 @@ contract TestCoreRelayer is Test {
                 < uint256(2) ** 222 / feeParams.targetNativePrice
         );
 
-
-
         // Estimate the cost based on the initialized values
         uint256 computeBudget = setup.source.coreRelayer.quoteGasDeliveryFee(
             setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
         );
 
         {
-            AttackForwardIntegration attackerContract = new AttackForwardIntegration(setup.target.wormhole, setup.target.coreRelayer, setup.targetChainId, attackerSourceAddress);
+            AttackForwardIntegration attackerContract =
+            new AttackForwardIntegration(setup.target.wormhole, setup.target.coreRelayer, setup.targetChainId, attackerSourceAddress);
             bytes memory attackMsg = "attack";
 
             vm.recordLogs();
@@ -559,7 +559,6 @@ contract TestCoreRelayer is Test {
             // The message delivery should fail
             assertTrue(keccak256(setup.target.integration.getMessage()) != keccak256(attackMsg));
         }
-
 
         {
             // Now one victim sends their message. It doesn't need to be from the same source chain.
@@ -584,7 +583,6 @@ contract TestCoreRelayer is Test {
             // Here we assert that the victim's refund is safe.
             assertTrue(victimBalancePreDelivery < setup.target.refundAddress.balance);
         }
-
 
         Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
         if (entries.length > 0) {
