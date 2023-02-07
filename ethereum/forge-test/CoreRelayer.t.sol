@@ -22,6 +22,7 @@ import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
 import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
 import {WormholeSimulator} from "./WormholeSimulator.sol";
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
+import {AttackForwardIntegration} from "../contracts/mock/AttackForwardIntegration.sol";
 import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 
@@ -493,6 +494,108 @@ contract TestCoreRelayer is Test {
         genericRelayer(setup.targetChainId, 2);
 
         assertTrue(keccak256(setup.source.integration.getMessage()) == keccak256(bytes("received!")));
+    }
+
+    function testAttackForwardRequestCache(GasParameters memory gasParams, FeeParameters memory feeParams) public {
+        // General idea:
+        // 1. Attacker sets up a malicious integration contract in the target chain.
+        // 2. Attacker requests a message send to `target` chain.
+        //   The message destination and the refund address are both the malicious integration contract in the target chain.
+        // 3. The delivery of the message triggers a refund to the malicious integration contract.
+        // 4. During the refund, the integration contract activates the forwarding mechanism.
+        //   This is allowed due to the integration contract also being the target of the delivery.
+        // 5. The forward request is left as is in the `CoreRelayer` state.
+        // 6. The next message (i.e. the victim's message) delivery on `target` chain, from any relayer, using any `RelayProvider` and any integration contract,
+        //   will see the forward request placed by the malicious integration contract and act on it.
+        // Caveat: the delivery of the victim's message must not invoke the forwarding mechanism for the attack test to be meaningful.
+        //
+        // In essence, this tries to attack the shared forwarding request cache present in the contract state.
+        // This attack doesn't work thanks to the check inside the `requestForward` function that only allows requesting a forward when there is a delivery being processed.
+
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        // Collected funds from the attack are meant to be sent here.
+        address attackerSourceAddress = address(uint160(uint256(keccak256(abi.encodePacked(bytes("attackerAddress"), setup.sourceChainId)))));
+        assertTrue(attackerSourceAddress.balance == 0);
+
+        // Borrowed assumes from testForward. They should help since this test is similar.
+        vm.assume(
+            uint256(1) * gasParams.targetGasPrice * feeParams.targetNativePrice
+                > uint256(1) * gasParams.sourceGasPrice * feeParams.sourceNativePrice
+        );
+
+        vm.assume(
+            setup.source.coreRelayer.quoteGasDeliveryFee(
+                setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
+            ) < uint256(2) ** 222
+        );
+        vm.assume(
+            setup.target.coreRelayer.quoteGasDeliveryFee(setup.sourceChainId, 500000, setup.target.relayProvider)
+                < uint256(2) ** 222 / feeParams.targetNativePrice
+        );
+
+
+
+        // Estimate the cost based on the initialized values
+        uint256 computeBudget = setup.source.coreRelayer.quoteGasDeliveryFee(
+            setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
+        );
+
+        {
+            AttackForwardIntegration attackerContract = new AttackForwardIntegration(setup.target.wormhole, setup.target.coreRelayer, setup.targetChainId, attackerSourceAddress);
+            bytes memory attackMsg = "attack";
+
+            vm.recordLogs();
+
+            // The attacker requests the message to be sent to the malicious contract.
+            // It is critical that the refund and destination (aka integrator) addresses are the same.
+            setup.source.integration.sendMessage{value: computeBudget + 2 * setup.source.wormhole.messageFee()}(
+                attackMsg, setup.targetChainId, address(attackerContract), address(attackerContract)
+            );
+
+            // The relayer triggers the call to the malicious contract.
+            genericRelayer(setup.sourceChainId, 2);
+
+            // The message delivery should fail
+            assertTrue(keccak256(setup.target.integration.getMessage()) != keccak256(attackMsg));
+        }
+
+
+        {
+            // Now one victim sends their message. It doesn't need to be from the same source chain.
+            // What's necessary is that a message is delivered to the chain targeted by the attacker.
+            bytes memory victimMsg = "relay my message";
+
+            uint256 victimBalancePreDelivery = setup.target.refundAddress.balance;
+
+            // We will reutilize the compute budget estimated for the attacker to simplify the code here.
+            // The victim requests their message to be sent.
+            setup.source.integration.sendMessage{value: computeBudget + 2 * setup.source.wormhole.messageFee()}(
+                victimMsg, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
+            );
+
+            // The relayer delivers the victim's message.
+            // During the delivery process, the forward request injected by the malicious contract is acknowledged.
+            // The victim's refund address is not called due to this.
+            genericRelayer(setup.sourceChainId, 2);
+
+            // Ensures the message was received.
+            assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(victimMsg));
+            // Here we assert that the victim's refund is safe.
+            assertTrue(victimBalancePreDelivery < setup.target.refundAddress.balance);
+        }
+
+
+        Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
+        if (entries.length > 0) {
+            // There was a wormhole message produced.
+            // If the attack is successful this is a forward.
+            // We'll invoke the relay simulation here and later assert that the attack wasn't successful.
+            // Relay from target chain to source chain.
+            genericRelayerProcessLogs(setup.targetChainId, entries);
+        }
+        // Assert that the attack wasn't successful.
+        assertTrue(attackerSourceAddress.balance == 0);
     }
 
     function testRedelivery(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
