@@ -304,20 +304,24 @@ async function combinedQuery(
   // forwardSuccesses.topics?.forEach(x => combinedTopics.push(x))
   // invalidRedelivery.topics?.forEach(x => combinedTopics.push(x))
 
+  // Can't query more than 2048 blocks at a time
+  const blockNumber = await coreRelayer.provider.getBlockNumber();
+  const start = (blockNumber > 2000) ? (blockNumber - 2000) : 0;
+
   const deliveryFailureEvents = transformDeliveryFailureEvents(
-    await coreRelayer.queryFilter(deliveryFailureTopics)
+    await coreRelayer.queryFilter(deliveryFailureTopics, start, 'latest')
   )
   const deliverySuccessEvents = transformDeliverySuccessEvents(
-    await coreRelayer.queryFilter(deliverySuccessTopics)
+    await coreRelayer.queryFilter(deliverySuccessTopics, start, 'latest')
   )
   const forwardRequestFailureEvents = transformForwardRequestFailureEvents(
-    await coreRelayer.queryFilter(forwardFailureTopics)
+    await coreRelayer.queryFilter(forwardFailureTopics, start, 'latest')
   )
   const forwardRequestSuccessEvents = transformForwardRequestSuccessEvents(
-    await coreRelayer.queryFilter(forwardSuccessTopics)
+    await coreRelayer.queryFilter(forwardSuccessTopics, start, 'latest')
   )
   const invalidRedeliveryEvents = transformInvalidRedeliveryEvents(
-    await coreRelayer.queryFilter(invalidRedeliveryTopcs)
+    await coreRelayer.queryFilter(invalidRedeliveryTopcs, start, 'latest')
   )
 
   return combineDeliveryInfos([
@@ -349,15 +353,13 @@ export function findLog(
   }
 
   const parsed = bridgeLogs.map((bridgeLog) => {
-    const {
-      args: { sequence, emitterAddress, nonce },
-    } = Implementation__factory.createInterface().parseLog(bridgeLog)
+    const log = Implementation__factory.createInterface().parseLog(bridgeLog)
     return {
-      sequence: sequence.toString(),
-      nonce: nonce.toString(),
-      emitterAddress: emitterAddress.toString(),
+      sequence: log.args[1].toString(),
+      nonce: log.args[2].toString(),
+      emitterAddress: tryNativeToHexString(log.args[0].toString(), "ethereum"),
       log: bridgeLog,
-    }
+    };
   })
 
   const filtered = parsed.filter(
