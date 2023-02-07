@@ -305,21 +305,21 @@ async function combinedQuery(
   // invalidRedelivery.topics?.forEach(x => combinedTopics.push(x))
 
   // Can't query more than 2048 blocks at a time
-  
+
   const deliveryFailureEvents = transformDeliveryFailureEvents(
-    await coreRelayer.queryFilter(deliveryFailureTopics, -2047, 'latest')
+    await coreRelayer.queryFilter(deliveryFailureTopics, -2040, 'latest')
   )
   const deliverySuccessEvents = transformDeliverySuccessEvents(
-    await coreRelayer.queryFilter(deliverySuccessTopics, -2047, 'latest')
+    await coreRelayer.queryFilter(deliverySuccessTopics, -2040, 'latest')
   )
   const forwardRequestFailureEvents = transformForwardRequestFailureEvents(
-    await coreRelayer.queryFilter(forwardFailureTopics, -2047, 'latest')
+    await coreRelayer.queryFilter(forwardFailureTopics, -2040, 'latest')
   )
   const forwardRequestSuccessEvents = transformForwardRequestSuccessEvents(
-    await coreRelayer.queryFilter(forwardSuccessTopics, -2047, 'latest')
+    await coreRelayer.queryFilter(forwardSuccessTopics, -2040, 'latest')
   )
   const invalidRedeliveryEvents = transformInvalidRedeliveryEvents(
-    await coreRelayer.queryFilter(invalidRedeliveryTopics, -2047, 'latest')
+    await coreRelayer.queryFilter(invalidRedeliveryTopics, -2040, 'latest')
   )
 
   return combineDeliveryInfos([
