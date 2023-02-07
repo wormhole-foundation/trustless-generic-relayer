@@ -6,6 +6,32 @@ pragma solidity ^0.8.0;
 import "./IRelayProvider.sol";
 
 interface ICoreRelayer {
+    error InsufficientFunds(string reason);
+    error MsgValueTooLow(); // msg.value must cover the budget specified
+    error NonceIsZero();
+    error NoDeliveryInProcess();
+    error CantRequestMultipleForwards();
+    error RelayProviderDoesNotSupportTargetChain();
+    error RolloverChainNotIncluded(); // Rollover chain was not included in the forwarding request
+    error ChainNotFoundInDeliveryRequests(uint16 chainId); // Required chain not found in the delivery requests
+    error ReentrantCall();
+    error InvalidEmitterInOriginalDeliveryVM(uint8 index);
+    error InvalidRedeliveryVM(string reason);
+    error InvalidEmitterInRedeliveryVM();
+    error MismatchingRelayProvidersInRedelivery(); // The same relay provider must be specified when doing a single VAA redeliver
+    error ProviderAddressIsNotSender(); // msg.sender must be the provider
+    error RedeliveryRequestDoesNotTargetThisChain();
+    error OriginalDeliveryRequestDidNotTargetThisChain();
+    error InvalidVaa(uint8 index);
+    error InvalidEmitter();
+    error DeliveryRequestNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
+    error UnexpectedRelayer(); // Specified relayer is not the relayer delivering the message
+    error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
+    error AlreadyDelivered(); // The message was already delivered.
+    error TargetChainIsNotThisChain(uint16 targetChainId);
+    error SrcNativeCurrencyPriceIsZero();
+    error DstNativeCurrencyPriceIsZero();
+
     /**
      * @dev This is the basic function for requesting delivery
      */
@@ -46,7 +72,7 @@ interface ICoreRelayer {
 
     function fromWormholeFormat(bytes32 whFormatAddress) external pure returns (address addr);
 
-    function getDefaultRelayProvider() external returns (IRelayProvider);
+    function getDefaultRelayProvider() external view returns (IRelayProvider);
 
     function getDefaultRelayParams() external pure returns (bytes memory relayParams);
 
