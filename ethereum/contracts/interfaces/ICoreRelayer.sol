@@ -72,7 +72,7 @@ interface ICoreRelayer {
 
     function fromWormholeFormat(bytes32 whFormatAddress) external pure returns (address addr);
 
-    function getDefaultRelayProvider() external returns (IRelayProvider);
+    function getDefaultRelayProvider() external view returns (IRelayProvider);
 
     function getDefaultRelayParams() external pure returns (bytes memory relayParams);
 
