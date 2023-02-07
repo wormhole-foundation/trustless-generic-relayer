@@ -1219,18 +1219,34 @@ contract TestCoreRelayer is Test {
     mapping(bytes32 => ICoreRelayer.TargetDeliveryParametersSingle) pastDeliveries;
 
     function genericRelayer(uint16 chainId, uint8 num) internal {
-        bytes[] memory encodedVMs = new bytes[](num);
-        {
-            // Filters all events to just the wormhole messages.
-            Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
-            assertTrue(entries.length >= num);
-            for (uint256 i = 0; i < num; i++) {
-                encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
-                    entries[i], chainId, address(uint160(uint256(bytes32(entries[i].topics[1]))))
-                );
-            }
-        }
+        Vm.Log[] memory entries = truncateRecordedLogs(chainId, num);
+        genericRelayerProcessLogs(chainId, entries);
+    }
 
+    /**
+     * Discards wormhole events beyond `num` events.
+     * Expects at least `num` wormhole events.
+     */
+    function truncateRecordedLogs(uint16 chainId, uint8 num) internal returns (Vm.Log[] memory) {
+        // Filters all events to just the wormhole messages.
+        Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
+        // We expect at least `num` events.
+        assertTrue(entries.length >= num);
+
+        Vm.Log[] memory firstEntries = new Vm.Log[](num);
+        for (uint256 i = 0; i < num; i++) {
+            firstEntries[i] = entries[i];
+        }
+        return firstEntries;
+    }
+
+    function genericRelayerProcessLogs(uint16 chainId, Vm.Log[] memory entries) internal {
+        bytes[] memory encodedVMs = new bytes[](entries.length);
+        for (uint256 i = 0; i < encodedVMs.length; i++) {
+            encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
+                entries[i], chainId, address(uint160(uint256(bytes32(entries[i].topics[1]))))
+            );
+        }
         IWormhole.VM[] memory parsed = new IWormhole.VM[](encodedVMs.length);
         for (uint16 i = 0; i < encodedVMs.length; i++) {
             parsed[i] = relayerWormhole.parseVM(encodedVMs[i]);
