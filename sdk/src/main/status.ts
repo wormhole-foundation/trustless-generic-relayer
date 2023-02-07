@@ -294,7 +294,7 @@ async function combinedQuery(
   deliverySuccessTopics: DeliverySuccessEventFilter,
   forwardFailureTopics: ForwardRequestFailureEventFilter,
   forwardSuccessTopics: ForwardRequestSuccessEventFilter,
-  invalidRedeliveryTopcs: InvalidRedeliveryEventFilter
+  invalidRedeliveryTopics: InvalidRedeliveryEventFilter
 ) {
   //TODO potentially query for all at once
   // let combinedTopics : (string | string [])[] = []
@@ -321,7 +321,7 @@ async function combinedQuery(
     await coreRelayer.queryFilter(forwardSuccessTopics, start, 'latest')
   )
   const invalidRedeliveryEvents = transformInvalidRedeliveryEvents(
-    await coreRelayer.queryFilter(invalidRedeliveryTopcs, start, 'latest')
+    await coreRelayer.queryFilter(invalidRedeliveryTopics, start, 'latest')
   )
 
   return combineDeliveryInfos([
