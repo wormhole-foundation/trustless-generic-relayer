@@ -4,7 +4,6 @@
   "description": "",
   "main": "networks.js",
   "devDependencies": {
-    "openzeppelin/contracts": "^4.7.3",
     "@poanet/solidity-flattener": "^3.0.8",
     "@typechain/ethers-v5": "^10.1.1",
     "@types/chai": "^4.3.3",
