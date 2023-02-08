@@ -1,13 +1,8 @@
 import { expect } from "chai";
 import { ethers } from "ethers";
-import { TestResults } from "./helpers/structs";
 import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk";
 import {
-  CHAIN_ID_ETH,
-  CORE_RELAYER_ADDRESS,
-  LOCALHOST,
   RELAYER_DEPLOYER_PRIVATE_KEY,
-  MOCK_RELAYER_INTEGRATION_ADDRESS,
 } from "./helpers/consts";
 import {
   getSignedBatchVaaFromReceiptOnEth,
@@ -16,16 +11,22 @@ import {
 } from "./helpers/utils";
 import { CoreRelayer__factory, MockRelayerIntegration__factory } from "../../sdk/src";
 import { CoreRelayerStructs } from "../../sdk/src/ethers-contracts/CoreRelayer";
+import { init, loadChains, loadCoreRelayers, loadMockIntegrations } from "../ts-scripts/helpers/env";
 
 const ETHEREUM_ROOT = `${__dirname}/..`;
 
+init()
+const chains = loadChains();
+const coreRelayers = loadCoreRelayers();
+const mockIntegrations = loadMockIntegrations();
+
 describe("Core Relayer Integration Test", () => {
-  const provider = new ethers.providers.StaticJsonRpcProvider(LOCALHOST);
+  const provider = new ethers.providers.StaticJsonRpcProvider(chains[0].rpc);
 
   // signers
   const wallet = new ethers.Wallet(RELAYER_DEPLOYER_PRIVATE_KEY, provider);
 
-  const coreRelayer = CoreRelayer__factory.connect(CORE_RELAYER_ADDRESS, wallet);
+  const coreRelayer = CoreRelayer__factory.connect(coreRelayers, wallet);
   const mockContract = MockRelayerIntegration__factory.connect(MOCK_RELAYER_INTEGRATION_ADDRESS, wallet);
 
   // test batch VAA information
