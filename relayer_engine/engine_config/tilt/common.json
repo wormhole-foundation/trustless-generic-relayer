@@ -9,7 +9,7 @@
   "defaultWorkflowOptions": {
     "maxRetries": 3
   },
-  "wormholeRpc": "https://wormhole-v2-testnet-api.certus.one",
+  "wormholeRpc": "http://localhost:7071",
   "numGuardians": 1,
   "readinessPort": 2000,
   "supportedChains": [
