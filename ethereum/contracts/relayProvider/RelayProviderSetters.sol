@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Context.sol";
+import "openzeppelin/contracts/utils/Context.sol";
 
 import "./RelayProviderState.sol";
 

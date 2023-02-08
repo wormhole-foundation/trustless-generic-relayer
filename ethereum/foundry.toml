@@ -10,11 +10,10 @@ test = "forge-test"
 
 libs = [
     "lib",
-    "node_modules",
 ]
 remappings = [
-    "@openzeppelin/=node_modules/@openzeppelin/",
-    "@solidity-parser/=node_modules/@solidity-parser/",
+    "openzeppelin/=lib/openzeppelin-contracts/",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
     "ds-test/=lib/forge-std/lib/ds-test/src/",
     "forge-std/=lib/forge-std/src/",
 ]

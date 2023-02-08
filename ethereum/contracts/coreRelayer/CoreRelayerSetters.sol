@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "./CoreRelayerState.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
+import "openzeppelin/contracts/utils/Context.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayerSetters is CoreRelayerState, Context {
