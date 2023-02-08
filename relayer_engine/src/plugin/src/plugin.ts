@@ -38,13 +38,11 @@ import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-tr
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
 import { hexToNativeStringAlgorand } from "@certusone/wormhole-sdk/lib/cjs/algorand"
 
-const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
-
 let PLUGIN_NAME: string = "GenericRelayerPlugin"
 
 export interface ChainInfo {
   relayProvider: string
-  coreContract?: IWormhole
+  coreContract: string
   relayerAddress: string
   mockIntegrationContractAddress: string
 }
@@ -109,7 +107,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   pluginConfig: GenericRelayerPluginConfig
 
   constructor(
-    readonly engineConfig: CommonPluginEnv,
+    readonly engineConfig: CommonPluginEnv & { wormholeRpc: string },
     pluginConfigRaw: Record<string, any>,
     readonly logger: Logger
   ) {
@@ -127,14 +125,10 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   ) {
     // connect to the core wh contract for each chain
     for (const [chainId, info] of this.pluginConfig.supportedChains.entries()) {
-      const chainName = wh.coalesceChainName(chainId)
-      const { core } = wh.CONTRACTS.TESTNET[chainName]
-      if (!core || !wh.isEVMChain(chainId)) {
-        this.logger.error("No known core contract for chain", chainName)
-        throw new PluginError("No known core contract for chain", { chainName })
+      const { coreContract } = info
+      if (!coreContract || !wh.isEVMChain(chainId)) {
+        throw new PluginError("No known core contract for chain", { chainId })
       }
-      const provider = providers.evm[chainId as wh.EVMChainId]
-      info.coreContract = IWormhole__factory.connect(core, provider)
     }
 
     if (listenerResources) {
@@ -156,7 +150,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
       // track which delivery vaa hashes have all vaas ready this iteration
       let newlyResolved = new Map<string, Entry>()
-      await db.withKey([PENDING], async (kv: { [PENDING]?: Pending[] }) => {
+      await db.withKey([PENDING], async (kv: { [PENDING]?: Pending[] }, tx) => {
         // if objects have not been created, initialize
         if (!kv.pending) {
           kv.pending = []
@@ -192,7 +186,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
             const newKV = Object.fromEntries(await Promise.all(promises))
             return { newKV, val: undefined }
-          }
+          },
+          tx
         )
 
         kv.pending = kv.pending.filter((p) => !newlyResolved.has(p.hash))
@@ -212,6 +207,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
   async fetchEntry(hash: string, value: Entry, logger: Logger): Promise<Entry> {
     // track if there are missing vaas after trying to fetch
+    this.logger.info("Fetching entry...", { hash })
     let hasMissingVaas = false
     const vaas = await Promise.all(
       value.vaas.map(async ({ emitter, sequence, bytes }, idx) => {
@@ -222,7 +218,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         try {
           // try to fetch vaa from guardian rpc
           const resp = await wh.getSignedVAA(
-            wormholeRpc,
+            this.engineConfig.wormholeRpc,
             value.chainId as wh.EVMChainId,
             emitter,
             sequence,
@@ -256,7 +252,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   async consumeEvent(
     coreRelayerVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
-    _providers: Providers
+    providers: Providers
   ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     this.logger.debug(
       `Consuming event from chain ${
@@ -285,24 +281,24 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
     switch (payloadId) {
       case RelayerPayloadId.Delivery:
-        return this.consumeDeliveryEvent(coreRelayerVaa, db, hash)
+        return this.consumeDeliveryEvent(coreRelayerVaa, db, hash, providers)
       case RelayerPayloadId.Redelivery:
-        return this.consumeRedeliveryEvent(coreRelayerVaa, db, hash)
+        return this.consumeRedeliveryEvent(coreRelayerVaa, db, providers)
     }
   }
 
   async consumeRedeliveryEvent(
     redeliveryVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
-    hash: string
+    providers: Providers
   ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     const redeliveryInstruction = parseRedeliveryByTxHashInstruction(
       redeliveryVaa.payload
     )
     const chainId = redeliveryInstruction.sourceChain as wh.EVMChainId
+    const provider = providers.evm[chainId]
     const config = this.pluginConfig.supportedChains.get(chainId)!
-    const coreWHContract = config.coreContract!
-    const rx = await coreWHContract.provider.getTransactionReceipt(
+    const rx = await provider.getTransactionReceipt(
       ethers.utils.hexlify(redeliveryInstruction.sourceTxHash, {
         allowMissingPrefix: true,
       })
@@ -336,13 +332,15 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   async consumeDeliveryEvent(
     coreRelayerVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
-    hash: string
+    hash: string,
+    providers: Providers
   ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     this.logger.info(
       `Not fetched, fetching receipt and filtering to synthetic batch for ${hash}...`
     )
     const chainId = coreRelayerVaa.emitterChain as wh.EVMChainId
-    const rx = await this.fetchReceipt(coreRelayerVaa.sequence, chainId)
+    const provider = providers.evm[chainId]
+    const rx = await this.fetchReceipt(coreRelayerVaa.sequence, chainId, provider)
 
     const emitter = wh.tryNativeToHexString(
       wh.tryUint8ArrayToNative(coreRelayerVaa.emitterAddress, "ethereum"),
@@ -422,15 +420,12 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   // fetch  the contract transaction receipt for the given sequence number emitted by the core relayer contract
   async fetchReceipt(
     sequence: BigInt,
-    chainId: wh.EVMChainId
+    chainId: wh.EVMChainId,
+    provider: ethers.providers.Provider
   ): Promise<ethers.ContractReceipt> {
     const config = this.pluginConfig.supportedChains.get(chainId)!
-    const coreWHContract = config.coreContract!
+    const coreWHContract = IWormhole__factory.connect(config.coreContract!, provider)
     const filter = coreWHContract.filters.LogMessagePublished(config.relayerAddress)
-
-    this.logger.info(`Relayer address: ${config.relayerAddress}`)
-    console.log(JSON.stringify(coreWHContract.provider, undefined, 2))
-
     const blockNumber = await coreWHContract.provider.getBlockNumber()
     for (let i = 0; i < 20; ++i) {
       let paginatedLogs
@@ -443,7 +438,6 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           blockNumber - i * 20
         )
       }
-      console.log(paginatedLogs)
       const log = paginatedLogs.find(
         (log) => log.args.sequence.toString() === sequence.toString()
       )
@@ -455,7 +449,6 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       return await retryAsyncUntilDefined(
         async () => {
           const paginatedLogs = await coreWHContract.queryFilter(filter, -50)
-          console.log(paginatedLogs)
           const log = paginatedLogs.find(
             (log) => log.args.sequence.toString() === sequence.toString()
           )
@@ -486,8 +479,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   } {
     const onlyVAALogs = rx.logs.filter(
       (log) =>
-        log.address ===
-        this.pluginConfig.supportedChains.get(chainId)?.coreContract?.address
+        log.address === this.pluginConfig.supportedChains.get(chainId)?.coreContract
     )
     const vaas = onlyVAALogs.flatMap((bridgeLog: ethers.providers.Log) => {
       const iface = Implementation__factory.createInterface()

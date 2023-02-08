@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@certusone/wormhole-sdk": "^0.9.6",
-    "@wormhole-foundation/relayer-engine": "github:wormhole-foundation/relayer-engine#7fb24b5bd9193205494cdee8a9bf82694f7ef42a",
+    "@wormhole-foundation/relayer-engine": "github:wormhole-foundation/relayer-engine#5ee0aeedb9888bf9a1a0474d3436e4b236975857",
     "ts-retry": "^4.1.1"
   },
   "author": "Chase Moran",
