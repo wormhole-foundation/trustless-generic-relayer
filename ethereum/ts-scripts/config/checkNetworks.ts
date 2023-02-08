@@ -8,11 +8,6 @@ const chains = loadChains()
 async function main() {
   console.log(`Env: ${env}`)
   console.log(`Start ${processName}!`)
-  const output: any = {
-    relayProviderImplementations: [],
-    relayProviderSetups: [],
-    relayProviderProxies: [],
-  }
 
   console.log("Checking networks before deploying...")
   for (const chain of chains) {
