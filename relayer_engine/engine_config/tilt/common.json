@@ -1,7 +1,16 @@
 {
   "mode": "BOTH",
-  "storeType": "InMemory",
+  "storeType": "Redis",
   "logLevel": "debug",
+  "redis": {
+    "port": 6379,
+    "host": "localhost"
+  },
+  "defaultWorkflowOptions": {
+    "maxRetries": 3
+  },
+  "wormholeRpc": "https://wormhole-v2-testnet-api.certus.one",
+  "numGuardians": 1,
   "readinessPort": 2000,
   "supportedChains": [
     {
