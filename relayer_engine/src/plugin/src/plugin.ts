@@ -36,6 +36,7 @@ import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
+import { hexToNativeStringAlgorand } from "@certusone/wormhole-sdk/lib/cjs/algorand"
 
 const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
 
@@ -380,7 +381,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     await this.addEntryToPendingQueue(hash, newEntry, db)
 
     // do not create workflow until we have collected all VAAs
-    return 
+    return
   }
 
   async addEntryToPendingQueue(hash: string, newEntry: Entry, db: StagingAreaKeyLock) {
@@ -427,11 +428,14 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     const coreWHContract = config.coreContract!
     const filter = coreWHContract.filters.LogMessagePublished(config.relayerAddress)
 
+    this.logger.info(`Relayer address: ${config.relayerAddress}`)
+    console.log(JSON.stringify(coreWHContract.provider, undefined, 2))
+
     const blockNumber = await coreWHContract.provider.getBlockNumber()
     for (let i = 0; i < 20; ++i) {
       let paginatedLogs
       if (i === 0) {
-        paginatedLogs = await coreWHContract.queryFilter(filter, -20)
+        paginatedLogs = await coreWHContract.queryFilter(filter, -30)
       } else {
         paginatedLogs = await coreWHContract.queryFilter(
           filter,
@@ -439,6 +443,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           blockNumber - i * 20
         )
       }
+      console.log(paginatedLogs)
       const log = paginatedLogs.find(
         (log) => log.args.sequence.toString() === sequence.toString()
       )
@@ -449,7 +454,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     try {
       return await retryAsyncUntilDefined(
         async () => {
-          const paginatedLogs = await coreWHContract.queryFilter(filter, -20)
+          const paginatedLogs = await coreWHContract.queryFilter(filter, -50)
+          console.log(paginatedLogs)
           const log = paginatedLogs.find(
             (log) => log.args.sequence.toString() === sequence.toString()
           )
