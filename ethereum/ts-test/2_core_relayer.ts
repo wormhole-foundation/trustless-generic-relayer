@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "ethers";
 import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk";
 import {
+  ChainInfo,
   RELAYER_DEPLOYER_PRIVATE_KEY,
 } from "./helpers/consts";
 import {
@@ -9,7 +10,7 @@ import {
   getSignedVaaFromReceiptOnEth,
   verifyDeliveryStatusPayload,
 } from "./helpers/utils";
-import { CoreRelayer__factory, MockRelayerIntegration__factory } from "../../sdk/src";
+import { CoreRelayer__factory, IWormhole__factory, MockRelayerIntegration__factory } from "../../sdk/src";
 import { CoreRelayerStructs } from "../../sdk/src/ethers-contracts/CoreRelayer";
 import { init, loadChains, loadCoreRelayers, loadMockIntegrations } from "../ts-scripts/helpers/env";
 
@@ -20,223 +21,69 @@ const chains = loadChains();
 const coreRelayers = loadCoreRelayers();
 const mockIntegrations = loadMockIntegrations();
 
-describe("Core Relayer Integration Test", () => {
+describe("Core Relayer Integration Test - Two Chains", () => {
   const provider = new ethers.providers.StaticJsonRpcProvider(chains[0].rpc);
 
   // signers
   const wallet = new ethers.Wallet(RELAYER_DEPLOYER_PRIVATE_KEY, provider);
 
-  const coreRelayer = CoreRelayer__factory.connect(coreRelayers, wallet);
-  const mockContract = MockRelayerIntegration__factory.connect(MOCK_RELAYER_INTEGRATION_ADDRESS, wallet);
+  const sourceChain = chains.find((c)=>(c.chainId == 2)) as ChainInfo;
+  const targetChain = chains.find((c)=>(c.chainId == 4)) as ChainInfo;
+  const sourceCoreRelayerAddress = coreRelayers.find((p)=>(p.chainId==sourceChain.chainId))?.address as string
+  const sourceMockIntegrationAddress = mockIntegrations.find((p)=>(p.chainId==sourceChain.chainId))?.address as string
+  const targetCoreRelayerAddress = coreRelayers.find((p)=>(p.chainId==targetChain.chainId))?.address as string
+  const targetMockIntegrationAddress = mockIntegrations.find((p)=>(p.chainId==targetChain.chainId))?.address as string
 
-  // test batch VAA information
-  const batchVAAPayloads: ethers.BytesLike[] = [
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff0")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff1")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff2")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff3")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff5")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff6")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff7")),
-    ethers.utils.hexlify(ethers.utils.toUtf8Bytes("SuperCoolCrossChainStuff8")),
-  ];
-  const batchVAAConsistencyLevels: number[] = [15, 10, 2, 15, 1, 6, 3, 5];
-  const batchNonce: number = 69;
-  const deliveryVAAConsistencyLevel: number = 15;
+  const sourceCoreRelayer = CoreRelayer__factory.connect(sourceCoreRelayerAddress, wallet);
+  const sourceMockIntegration = MockRelayerIntegration__factory.connect(sourceMockIntegrationAddress, wallet);
+  const targetCoreRelayer = CoreRelayer__factory.connect(targetCoreRelayerAddress, wallet);
+  const targetMockIntegration = MockRelayerIntegration__factory.connect(targetMockIntegrationAddress, wallet);
+  
+  const sourceWormhole = IWormhole__factory.connect(sourceChain.wormholeAddress, wallet);
+  
 
-  describe("Core Relayer Interaction", () => {
-    // for the sake of this test, the target/source chain and address will be the same
-    const TARGET_CONTRACT_ADDRESS = MOCK_RELAYER_INTEGRATION_ADDRESS;
-    const TARGET_REFUND_ADDRESS = "0x0000000000000000000000000000000000000001";
-    const TARGET_CHAIN_ID: ChainId = CHAIN_ID_ETH;
-    const SOURCE_CONTRACT_ADDRESS = TARGET_CONTRACT_ADDRESS;
-    const SOURCE_CHAIN_ID: ChainId = TARGET_CHAIN_ID;
-    const TARGET_GAS_LIMIT = 1000000;
-    const RELAYER_EMITTER_ADDRESS: ethers.utils.BytesLike = ethers.utils.hexlify(
-      "0x" + tryNativeToHexString(coreRelayer.address, SOURCE_CHAIN_ID)
-    );
+  it("Executes a delivery", async (done) => {
 
-    // test variables that are used throughout the test suite
-    let fullBatchTest: TestResults = {} as TestResults;
-    let partialBatchTest: TestResults = {} as TestResults;
+    try {
+      const arbitraryPayload = ethers.utils.hexlify(ethers.utils.toUtf8Bytes((Math.random()*1e32).toString(36)))
+        
+      console.log("Sending wormhole message!")
+      await sourceWormhole.publishMessage(1, arbitraryPayload, 200).then((t)=>(t.wait));
+      console.log("Sent wormhole message!")
+          
+      const value = await sourceCoreRelayer.quoteGasDeliveryFee(targetChain.chainId, 1000000, await sourceCoreRelayer.getDefaultRelayProvider());
+      console.log(`Quoted gas delivery fee: ${value}`)
+      const tx = await sourceCoreRelayer.requestDelivery({
+        targetChain: targetChain.chainId,
+        targetAddress: await sourceCoreRelayer.toWormholeFormat(targetMockIntegration.address),
+        refundAddress: await sourceCoreRelayer.toWormholeFormat(targetMockIntegration.address),
+        computeBudget: value,
+        applicationBudget: 0,
+        relayParameters: await sourceCoreRelayer.getDefaultRelayParams()
+      }, 1, await sourceCoreRelayer.getDefaultRelayProvider(), {
+        value,
+        gasLimit: 5000000
+      })
+      console.log("Sent delivery request!");
+      const rx = await tx.wait();
+      console.log("Message confirmed!");
 
-    it("Should register a relayer contract", async () => {
-      // should register the target contract address
-      await coreRelayer
-        .registerChain(TARGET_CHAIN_ID, RELAYER_EMITTER_ADDRESS)
-        .then((tx: ethers.ContractTransaction) => tx.wait());
-
-      const actualRegisteredRelayer = await coreRelayer.registeredRelayer(SOURCE_CHAIN_ID);
-      const expectedRegisteredRelayer: ethers.utils.BytesLike = ethers.utils.hexlify(RELAYER_EMITTER_ADDRESS);
-      expect(actualRegisteredRelayer).to.equal(expectedRegisteredRelayer);
-    });
-
-    it("Should update EVM deliver gas overhead", async () => {
-      // the new evmGasOverhead value
-      const newEvmGasOverhead = 500000;
-
-      // query the EVM gas overhead before updating it
-      const evmGasOverheadBefore = await coreRelayer.evmDeliverGasOverhead();
-      expect(evmGasOverheadBefore).to.equal(0);
-
-      // should update the EVM gas overhead
-      await coreRelayer.updateEvmDeliverGasOverhead(newEvmGasOverhead);
-
-      // query the EVM gas overhead after updating it
-      const evmGasOverheadAfter = await coreRelayer.evmDeliverGasOverhead();
-      expect(evmGasOverheadAfter).to.equal(newEvmGasOverhead);
-    });
-
-    it("Should create a batch VAA with a DeliveryInstructions VAA", async () => {
-      // estimate the cost of submitting the batch on the target chain
-      fullBatchTest.targetChainGasEstimate = await coreRelayer.estimateEvmCost(TARGET_CHAIN_ID, TARGET_GAS_LIMIT);
-
-      // relayer args
-      fullBatchTest.relayerArgs = {
-        nonce: batchNonce,
-        targetChainId: TARGET_CHAIN_ID,
-        targetAddress: TARGET_CONTRACT_ADDRESS,
-        targetGasLimit: TARGET_GAS_LIMIT,
-        refundAddress: TARGET_REFUND_ADDRESS,
-        consistencyLevel: deliveryVAAConsistencyLevel,
-      };
-
-      // call the mock integration contract to create a batch
-      const sendReceipt: ethers.ContractReceipt = await mockContract
-        .sendBatchToTargetChain(batchVAAPayloads, batchVAAConsistencyLevels, fullBatchTest.relayerArgs, {
-          value: fullBatchTest.targetChainGasEstimate,
-        })
-        .then((tx: ethers.ContractTransaction) => tx.wait());
-
-      // fetch the signedBatchVAA
-      fullBatchTest.signedBatchVM = await getSignedBatchVaaFromReceiptOnEth(
-        sendReceipt,
-        SOURCE_CHAIN_ID,
-        0 // guardianSetIndex
-      );
-    });
-
-    it("Should deserialize and validate the full batch DeliveryInstructions VAA values", async () => {
-      // parse the batchVM and verify the values
-      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
-
-      // validate the individual messages
-      const observations = parsedBatchVM.observations;
-      const batchLen = parsedBatchVM.observations.length;
-      for (let i = 0; i < batchLen - 2; ++i) {
-        const parsedVM = await mockContract.parseWormholeObservation(observations[i]);
-        expect(parsedVM.nonce).to.equal(batchNonce);
-        expect(parsedVM.consistencyLevel).to.equal(batchVAAConsistencyLevels[i]);
-        expect(parsedVM.payload).to.equal(batchVAAPayloads[i]);
-      }
-
-      // validate the mock integration instructions
-      const integratorMessage = await mockContract.parseWormholeObservation(observations[batchLen - 2]);
-      expect(integratorMessage.nonce).to.equal(batchNonce);
-      expect(integratorMessage.consistencyLevel).to.equal(1);
-      const integratorMessagePayload = Buffer.from(ethers.utils.arrayify(integratorMessage.payload));
-      expect(integratorMessagePayload.readUInt16BE(0)).to.equal(2);
-      expect(integratorMessagePayload.readUInt8(2)).to.equal(batchLen - 2);
-
-      // validate the delivery instructions VAA
-      const deliveryVM = await mockContract.parseWormholeObservation(observations[batchLen - 1]);
-      expect(deliveryVM.nonce).to.equal(batchNonce);
-      expect(deliveryVM.consistencyLevel).to.equal(fullBatchTest.relayerArgs.consistencyLevel);
-
-      // deserialize the delivery instruction payload and validate the values
-      const deliveryInstructionsContainer = await coreRelayer.decodeDeliveryInstructionsContainer(deliveryVM.payload);
-      expect(deliveryInstructionsContainer.payloadID).to.equal(1);
-      expect(deliveryInstructionsContainer.instructions.length).to.equal(1);
-      const instruction = deliveryInstructionsContainer.instructions[0];
-      expect(instruction.targetAddress).to.equal("0x" + tryNativeToHexString(TARGET_CONTRACT_ADDRESS, CHAIN_ID_ETH));
-      expect(instruction.targetChain).to.equal(TARGET_CHAIN_ID);
-
-      // deserialize the deliveryParameters and confirm the values
-      const relayParameters = await coreRelayer.decodeRelayParameters(instruction.relayParameters);
-      expect(relayParameters.version).to.equal(1);
-      expect(relayParameters.deliveryGasLimit).to.equal(TARGET_GAS_LIMIT);
-      expect(relayParameters.nativePayment.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
-    });
-
-    it("Should deliver the batch VAA and call the wormholeReceiver endpoint on the mock contract", async () => {
-      // create the TargetDeliveryParameters
-      const targetDeliveryParams: CoreRelayerStructs.TargetDeliveryParametersStruct = {
-        encodedVM: fullBatchTest.signedBatchVM,
-        deliveryIndex: batchVAAPayloads.length + 1,
-        multisendIndex: 0,
-        targetCallGasOverride: ethers.BigNumber.from(TARGET_GAS_LIMIT),
-      };
-
-      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
-      const observations = parsedBatchVM.observations;
-      const deliveryVM = await mockContract.parseWormholeObservation(observations[observations.length - 1]);
-      const deliveryInstructionsContainer = await coreRelayer.decodeDeliveryInstructionsContainer(deliveryVM.payload);
-      const instruction = deliveryInstructionsContainer.instructions[0];
-      const relayParameters = await coreRelayer.decodeRelayParameters(instruction.relayParameters);
-
-      // call the deliver method on the relayer contract
-      const deliveryReceipt: ethers.ContractReceipt = await coreRelayer
-        .deliver(targetDeliveryParams, {
-          value: await coreRelayer.estimateEvmCost(instruction.targetChain, relayParameters.deliveryGasLimit),
-          gasLimit: relayParameters.deliveryGasLimit * 10,
-        })
-        .then((tx: ethers.ContractTransaction) => tx.wait());
-
-      // confirm that the batch VAA payloads were stored in a map in the mock contract
-      const batchLen = observations.length;
-      for (let i = 0; i < batchLen - 1; ++i) {
-        const parsedVM = await mockContract.parseWormholeObservation(observations[i]);
-
-        // query the contract for the saved payload
-        const verifiedPayload = await mockContract.getPayload(parsedVM.hash);
-        expect(verifiedPayload).to.equal(parsedVM.payload);
-
-        // clear the payload from storage for future tests
-        await mockContract.clearPayload(parsedVM.hash).then((tx: ethers.ContractTransaction) => tx.wait());
-
-        // confirm that the payload was cleared
-        const emptyPayload = await mockContract.getPayload(parsedVM.hash);
-        expect(emptyPayload).to.equal("0x");
-      }
-
-      // fetch and save the delivery status VAA
-      fullBatchTest.deliveryStatusVM = await getSignedVaaFromReceiptOnEth(
-        deliveryReceipt,
-        TARGET_CHAIN_ID as ChainId,
-        0 // guardianSetIndex
-      );
-    });
-
-    it("Should correctly emit a DeliveryStatus message upon full batch delivery", async () => {
-      // parse the delivery status VAA payload
-      const parsedDeliveryStatus = await mockContract.parseWormholeObservation(fullBatchTest.deliveryStatusVM);
-      const deliveryStatusPayload = parsedDeliveryStatus.payload;
-
-      // parse the batch VAA (need to use the batch hash)
-      const parsedBatchVM = await mockContract.parseWormholeBatch(fullBatchTest.signedBatchVM);
-
-      // grab the deliveryVM index, which is the last VM in the batch
-      const deliveryVM = await mockContract.parseWormholeObservation(parsedBatchVM.observations.at(-1)!);
-
-      // expected values in the DeliveryStatus payload
-      const expectedDeliveryAttempts = 1;
-      const expectedSuccessBoolean = 1;
-
-      const success = verifyDeliveryStatusPayload(
-        deliveryStatusPayload,
-        parsedBatchVM.hash,
-        RELAYER_EMITTER_ADDRESS,
-        deliveryVM.sequence,
-        expectedDeliveryAttempts,
-        expectedSuccessBoolean
-      );
-      expect(success).to.be.true;
-    });
-
-    it("Should increment relayer fees upon delivery", async () => {
-      // query the contract to check the balance of the relayer fees
-      const queriedRelayerFees = await coreRelayer.relayerRewards(wallet.address, TARGET_CHAIN_ID);
-      expect(queriedRelayerFees.toString()).to.equal(fullBatchTest.targetChainGasEstimate.toString());
-    });
+      setTimeout(async () => {
+        try {
+          console.log("Checking if message was relayed")
+          const message = await targetMockIntegration.getMessage();
+          console.log(`Original message: ${arbitraryPayload}`);
+          console.log(`Received message: ${message}`)
+          expect(message).to.equal(arbitraryPayload);
+          done()
+        } catch (e) {
+          done(e)
+        }
+      }, 1000 * 30)
+    } catch (e) {
+      done(e);
+    }
+    
   });
 });
+
