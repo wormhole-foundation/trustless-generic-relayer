@@ -5,13 +5,7 @@ import {
   ChainInfo,
   RELAYER_DEPLOYER_PRIVATE_KEY,
 } from "./helpers/consts";
-import {
-  getSignedBatchVaaFromReceiptOnEth,
-  getSignedVaaFromReceiptOnEth,
-  verifyDeliveryStatusPayload,
-} from "./helpers/utils";
 import { CoreRelayer__factory, IWormhole__factory, MockRelayerIntegration__factory } from "../../sdk/src";
-import { CoreRelayerStructs } from "../../sdk/src/ethers-contracts/CoreRelayer";
 import { init, loadChains, loadCoreRelayers, loadMockIntegrations } from "../ts-scripts/helpers/env";
 
 const ETHEREUM_ROOT = `${__dirname}/..`;
@@ -38,9 +32,6 @@ describe("Core Relayer Integration Test - Two Chains", () => {
   const sourceMockIntegration = MockRelayerIntegration__factory.connect(sourceMockIntegrationAddress, wallet);
   const targetCoreRelayer = CoreRelayer__factory.connect(targetCoreRelayerAddress, wallet);
   const targetMockIntegration = MockRelayerIntegration__factory.connect(targetMockIntegrationAddress, wallet);
-  
-  const sourceWormhole = IWormhole__factory.connect(sourceChain.wormholeAddress, wallet);
-  
 
   it("Executes a delivery", async (done) => {
 
@@ -48,7 +39,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       const arbitraryPayload = ethers.utils.hexlify(ethers.utils.toUtf8Bytes((Math.random()*1e32).toString(36)))
       const value = await sourceCoreRelayer.quoteGasDeliveryFee(targetChain.chainId, 1000000, await sourceCoreRelayer.getDefaultRelayProvider());
       console.log(`Quoted gas delivery fee: ${value}`)
-      const tx = await targetMockIntegration.sendMessage(arbitraryPayload, targetChain.chainId, targetMockIntegrationAddress, targetMockIntegrationAddress, {value, gasLimit: 500000});
+      const tx = await sourceMockIntegration.sendMessage(arbitraryPayload, targetChain.chainId, targetMockIntegrationAddress, targetMockIntegrationAddress, {value, gasLimit: 500000});
       console.log("Sent delivery request!");
       const rx = await tx.wait();
       console.log("Message confirmed!");
