@@ -46,24 +46,9 @@ describe("Core Relayer Integration Test - Two Chains", () => {
 
     try {
       const arbitraryPayload = ethers.utils.hexlify(ethers.utils.toUtf8Bytes((Math.random()*1e32).toString(36)))
-        
-      console.log("Sending wormhole message!")
-      await sourceWormhole.publishMessage(1, arbitraryPayload, 200).then((t)=>(t.wait));
-      console.log("Sent wormhole message!")
-          
       const value = await sourceCoreRelayer.quoteGasDeliveryFee(targetChain.chainId, 1000000, await sourceCoreRelayer.getDefaultRelayProvider());
       console.log(`Quoted gas delivery fee: ${value}`)
-      const tx = await sourceCoreRelayer.requestDelivery({
-        targetChain: targetChain.chainId,
-        targetAddress: await sourceCoreRelayer.toWormholeFormat(targetMockIntegration.address),
-        refundAddress: await sourceCoreRelayer.toWormholeFormat(targetMockIntegration.address),
-        computeBudget: value,
-        applicationBudget: 0,
-        relayParameters: await sourceCoreRelayer.getDefaultRelayParams()
-      }, 1, await sourceCoreRelayer.getDefaultRelayProvider(), {
-        value,
-        gasLimit: 5000000
-      })
+      const tx = await targetMockIntegration.sendMessage(arbitraryPayload, targetChain.chainId, targetMockIntegrationAddress, targetMockIntegrationAddress, {value, gasLimit: 500000});
       console.log("Sent delivery request!");
       const rx = await tx.wait();
       console.log("Message confirmed!");
