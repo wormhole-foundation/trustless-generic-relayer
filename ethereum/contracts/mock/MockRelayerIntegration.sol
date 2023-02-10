@@ -27,6 +27,18 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
     bytes message;
 
+    struct FurtherInstructions {
+        bool keepSending;
+        bytes newMessage;
+        uint16[] chains;
+        uint32[] gasLimits;
+    }
+
+    struct Message {
+        bytes text;
+        FurtherInstructions furtherInstructions;
+    }
+
     constructor(address _wormholeCore, address _coreRelayer) {
         wormhole = IWormhole(_wormholeCore);
         relayer = IWormholeRelayer(_coreRelayer);
@@ -138,4 +150,32 @@ contract MockRelayerIntegration is IWormholeReceiver {
     function emitterAddress() public view returns (bytes32) {
         return bytes32(uint256(uint160(address(this))));
     }
+
+    function encodeMessage(Message message) public view returns (bytes encodedMessage) {
+        encodedMessage = abi.encodePacked(uint16(message.text.length), message.text, uint8(0));
+    }
+
+    function encodeMessage(Message message, ForwardingInstructions forwardingInstructions) public view returns (bytes encodedMessage) {
+        encodedMessage = abi.encodePacked(encodeMessage(message), uint8(forwardingInstructions.keepSending), uint16(forwardingInstructions.newMessage.length), uint16(forwardingInstuctions.chains.length));
+        for(uint16 i=0; i<forwardingInstructions.chains.length; i++) {
+             encodedMessage = abi.encodePacked(encodedMessage, forwardingInstructions.chains[i], forwardingInstructions.gasLimits[i]);
+        }
+    }
+
+    function decodeMessage(bytes encodedMessage) public view returns (Message message) {
+        uint256 index = 0;
+        uint16 length = encodedMessage.toUint16(index);
+        index += 2;
+        message.text = encodedMessage.slice(index, length);
+        index += length;
+        message.forwardingInstructions.keepSending = encodedMessage.toUint8(index) == 1;
+        index += 1;
+        length = encodedMessage.toUint16(index);
+        index += 2;
+        uint16[] chains = new uint16[](length);
+        uint32[] gasLimits = new uint32[](length);
+        message.forwardingInstructions.
+    }
+
+    
 }
