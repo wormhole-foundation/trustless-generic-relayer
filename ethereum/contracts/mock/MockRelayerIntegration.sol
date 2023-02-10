@@ -45,7 +45,10 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint16 targetChainId,
         address destination,
         address refundAddress
-    ) public payable {
+    )
+        public
+        payable
+    {
         executeSend(abi.encodePacked(uint8(1), _message), targetChainId, destination, refundAddress, 0, 1);
     }
 
@@ -56,7 +59,10 @@ contract MockRelayerIntegration is IWormholeReceiver {
         address refundAddress,
         uint256 applicationBudget,
         uint32 nonce
-    ) public payable {
+    )
+        public
+        payable
+    {
         executeSend(fullMessage, targetChainId, destination, refundAddress, applicationBudget, nonce);
     }
 
@@ -67,7 +73,9 @@ contract MockRelayerIntegration is IWormholeReceiver {
         address refundAddress,
         uint256 applicationBudget,
         uint32 nonce
-    ) internal {
+    )
+        internal
+    {
         wormhole.publishMessage{value: wormhole.messageFee()}(nonce, fullMessage, 200);
 
         ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({

@@ -11,23 +11,16 @@ import "./CoreRelayerStructs.sol";
 contract CoreRelayer is CoreRelayerGovernance {
     using BytesLib for bytes;
 
-    event DeliverySuccess(
-        bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence
-    );
-    event DeliveryFailure(
-        bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence
-    );
-    event ForwardRequestFailure(
-        bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence
-    );
-    event ForwardRequestSuccess(
-        bytes32 indexed deliveryVaaHash, address indexed recipientContract, uint16 sourceChain, uint64 indexed sequence
-    );
-    event InvalidRedelivery(
-        bytes32 indexed redeliveryVaaHash,
-        address indexed recipientContract,
-        uint16 sourceChain,
-        uint64 indexed sequence
+    enum DeliveryStatus {
+        SUCCESS,
+        RECEIVER_FAILURE,
+        FORWARD_REQUEST_FAILURE,
+        FORWARD_REQUEST_SUCCESS,
+        INVALID_REDELIVERY
+    }
+
+    event Delivery(
+        address indexed recipientContract, uint16 indexed sourceChain, uint64 indexed sequence, bytes32 deliveryVaaHash, uint8 status
     );
 
     error InsufficientFunds(string reason);
@@ -121,7 +114,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 applicationBudgetTarget,
         uint256 maximumRefund,
         IRelayProvider provider
-    ) internal returns (uint64 sequence) {
+    )
+        internal
+        returns (uint64 sequence)
+    {
         bytes memory instruction = convertToEncodedRedeliveryByTxHashInstruction(
             request,
             applicationBudgetTarget,
@@ -366,12 +362,14 @@ contract CoreRelayer is CoreRelayerGovernance {
         requestFee = args.computeBudgetSource + args.applicationBudgetSource;
         applicationBudgetTarget =
             convertApplicationBudgetAmount(args.applicationBudgetSource, args.targetChain, args.provider);
-        uint256 overheadFeeSource = args.isDelivery
+        uint256 overheadFeeSource =
+            args.isDelivery
             ? args.provider.quoteDeliveryOverhead(args.targetChain)
             : args.provider.quoteRedeliveryOverhead(args.targetChain);
         uint256 overheadBudgetTarget =
             assetConversionHelper(args.sourceChain, overheadFeeSource, args.targetChain, 1, 1, true, args.provider);
-        maximumRefund = args.isDelivery
+        maximumRefund =
+            args.isDelivery
             ? calculateTargetDeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider)
             : calculateTargetRedeliveryMaximumRefund(args.targetChain, args.computeBudgetSource, args.provider);
 
@@ -401,7 +399,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         address payable relayerRefund,
         uint16 sourceChain,
         uint64 sourceSequence
-    ) internal {
+    )
+        internal
+    {
         //REVISE Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
@@ -424,7 +424,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         // to setup the arguments for the call just after our measurement.
         // This means the refund could be off by a few units of gas.
         // Thus, we ensure the overhead doesn't cause an overflow in our refund formula here.
-        uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
+        uint256 gasUsed =
+            (preGas - postGas) > internalInstruction.executionParameters.gasLimit
             ? internalInstruction.executionParameters.gasLimit
             : (preGas - postGas);
 
@@ -608,7 +609,11 @@ contract CoreRelayer is CoreRelayerGovernance {
     function validateRedeliverySingle(
         RedeliveryByTxHashInstruction memory redeliveryInstruction,
         DeliveryInstruction memory originalInstruction
-    ) internal view returns (DeliveryInstruction memory deliveryInstruction, bool isValid) {
+    )
+        internal
+        view
+        returns (DeliveryInstruction memory deliveryInstruction, bool isValid)
+    {
         //All the same checks as delivery single, with a couple additional
         isValid = true;
 
@@ -745,7 +750,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     /**
      * Given a targetChain, computeBudget, and a relay provider, this function calculates what the gas limit of the delivery transaction
-     *     should be.
+     * should be.
      */
     function calculateTargetGasDeliveryAmount(uint16 targetChain, uint256 computeBudget, IRelayProvider provider)
         internal
@@ -769,7 +774,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     /**
      * Given a targetChain, computeBudget, and a relay provider, this function calculates what the gas limit of the redelivery transaction
-     *     should be.
+     * should be.
      */
     function calculateTargetGasRedeliveryAmount(uint16 targetChain, uint256 computeBudget, IRelayProvider provider)
         internal
@@ -796,7 +801,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 computeBudget,
         uint256 deliveryOverhead,
         IRelayProvider provider
-    ) internal view returns (uint32 gasAmount) {
+    )
+        internal
+        view
+        returns (uint32 gasAmount)
+    {
         if (computeBudget <= deliveryOverhead) {
             gasAmount = 0;
         } else {
@@ -814,7 +823,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 computeBudget,
         uint256 deliveryOverhead,
         IRelayProvider provider
-    ) internal view returns (uint256 maximumRefund) {
+    )
+        internal
+        view
+        returns (uint256 maximumRefund)
+    {
         if (computeBudget >= deliveryOverhead) {
             uint256 remainder = computeBudget - deliveryOverhead;
             maximumRefund = assetConversionHelper(chainId(), remainder, targetChain, 1, 1, false, provider);
@@ -848,7 +861,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 multiplierDenominator,
         bool roundUp,
         IRelayProvider provider
-    ) internal view returns (uint256 targetAmount) {
+    )
+        internal
+        view
+        returns (uint256 targetAmount)
+    {
         uint256 srcNativeCurrencyPrice = provider.quoteAssetPrice(sourceChain);
         if (srcNativeCurrencyPrice == 0) {
             revert SrcNativeCurrencyPriceIsZero();
@@ -899,7 +916,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 maximumRefund,
         uint32 gasLimit,
         IRelayProvider provider
-    ) internal view returns (bytes memory encoded) {
+    )
+        internal
+        view
+        returns (bytes memory encoded)
+    {
         encoded = abi.encodePacked(
             uint8(2), //version payload number
             uint16(request.sourceChain),

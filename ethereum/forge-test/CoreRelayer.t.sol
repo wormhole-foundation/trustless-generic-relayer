@@ -173,7 +173,10 @@ contract TestCoreRelayer is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
         uint32 minTargetGasLimit
-    ) public returns (StandardSetupTwoChains memory s) {
+    )
+        public
+        returns (StandardSetupTwoChains memory s)
+    {
         vm.assume(gasParams.evmGasOverhead > 0);
         vm.assume(gasParams.targetGasLimit > 0);
         vm.assume(feeParams.targetNativePrice > 0);
@@ -296,7 +299,9 @@ contract TestCoreRelayer is Test {
         uint16 currentChainId,
         uint16 chainId,
         bytes32 coreRelayerContractAddress
-    ) internal {
+    )
+        internal
+    {
         bytes32 coreRelayerModule = 0x000000000000000000000000000000000000000000436f726552656c61796572;
         bytes memory message =
             abi.encodePacked(coreRelayerModule, uint8(2), uint16(currentChainId), chainId, coreRelayerContractAddress);
@@ -413,7 +418,9 @@ contract TestCoreRelayer is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
         bytes memory message
-    ) public {
+    )
+        public
+    {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         vm.recordLogs();
@@ -554,7 +561,9 @@ contract TestCoreRelayer is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
         bytes memory message
-    ) public {
+    )
+        public
+    {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
         vm.assume(feeParams.applicationBudgetTarget > 0);
         vm.recordLogs();
@@ -642,7 +651,9 @@ contract TestCoreRelayer is Test {
         FeeParameters memory feeParams,
         bytes memory message,
         bytes memory secondMessage
-    ) public {
+    )
+        public
+    {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         // estimate the cost based on the intialized values
@@ -741,7 +752,9 @@ contract TestCoreRelayer is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
         bytes memory message
-    ) public {
+    )
+        public
+    {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         vm.recordLogs();
@@ -997,7 +1010,9 @@ contract TestCoreRelayer is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
         bytes memory message
-    ) public {
+    )
+        public
+    {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         vm.recordLogs();
@@ -1146,7 +1161,9 @@ contract TestCoreRelayer is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
         bytes memory message
-    ) public {
+    )
+        public
+    {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         vm.recordLogs();
@@ -1276,7 +1293,9 @@ contract TestCoreRelayer is Test {
         bytes memory encodedVM,
         bytes[] memory deliveryInstructions,
         IWormhole.VM memory parsed
-    ) internal {
+    )
+        internal
+    {
         uint8 payloadId = parsed.payload.toUint8(0);
         if (payloadId == 1) {
             ICoreRelayer.DeliveryInstructionsContainer memory container =
