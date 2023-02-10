@@ -31,7 +31,9 @@ contract XmintHub is ERC20, IWormholeReceiver {
         address coreBridgeAddress,
         address tokenBridgeAddress,
         address coreRelayerAddress
-    ) ERC20(name_, symbol_) {
+    )
+        ERC20(name_, symbol_)
+    {
         owner = msg.sender;
         core_bridge = IWormhole(coreBridgeAddress);
         token_bridge = ITokenBridge(tokenBridgeAddress);
@@ -40,7 +42,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
 
     /**
      * This function is used to add spoke contract deployments into the trusted addresses of this
-     *     contract.
+     * contract.
      */
     function registerApplicationContracts(uint16 chainId, bytes32 emitterAddr) public {
         require(msg.sender == owner, "Only owner can register new chains!");
