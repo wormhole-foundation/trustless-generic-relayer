@@ -30,7 +30,7 @@ async function run(
   sourceTxHash: string
 ) {
   const coreRelayer = getCoreRelayer(sourceChain)
-  const relayProvider = coreRelayer.getDefaultRelayProvider()
+  const relayProvider = await coreRelayer.getDefaultRelayProvider()
 
   const relayQuote = await (
     await coreRelayer.quoteGas(targetChain.chainId, 2000000, relayProvider)

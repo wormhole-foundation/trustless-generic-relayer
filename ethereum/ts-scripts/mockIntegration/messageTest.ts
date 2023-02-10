@@ -47,7 +47,7 @@ async function sendMessage(
     await sourceRelayer.quoteGas(
       targetChain.chainId,
       2000000,
-      sourceRelayer.getDefaultRelayProvider()
+      await sourceRelayer.getDefaultRelayProvider()
     )
   ).add(10000000000)
   console.log("relay quote: " + relayQuote)
