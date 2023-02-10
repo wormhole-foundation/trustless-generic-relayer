@@ -6,9 +6,9 @@ Develop a common standard for a cross-chain relaying system that any application
 
 ## Background
 
-In the current design of Wormhole, user applications have 2 options to relay messages across chains - (1) users manually redeem messages and (2) applications build and mantain a specialized relayer network.
+In the current design of Wormhole, user applications have 2 options to relay messages across chains - (1) users manually redeem messages and (2) applications build and maintain a specialized relayer network.
 
-Both of these paradigms present shortcomings for users and integrators respectively. For users, there is an added friction in the UX in the form of an additional interaction and requirement of owning assets on both the source and destination chain to pay for gas. For integrators, specialized relayers represent another piece of infrastructure that represents additional liveness and potential legal responsiblity.
+Both of these paradigms present shortcomings for users and integrators respectively. For users, there is an added friction in the UX in the form of an additional interaction and requirement of owning assets on both the source and destination chain to pay for gas. For integrators, specialized relayers represent another piece of infrastructure that represents additional liveness and potential legal responsibility.
 
 A decentralized network of generic relayers can address the shortcomings of both of the two current relaying methods by handling the cross-chain message redemption and submission on behalf of users and be a separate decentralized service that integrators can leverage.
 
@@ -31,7 +31,7 @@ Generic relayers consist of three components:
 
 1. `CoreRelayer` contract lives on all chains that integrators interact with to request for a generic relayer to deliver a cross-chain message.
 2. `GasOracle` contract lives on all chains that provides an estimate to the gas costs associated with a particular cross-chain message. This is a critical function to ensure that users/applications are appropriately covering the costs that relayers face when submitting a transaction on the destination chain.
-3. Off-chain Relayer that listens for VAAs that it is assigned to, redeem the VAA from the Guardian Network, and submit the VAA on the destination chain.
+3. Off-chain Relayer that listens for VAAs that it is assigned to, redeems the VAA from the Guardian Network, and submits the VAA on the destination chain.
 
 ## Detailed Design
 
