@@ -46,7 +46,7 @@ async function run(
         deliveryIndex: 1,
         multisendIndex: 0,
         newComputeBudget: relayQuote,
-        newApplicationBudget: BigNumber.from(0),
+        newMaxTransactionFee: BigNumber.from(0),
         newRelayParameters: new Uint8Array(),
       },
       nonce,
