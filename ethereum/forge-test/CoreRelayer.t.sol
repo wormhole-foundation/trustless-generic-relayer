@@ -288,6 +288,7 @@ contract TestCoreRelayer is Test {
                     map[i].coreRelayerFull, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
                 );
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
+                map[i].integration.registerEmitter(j, bytes32(uint256(uint160(address(map[j].integration)))));
             }
         }
     }
@@ -345,9 +346,9 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
     }
 
     function testFundsCorrect(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
@@ -368,7 +369,7 @@ contract TestCoreRelayer is Test {
         ) + 2 * setup.source.wormhole.messageFee() + receiverValueSource;
 
         setup.source.integration.sendMessageGeneral{value: payment}(
-            abi.encodePacked(uint8(0), message),
+            message,
             setup.targetChainId,
             address(setup.target.integration),
             address(setup.target.refundAddress),
@@ -376,9 +377,9 @@ contract TestCoreRelayer is Test {
             1
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
 
         uint256 USDcost = uint256(payment) * feeParams.sourceNativePrice
             - (setup.target.refundAddress.balance - refundAddressBalance) * feeParams.targetNativePrice;
@@ -431,7 +432,7 @@ contract TestCoreRelayer is Test {
         ) + 2 * setup.source.wormhole.messageFee() + receiverValueSource;
 
         setup.source.integration.sendMessageGeneral{value: payment}(
-            abi.encodePacked(uint8(0), message),
+            message,
             setup.targetChainId,
             address(setup.target.integration),
             address(setup.target.refundAddress),
@@ -439,7 +440,7 @@ contract TestCoreRelayer is Test {
             1
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
         uint256 USDcost = uint256(payment) * feeParams.sourceNativePrice
             - (setup.target.refundAddress.balance - refundAddressBalance) * feeParams.targetNativePrice;
@@ -487,13 +488,13 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
 
-        genericRelayer(setup.targetChainId, 2);
+        genericRelayer(setup.targetChainId, 3);
 
-        assertTrue(keccak256(setup.source.integration.getMessage()) == keccak256(bytes("received!")));
+        assertTrue(keccak256(setup.source.integration.getFirstMessage()) == keccak256(bytes("received!")));
     }
 
     function testRedelivery(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
@@ -517,10 +518,10 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
         assertTrue(
-            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -548,7 +549,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 1);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
     }
 
     function testApplicationBudgetFeeWithRedelivery(
@@ -574,10 +575,10 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
         assertTrue(
-            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
@@ -607,7 +608,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 1);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
 
         assertTrue(address(setup.target.integration).balance >= oldBalance + feeParams.receiverValueTarget);
 
@@ -633,7 +634,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 1);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
 
         assertTrue(address(setup.target.integration).balance < oldBalance + feeParams.receiverValueTarget);
     }
@@ -658,9 +659,9 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
 
         vm.getRecordedLogs();
 
@@ -670,9 +671,9 @@ contract TestCoreRelayer is Test {
             secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(secondMessage));
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(secondMessage));
     }
 
     function testRevertNonceZero(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
@@ -689,8 +690,13 @@ contract TestCoreRelayer is Test {
         );
 
         vm.expectRevert(abi.encodeWithSignature("NonceIsZero()"));
+<<<<<<< HEAD
         setup.source.integration.sendMessageGeneral{value: maxTransactionFee + 2 * wormholeFee}(
             abi.encodePacked(uint8(0), message),
+=======
+        setup.source.integration.sendMessageGeneral{value: computeBudget + 2 * wormholeFee}(
+            message,
+>>>>>>> 74457f4 (Bugfixes)
             setup.targetChainId,
             address(setup.target.integration),
             address(setup.target.refundAddress),
@@ -763,10 +769,10 @@ contract TestCoreRelayer is Test {
                 + 2 * setup.source.wormhole.messageFee()
         }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
-        genericRelayer(setup.sourceChainId, 2);
+        genericRelayer(setup.sourceChainId, 3);
 
         assertTrue(
-            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
@@ -978,12 +984,17 @@ contract TestCoreRelayer is Test {
         vm.deal(setup.target.relayer, type(uint256).max);
 
         assertTrue(
-            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
         vm.prank(setup.target.relayer);
+<<<<<<< HEAD
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+=======
+        setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
+        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+>>>>>>> 74457f4 (Bugfixes)
     }
 
     /**
@@ -1026,9 +1037,9 @@ contract TestCoreRelayer is Test {
                 value: stack.paymentNotEnough + setup.source.wormhole.messageFee()
             }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
-            genericRelayer(setup.sourceChainId, 2);
+            genericRelayer(setup.sourceChainId, 3);
 
-            assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+            assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
             stack.entries = vm.getRecordedLogs();
 
             stack.actualVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
