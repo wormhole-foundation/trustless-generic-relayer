@@ -731,12 +731,21 @@ contract TestCoreRelayer is Test {
         }
     }
 
-    event InvalidRedelivery(
-        bytes32 indexed redeliveryVaaHash,
+    event Delivery(
         address indexed recipientContract,
-        uint16 sourceChain,
-        uint64 indexed sequence
+        uint16 indexed sourceChain,
+        uint64 indexed sequence,
+        bytes32 deliveryVaaHash,
+        uint8 status
     );
+
+    enum DeliveryStatus {
+        SUCCESS,
+        RECEIVER_FAILURE,
+        FORWARD_REQUEST_FAILURE,
+        FORWARD_REQUEST_SUCCESS,
+        INVALID_REDELIVERY
+    }
 
     function testRevertRedeliveryErrors(
         GasParameters memory gasParams,
@@ -882,7 +891,7 @@ contract TestCoreRelayer is Test {
 
         bytes32 redeliveryVmHash = relayerWormhole.parseVM(stack.redeliveryVM).hash;
         vm.expectEmit(true, true, true, true, address(setup.target.coreRelayer));
-        emit InvalidRedelivery(redeliveryVmHash, address(setup.target.integration), setup.sourceChainId, 1);
+        emit Delivery(address(setup.target.integration), setup.sourceChainId, 1, redeliveryVmHash, uint8(DeliveryStatus.INVALID_REDELIVERY));
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         uint16 differentChainId = 2;
@@ -891,7 +900,7 @@ contract TestCoreRelayer is Test {
         }
 
         vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
-        emit InvalidRedelivery(redeliveryVmHash, address(setup.target.integration), setup.sourceChainId, 1);
+        emit Delivery(address(setup.target.integration), setup.sourceChainId, 1, redeliveryVmHash, uint8(DeliveryStatus.INVALID_REDELIVERY));
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
@@ -932,7 +941,7 @@ contract TestCoreRelayer is Test {
 
         redeliveryVmHash = relayerWormhole.parseVM(fakeVM).hash;
         vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
-        emit InvalidRedelivery(redeliveryVmHash, address(setup.target.integration), setup.sourceChainId, 3);
+        emit Delivery(address(setup.target.integration), setup.sourceChainId, 3, redeliveryVmHash, uint8(DeliveryStatus.INVALID_REDELIVERY));
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayerFull.redeliverSingle{
             value: stack.payment + map[differentChainId].wormhole.messageFee()
