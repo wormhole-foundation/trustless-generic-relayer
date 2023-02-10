@@ -35,7 +35,7 @@ Generic relayers consist of three components:
 
 ## Detailed Design
 
-The interface to the Generic Relayer can be found [here](https://github.com/certusone/generic-relayer/blob/relayer/ethereum/contracts/interfaces/ICoreRelayer.sol)
+The interface to the Generic Relayer can be found [here](https://github.com/certusone/generic-relayer/blob/relayer/ethereum/contracts/interfaces/IWormholeRelayer.sol)
 
 ## Local Node Tests
 

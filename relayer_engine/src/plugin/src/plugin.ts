@@ -530,7 +530,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     for (let i = 0; i < payload.deliveryInstructionsContainer.instructions.length; i++) {
       const ix = payload.deliveryInstructionsContainer.instructions[i]
       const chainId = assertEvmChainId(ix.targetChain)
-      const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget).add(100)
+      const budget = ix.receiverValueTarget.add(ix.maximumRefundTarget).add(100)
 
       // todo: consider parallelizing this
       await execute.onEVM({
@@ -591,8 +591,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           return
         }
 
-        const { newApplicationBudgetTarget, newMaximumRefundTarget } = redelivery.ix
-        const budget = newApplicationBudgetTarget.add(newMaximumRefundTarget).add(100)
+        const { newReceiverValueTarget, newMaximumRefundTarget } = redelivery.ix
+        const budget = newReceiverValueTarget.add(newMaximumRefundTarget).add(100)
         const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
           sourceEncodedVMs: payload.vaas,
           redeliveryVM: redelivery.vaa.bytes,
