@@ -40,9 +40,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     error InvalidRedeliveryVM(string reason);
     error InvalidEmitterInRedeliveryVM();
     error MismatchingRelayProvidersInRedelivery(); // The same relay provider must be specified when doing a single VAA redeliver
-    error ProviderAddressIsNotSender(); // msg.sender must be the provider
-    error RedeliveryRequestDoesNotTargetThisChain();
-    error OriginalSendDidNotTargetThisChain();
     error InvalidVaa(uint8 index);
     error InvalidEmitter();
     error SendNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
@@ -50,8 +47,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
     error AlreadyDelivered(); // The message was already delivered.
     error TargetChainIsNotThisChain(uint16 targetChainId);
-    error SrcNativeCurrencyPriceIsZero();
-    error DstNativeCurrencyPriceIsZero();
 
     function send(Send memory request, uint32 nonce, IRelayProvider provider)
         public
@@ -861,12 +856,12 @@ contract CoreRelayer is CoreRelayerGovernance {
     ) internal view returns (uint256 targetAmount) {
         uint256 srcNativeCurrencyPrice = provider.quoteAssetPrice(sourceChain);
         if (srcNativeCurrencyPrice == 0) {
-            revert SrcNativeCurrencyPriceIsZero();
+            revert RelayProviderDoesNotSupportTargetChain();
         }
 
         uint256 dstNativeCurrencyPrice = provider.quoteAssetPrice(targetChain);
         if (dstNativeCurrencyPrice == 0) {
-            revert DstNativeCurrencyPriceIsZero();
+            revert RelayProviderDoesNotSupportTargetChain();
         }
         uint256 numerator = sourceAmount * srcNativeCurrencyPrice * multiplier;
         uint256 denominator = dstNativeCurrencyPrice * multiplierDenominator;

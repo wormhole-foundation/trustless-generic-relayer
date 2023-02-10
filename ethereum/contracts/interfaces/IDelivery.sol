@@ -29,9 +29,7 @@ interface IDelivery {
     error InvalidRedeliveryVM(string reason);
     error InvalidEmitterInRedeliveryVM();
     error MismatchingRelayProvidersInRedelivery(); // The same relay provider must be specified when doing a single VAA redeliver
-    error ProviderAddressIsNotSender(); // msg.sender must be the provider
-    error RedeliveryRequestDoesNotTargetThisChain();
-    error OriginalSendDidNotTargetThisChain();
+    error UnexpectedRelayer(); // msg.sender must be the provider
     error InvalidVaa(uint8 index);
     error InvalidEmitter();
     error SendNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
