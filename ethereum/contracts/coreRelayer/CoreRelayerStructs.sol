@@ -59,8 +59,8 @@ abstract contract CoreRelayerStructs {
         uint16 targetChain;
         uint8 deliveryIndex;
         uint8 multisendIndex;
-        uint256 newComputeBudget;
-        uint256 newApplicationBudget;
+        uint256 newMaxTransactionFee;
+        uint256 newReceiverValue;
         bytes newRelayParameters;
     }
 
@@ -102,7 +102,7 @@ abstract contract CoreRelayerStructs {
         uint8 deliveryIndex;
         uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
-        uint256 newApplicationBudgetTarget;
+        uint256 newReceiverValueTarget;
         ExecutionParameters executionParameters;
     }
 

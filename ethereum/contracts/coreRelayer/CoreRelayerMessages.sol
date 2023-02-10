@@ -46,7 +46,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.newMaximumRefundTarget = encoded.toUint256(index);
         index += 32;
 
-        instruction.newApplicationBudgetTarget = encoded.toUint256(index);
+        instruction.newReceiverValueTarget = encoded.toUint256(index);
         index += 32;
 
         instruction.executionParameters.version = encoded.toUint8(index);

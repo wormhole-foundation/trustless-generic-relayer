@@ -523,10 +523,10 @@ contract TestCoreRelayer is Test {
             (keccak256(setup.target.integration.getMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 deliveryVaaHash = logs[0].data.toBytes32(0);
 
-        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].topics[1];
-
-        uint256 newApplicationBudgetFee = setup.source.coreRelayer.quoteReceiverValue(
+        uint256 newMaxTransactionFeeFee = setup.source.coreRelayer.quoteReceiverValue(
             setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
         );
 
@@ -538,11 +538,11 @@ contract TestCoreRelayer is Test {
             deliveryIndex: uint8(1),
             multisendIndex: uint8(0),
             newMaxTransactionFee: payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: newApplicationBudgetFee,
+            newReceiverValue: newMaxTransactionFeeFee,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        setup.source.coreRelayer.resend{value: payment + newApplicationBudgetFee}(
+        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
             redeliveryRequest, 1, address(setup.source.relayProvider)
         );
 
@@ -581,9 +581,9 @@ contract TestCoreRelayer is Test {
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
-        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].topics[1];
+        bytes32 deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
 
-        uint256 newApplicationBudgetFee = setup.source.coreRelayer.quoteReceiverValue(
+        uint256 newMaxTransactionFeeFee = setup.source.coreRelayer.quoteReceiverValue(
             setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
         );
 
@@ -595,13 +595,13 @@ contract TestCoreRelayer is Test {
             deliveryIndex: 1,
             multisendIndex: 0,
             newMaxTransactionFee: payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: newApplicationBudgetFee,
+            newReceiverValue: newMaxTransactionFeeFee,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
         vm.deal(address(this), type(uint256).max);
 
-        setup.source.coreRelayer.resend{value: payment + newApplicationBudgetFee}(
+        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
             redeliveryRequest, 1, address(setup.source.relayProvider)
         );
 
@@ -621,13 +621,13 @@ contract TestCoreRelayer is Test {
             deliveryIndex: 1,
             multisendIndex: 0,
             newMaxTransactionFee: payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: newApplicationBudgetFee - 1,
+            newReceiverValue: newMaxTransactionFeeFee - 1,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        vm.deal(address(this), payment + newApplicationBudgetFee - 1);
+        vm.deal(address(this), payment + newMaxTransactionFeeFee - 1);
 
-        setup.source.coreRelayer.resend{value: payment + newApplicationBudgetFee - 1}(
+        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee - 1}(
             redeliveryRequest, 1, address(setup.source.relayProvider)
         );
 
@@ -761,7 +761,7 @@ contract TestCoreRelayer is Test {
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
-        stack.deliveryVaaHash = vm.getRecordedLogs()[0].topics[1];
+        stack.deliveryVaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
 
         stack.payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
@@ -808,7 +808,7 @@ contract TestCoreRelayer is Test {
         stack.parsed = relayerWormhole.parseVM(stack.redeliveryVM);
         stack.instruction = setup.target.coreRelayerFull.getRedeliveryByTxHashInstruction(stack.parsed.payload);
 
-        stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newApplicationBudgetTarget
+        stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newReceiverValueTarget
             + setup.target.wormhole.messageFee();
 
         vm.prank(setup.target.relayer);
@@ -1284,7 +1284,7 @@ contract TestCoreRelayer is Test {
             CoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
-            uint256 budget = instruction.newMaximumRefundTarget + instruction.newApplicationBudgetTarget
+            uint256 budget = instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
                 + map[targetChain].wormhole.messageFee();
             CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle memory package = CoreRelayerStructs
                 .TargetRedeliveryByTxHashParamsSingle({

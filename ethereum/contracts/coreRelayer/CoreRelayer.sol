@@ -89,8 +89,8 @@ contract CoreRelayer is CoreRelayerGovernance {
                 provider: provider,
                 sourceChain: chainId(),
                 targetChain: request.targetChain,
-                maxTransactionFeeSource: request.newComputeBudget,
-                receiverValueSource: request.newApplicationBudget,
+                maxTransactionFeeSource: request.newMaxTransactionFee,
+                receiverValueSource: request.newReceiverValue,
                 isDelivery: false
             })
         );
@@ -122,7 +122,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             request,
             receiverValueTarget,
             maximumRefund,
-            calculateTargetGasRedeliveryAmount(request.targetChain, request.newComputeBudget, provider),
+            calculateTargetGasRedeliveryAmount(request.targetChain, request.newMaxTransactionFee, provider),
             provider
         );
 
@@ -645,7 +645,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         //maxTransactionFee & receiverValue must be at least as large as the initial delivery
-        if (originalInstruction.receiverValueTarget > redeliveryInstruction.newApplicationBudgetTarget) {
+        if (originalInstruction.receiverValueTarget > redeliveryInstruction.newReceiverValueTarget) {
             isValid = false; //new application budget is smaller than the original
         }
 
@@ -656,14 +656,14 @@ contract CoreRelayer is CoreRelayerGovernance {
         //relayer must have covered the necessary funds
         if (
             msg.value
-                < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newApplicationBudgetTarget
+                < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newReceiverValueTarget
                     + wormhole().messageFee()
         ) {
             revert InsufficientRelayerFunds();
         }
         //Overwrite compute budget and application budget on the original request and proceed.
         originalInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
-        originalInstruction.receiverValueTarget = redeliveryInstruction.newApplicationBudgetTarget;
+        originalInstruction.receiverValueTarget = redeliveryInstruction.newReceiverValueTarget;
         originalInstruction.executionParameters = redeliveryInstruction.executionParameters;
         deliveryInstruction = originalInstruction;
     }
