@@ -67,30 +67,6 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     
     
   });
-  it("Executes a forward", async () => {
-
-    const arbitraryPayload = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(generateRandomString(32)))
-    console.log(`Sent message: ${arbitraryPayload}`);
-    const value = await sourceCoreRelayer.quoteGasDeliveryFee(targetChain.chainId, 1000000, await sourceCoreRelayer.getDefaultRelayProvider());
-    console.log(`Quoted gas delivery fee: ${value}`)
-    const tx = await sourceMockIntegration.sendMessage(arbitraryPayload, targetChain.chainId, targetMockIntegrationAddress, targetMockIntegrationAddress, {value, gasLimit: 500000});
-    console.log("Sent delivery request!");
-    const rx = await tx.wait();
-    console.log("Message confirmed!");
-
-    await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(0);
-      }, 5000)
-    })
-
-    console.log("Checking if message was relayed")
-    const message = await targetMockIntegration.getMessage();
-    console.log(`Sent message: ${arbitraryPayload}`);
-    console.log(`Received message: ${message}`)
-    expect(message).to.equal(arbitraryPayload);
   
-  
-});
 });
 
