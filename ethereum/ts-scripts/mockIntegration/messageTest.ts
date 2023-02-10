@@ -1,6 +1,5 @@
 import * as wh from "@certusone/wormhole-sdk"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
-import { getSignatureSetData } from "@certusone/wormhole-sdk/lib/cjs/solana/wormhole"
 import { LogMessagePublishedEvent } from "../../../sdk/src"
 import {
   ChainInfo,
@@ -20,7 +19,8 @@ const chains = loadChains()
 async function sendMessage(
   sourceChain: ChainInfo,
   targetChain: ChainInfo,
-  fetchSignedVaa: boolean = false
+  fetchSignedVaa: boolean = false,
+  queryMessageOnTarget: boolean = false
 ) {
   console.log(
     `Sending message from chain ${sourceChain.chainId} to ${targetChain.chainId}...`
@@ -55,8 +55,9 @@ async function sendMessage(
   const mockIntegration = getMockIntegration(sourceChain)
   const targetAddress = getMockIntegrationAddress(targetChain)
 
+  const sentMessage = Buffer.from("Hello World: " + String(Math.ceil(Math.random() * 100)))
   const tx = await mockIntegration.sendMessage(
-    Buffer.from("Hello World"),
+    sentMessage,
     targetChain.chainId,
     targetAddress,
     targetAddress,
@@ -86,40 +87,54 @@ async function sendMessage(
       await new Promise((resolve) => setTimeout(resolve, 1_000))
     }
   }
+  if (queryMessageOnTarget) {
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 5000))
+    const targetIntegration = getMockIntegration(targetChain)
+    const message = await targetIntegration.getMessage()
+    const messageParsed = Buffer.from(message, "hex").toString("utf-8")
+    console.log(`Sent message: ${sentMessage}`)
+    console.log(`Received message: ${message}`)
+  }
   console.log("")
 }
 
 async function run() {
   console.log(process.argv)
   const fetchSignedVaa = !!process.argv.find((arg) => arg === "--fetchSignedVaa")
+  const queryMessageOnTarget = !!process.argv.find(
+    (arg) => arg === "--queryMessageOnTarget"
+  )
   if (process.argv[2] === "--from" && process.argv[4] === "--to") {
     await sendMessage(
       getChainById(process.argv[3]),
       getChainById(process.argv[5]),
-      fetchSignedVaa
+      fetchSignedVaa,
+      queryMessageOnTarget
     )
   } else if (process.argv[4] === "--from" && process.argv[2] === "--to") {
     await sendMessage(
       getChainById(process.argv[5]),
       getChainById(process.argv[3]),
-      fetchSignedVaa
+      fetchSignedVaa,
+      queryMessageOnTarget
     )
   } else if (process.argv[2] === "--per-chain") {
     for (let i = 0; i < chains.length; ++i) {
       await sendMessage(
         chains[i],
         chains[i === 0 ? chains.length - 1 : 0],
-        fetchSignedVaa
+        fetchSignedVaa,
+        queryMessageOnTarget
       )
     }
   } else if (process.argv[2] === "--matrix") {
     for (let i = 0; i < chains.length; ++i) {
       for (let j = 0; i < chains.length; ++i) {
-        await sendMessage(chains[i], chains[j], fetchSignedVaa)
+        await sendMessage(chains[i], chains[j], fetchSignedVaa, queryMessageOnTarget)
       }
     }
   } else {
-    await sendMessage(chains[0], chains[1], fetchSignedVaa)
+    await sendMessage(chains[0], chains[1], fetchSignedVaa, queryMessageOnTarget)
   }
 }
 
