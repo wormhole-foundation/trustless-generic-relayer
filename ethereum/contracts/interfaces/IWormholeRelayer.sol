@@ -13,10 +13,7 @@ interface IWormholeRelayer {
         uint256 maxTransactionFee,
         uint256 receiverValue,
         uint32 nonce
-    )
-        external
-        payable
-        returns (uint64 sequence);
+    ) external payable returns (uint64 sequence);
 
     function forward(
         uint16 targetChain,
@@ -25,9 +22,7 @@ interface IWormholeRelayer {
         uint256 maxTransactionFee,
         uint256 receiverValue,
         uint32 nonce
-    )
-        external
-        payable;
+    ) external payable;
 
     function send(Send memory request, uint32 nonce, address relayProvider)
         external
@@ -48,7 +43,7 @@ interface IWormholeRelayer {
 
     /**
      * @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
-     * the requested budgets have been covered. The remaining funds will be added to the computeBudget of the rollover chain.
+     * the requested budgets have been covered. The remaining funds will be added to the maxTransactionFee of the rollover chain.
      */
     function multichainForward(MultichainSend memory deliveryRequests, uint16 rolloverChain, uint32 nonce)
         external
@@ -85,9 +80,9 @@ interface IWormholeRelayer {
     /**
      * targetChain - the chain to send to in Wormhole Chain ID format.
      * targetAddress - is the recipient contract address on the target chain (in Wormhole 32-byte address format).
-     * refundAddress - is the address where any remaining computeBudget should be sent at the end of the transaction. (In Wormhole address format. Must be on the target chain.)
-     * computeBudget - is the maximum amount (denominated in this chain's wei) that the relayer should spend on transaction fees (gas) for this delivery. Usually calculated from quoteEvmDeliveryPrice.
-     * applicationBudget - this amount (denominated in this chain's wei) will be converted to the target native currency and given to the recipient contract at the beginning of the delivery execution.
+     * refundAddress - is the address where any remaining maxTransactionFee should be sent at the end of the transaction. (In Wormhole address format. Must be on the target chain.)
+     * maxTransactionFee - is the maximum amount (denominated in this chain's wei) that the relayer should spend on transaction fees (gas) for this delivery. Usually calculated from quoteEvmDeliveryPrice.
+     * receiverValue - this amount (denominated in this chain's wei) will be converted to the target native currency and given to the recipient contract at the beginning of the delivery execution.
      * relayParameters - optional payload which can alter relayer behavior.
      */
     struct Send {
@@ -96,7 +91,7 @@ interface IWormholeRelayer {
         bytes32 refundAddress;
         uint256 maxTransactionFee;
         uint256 receiverValue;
-        bytes relayParameters; 
+        bytes relayParameters;
     }
 
     struct ResendByTx {
@@ -118,6 +113,6 @@ interface IWormholeRelayer {
     error MultipleForwardsRequested();
     error RelayProviderDoesNotSupportTargetChain();
     error RolloverChainNotIncluded(); // Rollover chain was not included in the forwarding request
-    error ChainNotFoundInDeliveryRequests(uint16 chainId); // Required chain not found in the delivery requests
+    error ChainNotFoundInSends(uint16 chainId); // Required chain not found in the delivery requests
     error ReentrantCall();
 }

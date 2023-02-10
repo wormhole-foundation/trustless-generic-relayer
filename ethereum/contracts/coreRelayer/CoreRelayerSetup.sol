@@ -21,9 +21,7 @@ contract CoreRelayerSetup is CoreRelayerSetters, ERC1967Upgrade {
         uint16 governanceChainId,
         bytes32 governanceContract,
         uint256 evmChainId
-    )
-        public
-    {
+    ) public {
         // sanity check initial values
         if (implementation == address(0)) {
             revert ImplementationAddressIsZero();

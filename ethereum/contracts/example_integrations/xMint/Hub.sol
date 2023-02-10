@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../../interfaces/IWormhole.sol";
 import "../../interfaces/ITokenBridge.sol";
 import "../../interfaces/IWormholeReceiver.sol";
-import "../../interfaces/ICoreRelayer.sol";
+import "../../interfaces/IWormholeRelayer.sol";
 
 contract XmintHub is ERC20, IWormholeReceiver {
     //using BytesLib for bytes;
@@ -17,7 +17,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
     address owner;
     IWormhole core_bridge;
     ITokenBridge token_bridge;
-    ICoreRelayer core_relayer;
+    IWormholeRelayer core_relayer;
     uint32 nonce = 1;
     uint8 consistencyLevel = 200;
 
@@ -31,13 +31,11 @@ contract XmintHub is ERC20, IWormholeReceiver {
         address coreBridgeAddress,
         address tokenBridgeAddress,
         address coreRelayerAddress
-    )
-        ERC20(name_, symbol_)
-    {
+    ) ERC20(name_, symbol_) {
         owner = msg.sender;
         core_bridge = IWormhole(coreBridgeAddress);
         token_bridge = ITokenBridge(tokenBridgeAddress);
-        core_relayer = ICoreRelayer(coreRelayerAddress);
+        core_relayer = IWormholeRelayer(coreRelayerAddress);
     }
 
     /**
@@ -93,21 +91,20 @@ contract XmintHub is ERC20, IWormholeReceiver {
     }
 
     function requestForward(uint16 targetChain, bytes32 intendedRecipient) internal {
-        uint256 computeBudget = core_relayer.quoteGasDeliveryFee(
-            targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider()
-        );
-        uint256 applicationBudget = 0;
+        uint256 maxTransactionFee =
+            core_relayer.quoteGas(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 receiverValue = 0;
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+        IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
             targetAddress: trustedContracts[targetChain],
             refundAddress: intendedRecipient, // All remaining funds will be returned to the user now
-            computeBudget: computeBudget,
-            applicationBudget: applicationBudget, // not needed in this case.
+            maxTransactionFee: maxTransactionFee,
+            receiverValue: receiverValue, // not needed in this case.
             relayParameters: core_relayer.getDefaultRelayParams() //no overrides
         });
 
-        core_relayer.requestDelivery{value: computeBudget + applicationBudget}(
+        core_relayer.send{value: maxTransactionFee + receiverValue}(
             request, nonce, core_relayer.getDefaultRelayProvider()
         );
     }

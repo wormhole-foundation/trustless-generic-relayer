@@ -85,9 +85,7 @@ contract TestRelayProvider is Test {
         uint16 updateChainId,
         uint128 updateGasPrice,
         uint128 updateNativeCurrencyPrice
-    )
-        public
-    {
+    ) public {
         vm.assume(oracleOwner != address(0));
         vm.assume(oracleOwner != address(this));
         vm.assume(updateChainId > 0);
@@ -159,9 +157,7 @@ contract TestRelayProvider is Test {
         uint32 gasLimit,
         uint32 deliverGasOverhead,
         uint32 targetWormholeFee
-    )
-        public
-    {
+    ) public {
         vm.assume(dstChainId > 0);
         vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID);
         vm.assume(dstGasPrice > 0);
@@ -198,9 +194,7 @@ contract TestRelayProvider is Test {
         uint32 gasLimit,
         uint32 deliverGasOverhead,
         uint32 targetWormholeFee
-    )
-        public
-    {
+    ) public {
         vm.assume(dstChainId > 0);
         vm.assume(dstChainId != TEST_ORACLE_CHAIN_ID); // wormhole.chainId()
         vm.assume(dstGasPrice > 0);

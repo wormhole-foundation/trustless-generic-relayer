@@ -9,10 +9,10 @@ abstract contract CoreRelayerStructs {
     //This first group of structs are external facing API objects,
     //which should be considered untrusted and unmodifiable
 
-    struct DeliveryRequestsContainer {
+    struct MultichainSend {
         uint8 payloadId; // payloadID = 1
         address relayProviderAddress;
-        DeliveryRequest[] requests;
+        Send[] requests;
     }
 
     // struct TargetDeliveryParameters {
@@ -43,16 +43,16 @@ abstract contract CoreRelayerStructs {
         address payable relayerRefundAddress;
     }
 
-    struct DeliveryRequest {
+    struct Send {
         uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
-        uint256 computeBudget;
-        uint256 applicationBudget;
+        uint256 maxTransactionFee;
+        uint256 receiverValue;
         bytes relayParameters;
     }
 
-    struct RedeliveryByTxHashRequest {
+    struct ResendByTx {
         uint16 sourceChain;
         bytes32 sourceTxHash;
         uint32 sourceNonce;
@@ -83,7 +83,7 @@ abstract contract CoreRelayerStructs {
         bytes32 targetAddress;
         bytes32 refundAddress;
         uint256 maximumRefundTarget;
-        uint256 applicationBudgetTarget;
+        uint256 receiverValueTarget;
         ExecutionParameters executionParameters; //Has the gas limit to execute with
     }
 
@@ -125,5 +125,4 @@ abstract contract CoreRelayerStructs {
         uint256 msgValue;
         bool isValid;
     }
-
 }

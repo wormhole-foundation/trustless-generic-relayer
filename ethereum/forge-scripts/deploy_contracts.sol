@@ -202,7 +202,7 @@ contract ContractScript is Script {
 
         mockRelayerIntegration.sendMessage{
             gas: 1000000,
-            value: coreRelayer.quoteGasDeliveryFee(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000
+            value: coreRelayer.quoteGas(chainId, 1000000, coreRelayer.getDefaultRelayProvider()) + 10000000000
         }(abi.encode("Hello World"), chainId, address(mockRelayerIntegration));
 
         // finished
