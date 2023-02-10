@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 import "./RelayProviderGovernance.sol";
 import "./RelayProviderStructs.sol";
 import "../interfaces/IRelayProvider.sol";
-import "../interfaces/ICoreRelayer.sol";
+import "../interfaces/IDelivery.sol";
 
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     error CallerNotApproved(address msgSender);
@@ -62,7 +62,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     }
 
     //Returns a buffer amount, and a buffer denominator, whereby the bufferAmount / bufferDenominator will be reduced from
-    //applicationBudget conversions, giving an overhead to the provider on each conversion
+    //receiverValue conversions, giving an overhead to the provider on each conversion
     function getAssetConversionBuffer(uint16 targetChain)
         public
         view
@@ -92,22 +92,22 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     }
 
     //Internal delivery proxies
-    function redeliverSingle(ICoreRelayer.TargetRedeliveryByTxHashParamsSingle memory targetParams)
+    function redeliverSingle(IDelivery.TargetRedeliveryByTxHashParamsSingle memory targetParams)
         public
         payable
         onlyApprovedSender
     {
-        ICoreRelayer cr = ICoreRelayer(coreRelayer());
+        IDelivery cr = IDelivery(coreRelayer());
         targetParams.relayerRefundAddress = payable(msg.sender);
         cr.redeliverSingle{value: msg.value}(targetParams);
     }
 
-    function deliverSingle(ICoreRelayer.TargetDeliveryParametersSingle memory targetParams)
+    function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams)
         public
         payable
         onlyApprovedSender
     {
-        ICoreRelayer cr = ICoreRelayer(coreRelayer());
+        IDelivery cr = IDelivery(coreRelayer());
         targetParams.relayerRefundAddress = payable(msg.sender);
         cr.deliverSingle{value: msg.value}(targetParams);
     }

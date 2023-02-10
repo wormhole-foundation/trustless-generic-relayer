@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../../interfaces/IWormhole.sol";
 import "../../interfaces/ITokenBridge.sol";
 import "../../interfaces/IWormholeReceiver.sol";
-import "../../interfaces/ICoreRelayer.sol";
+import "../../interfaces/IWormholeRelayer.sol";
 
 contract XmintSpoke is IWormholeReceiver {
     // using BytesLib for bytes;
@@ -16,7 +16,7 @@ contract XmintSpoke is IWormholeReceiver {
 
     IWormhole core_bridge;
     ITokenBridge token_bridge;
-    ICoreRelayer core_relayer;
+    IWormholeRelayer core_relayer;
     uint16 hub_contract_chain;
     bytes32 hub_contract_address;
 
@@ -37,7 +37,7 @@ contract XmintSpoke is IWormholeReceiver {
         owner = msg.sender;
         core_bridge = IWormhole(coreBridgeAddress);
         token_bridge = ITokenBridge(tokenBridgeAddress);
-        core_relayer = ICoreRelayer(coreRelayerAddress);
+        core_relayer = IWormholeRelayer(coreRelayerAddress);
         hub_contract_chain = hubChain;
         hub_contract_address = hub_contract_address;
     }
@@ -46,9 +46,8 @@ contract XmintSpoke is IWormholeReceiver {
     //And then requests delivery from relayer network.
     function purchaseTokens() public payable {
         //Calculate how many tokens will be required to cover transaction fees.
-        uint256 deliveryFeeBuffer = core_relayer.quoteGasDeliveryFee(
-            hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider()
-        );
+        uint256 deliveryFeeBuffer =
+            core_relayer.quoteGas(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
 
         //require that enough funds were paid to cover this transaction and the relay costs
         require(msg.value > deliveryFeeBuffer + core_bridge.messageFee());
@@ -88,21 +87,20 @@ contract XmintSpoke is IWormholeReceiver {
     }
 
     function requestDelivery() internal {
-        uint256 computeBudget = core_relayer.quoteGasDeliveryFee(
-            hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider()
-        );
-        uint256 applicationBudget = 0;
+        uint256 maxTransactionFee =
+            core_relayer.quoteGas(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
+        uint256 receiverValue = 0;
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+        IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: hub_contract_chain,
             targetAddress: hub_contract_address,
             refundAddress: hub_contract_address, // This will be ignored on the target chain because the intent is to perform a forward
-            computeBudget: computeBudget,
-            applicationBudget: applicationBudget, // not needed in this case.
+            maxTransactionFee: maxTransactionFee,
+            receiverValue: receiverValue, // not needed in this case.
             relayParameters: core_relayer.getDefaultRelayParams() //no overrides
         });
 
-        core_relayer.requestDelivery{value: computeBudget + applicationBudget}(
+        core_relayer.send{value: maxTransactionFee + receiverValue}(
             request, nonce, core_relayer.getDefaultRelayProvider()
         );
     }

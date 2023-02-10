@@ -44,7 +44,7 @@ async function sendMessage(
   console.log("")
 
   const relayQuote = await (
-    await sourceRelayer.quoteGasDeliveryFee(
+    await sourceRelayer.quoteGas(
       targetChain.chainId,
       2000000,
       sourceRelayer.getDefaultRelayProvider()

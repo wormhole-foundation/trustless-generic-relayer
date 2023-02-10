@@ -33,11 +33,11 @@ async function run(
   const relayProvider = coreRelayer.getDefaultRelayProvider()
 
   const relayQuote = await (
-    await coreRelayer.quoteGasDeliveryFee(targetChain.chainId, 2000000, relayProvider)
+    await coreRelayer.quoteGas(targetChain.chainId, 2000000, relayProvider)
   ).add(10000000000)
 
   const rx = await coreRelayer
-    .requestRedelivery(
+    .resend(
       {
         sourceChain: sourceChain.chainId,
         sourceNonce: nonce,

@@ -82,10 +82,7 @@ interface ITokenBridge {
         bytes32 recipient,
         uint256 arbiterFee,
         uint32 nonce
-    )
-        external
-        payable
-        returns (uint64 sequence);
+    ) external payable returns (uint64 sequence);
 
     function transferTokensWithPayload(
         address token,
@@ -94,10 +91,7 @@ interface ITokenBridge {
         bytes32 recipient,
         uint32 nonce,
         bytes memory payload
-    )
-        external
-        payable
-        returns (uint64 sequence);
+    ) external payable returns (uint64 sequence);
 
     function updateWrapped(bytes memory encodedVm) external returns (address token);
 

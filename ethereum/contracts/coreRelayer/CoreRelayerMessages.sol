@@ -13,7 +13,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     error InvalidPayloadId(uint8 payloadId);
     error InvalidDeliveryInstructionsPayload(uint256 length);
-    error InvalidDeliveryRequestsPayload(uint256 length);
+    error InvalidSendsPayload(uint256 length);
 
     function decodeRedeliveryByTxHashInstruction(bytes memory encoded)
         internal
@@ -96,7 +96,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.maximumRefundTarget = encoded.toUint256(index);
             index += 32;
 
-            instruction.applicationBudgetTarget = encoded.toUint256(index);
+            instruction.receiverValueTarget = encoded.toUint256(index);
             index += 32;
 
             instruction.executionParameters.version = encoded.toUint8(index);
@@ -122,11 +122,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         });
     }
 
-    function encodeDeliveryRequestsContainer(DeliveryRequestsContainer memory container)
-        internal
-        pure
-        returns (bytes memory encoded)
-    {
+    function encodeMultichainSend(MultichainSend memory container) internal pure returns (bytes memory encoded) {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
             address(container.relayProviderAddress),
@@ -135,26 +131,22 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.requests.length; i++) {
-            DeliveryRequest memory request = container.requests[i];
+            Send memory request = container.requests[i];
 
             encoded = abi.encodePacked(
                 encoded,
                 request.targetChain,
                 request.targetAddress,
                 request.refundAddress,
-                request.computeBudget,
-                request.applicationBudget,
+                request.maxTransactionFee,
+                request.receiverValue,
                 uint8(request.relayParameters.length),
                 request.relayParameters
             );
         }
     }
 
-    function decodeDeliveryRequestsContainer(bytes memory encoded)
-        internal
-        pure
-        returns (DeliveryRequestsContainer memory)
-    {
+    function decodeMultichainSend(bytes memory encoded) internal pure returns (MultichainSend memory) {
         uint256 index = 0;
 
         uint8 payloadId = encoded.toUint8(index);
@@ -167,10 +159,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
 
-        DeliveryRequest[] memory requestArray = new DeliveryRequest[](arrayLen);
+        Send[] memory requestArray = new Send[](arrayLen);
 
         for (uint8 i = 0; i < arrayLen; i++) {
-            DeliveryRequest memory request;
+            Send memory request;
 
             // target chain of the delivery request
             request.targetChain = encoded.toUint16(index);
@@ -184,10 +176,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             request.refundAddress = encoded.toBytes32(index);
             index += 32;
 
-            request.computeBudget = encoded.toUint256(index);
+            request.maxTransactionFee = encoded.toUint256(index);
             index += 32;
 
-            request.applicationBudget = encoded.toUint256(index);
+            request.receiverValue = encoded.toUint256(index);
             index += 32;
 
             uint8 relayParametersLength = encoded.toUint8(index);
@@ -202,13 +194,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
 
         if (index != encoded.length) {
-            revert InvalidDeliveryRequestsPayload(encoded.length);
+            revert InvalidSendsPayload(encoded.length);
         }
 
-        return DeliveryRequestsContainer({
-            payloadId: payloadId,
-            relayProviderAddress: relayProviderAddress,
-            requests: requestArray
-        });
+        return
+            MultichainSend({payloadId: payloadId, relayProviderAddress: relayProviderAddress, requests: requestArray});
     }
 }
