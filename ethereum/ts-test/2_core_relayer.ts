@@ -71,7 +71,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log(`Sent message: ${arbitraryPayload}`)
     const value = await sourceCoreRelayer.quoteGasDeliveryFee(
       targetChain.chainId,
-      1000000,
+      500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value}`)
@@ -88,7 +88,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-      }, 1000)
+      }, 2000)
     })
 
     console.log("Checking if message was relayed")
@@ -127,11 +127,8 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     const tx = await sourceMockIntegration.sendMessagesWithFurtherInstructions(
       [arbitraryPayload1],
       furtherInstructions,
-      targetChain.chainId,
-      targetMockIntegrationAddress,
-      targetMockIntegrationAddress,
-      0,
-      1,
+      [targetChain.chainId],
+      [value.add(extraForwardingValue)],
       { value: value.add(extraForwardingValue), gasLimit: 500000 }
     )
     console.log("Sent delivery request!")
@@ -141,7 +138,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-      }, 2000)
+      }, 4000)
     })
 
     console.log("Checking if message was relayed")
@@ -157,5 +154,60 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log(`Sent message: ${arbitraryPayload2}`)
     console.log(`Received message on source: ${message2}`)
     expect(message2).to.equal(arbitraryPayload2)
+  })
+
+  it("Executes a multidelivery", async () => {
+    const arbitraryPayload1 = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    console.log(`Sent message: ${arbitraryPayload1}`)
+    const value1 = await sourceCoreRelayer.quoteGasDeliveryFee(
+      sourceChain.chainId,
+      500000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    const value2 = await sourceCoreRelayer.quoteGasDeliveryFee(
+      targetChain.chainId,
+      500000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee: ${value1.add(value2)}`)
+
+    const furtherInstructions: MockRelayerIntegration.FurtherInstructionsStruct = {
+      keepSending: false,
+      newMessages: [],
+      chains: [],
+      gasLimits: [],
+    }
+    const tx = await sourceMockIntegration.sendMessagesWithFurtherInstructions(
+      [arbitraryPayload1],
+      furtherInstructions,
+      [sourceChain.chainId, targetChain.chainId],
+      [value1, value2],
+      { value: value1.add(value2), gasLimit: 500000 }
+    )
+    console.log("Sent delivery request!")
+    const rx = await tx.wait()
+    console.log("Message confirmed!")
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+
+    console.log("Checking if first message was relayed")
+    const message1 = await sourceMockIntegration.getMessage()
+    console.log(
+      `Sent message: ${arbitraryPayload1}`
+    )
+    console.log(`Received message: ${message1}`)
+    expect(message1).to.equal(arbitraryPayload1)
+
+    console.log("Checking if second message was relayed")
+    const message2 = await targetMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload1}`)
+    console.log(`Received message: ${message2}`)
+    expect(message2).to.equal(arbitraryPayload1)
   })
 })
