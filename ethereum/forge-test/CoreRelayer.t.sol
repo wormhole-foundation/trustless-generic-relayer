@@ -17,11 +17,9 @@ import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImp
 import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
 import {CoreRelayerMessages} from "../contracts/coreRelayer/CoreRelayerMessages.sol";
 import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
-import {Setup as WormholeSetup} from "../wormhole/ethereum/contracts/Setup.sol";
-import {Implementation as WormholeImplementation} from "../wormhole/ethereum/contracts/Implementation.sol";
-import {Wormhole} from "../wormhole/ethereum/contracts/Wormhole.sol";
+import {MockWormhole} from "../contracts/mock/MockWormhole.sol";
 import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
-import {WormholeSimulator} from "./WormholeSimulator.sol";
+import {WormholeSimulator, FakeWormholeSimulator} from "./WormholeSimulator.sol";
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {AttackForwardIntegration} from "../contracts/mock/AttackForwardIntegration.sol";
 import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
@@ -55,36 +53,15 @@ contract TestCoreRelayer is Test {
     WormholeSimulator relayerWormholeSimulator;
 
     function setUp() public {
-        WormholeSetup setup = new WormholeSetup();
-
-        // deploy Implementation
-        WormholeImplementation implementation = new WormholeImplementation();
-
-        // set guardian set
-        address[] memory guardians = new address[](1);
-        guardians[0] = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
-
         // deploy Wormhole
-        relayerWormhole = IWormhole(
-            address(
-                new Wormhole(
-                address(setup),
-                abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,address[],uint16,uint16,bytes32,uint256)")),
-                address(implementation),
-                guardians,
-                2, // wormhole chain id
-                uint16(1), // governance chain id
-                0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
-                block.chainid
-                )
-                )
-            )
-        );
+        MockWormhole wormhole = new MockWormhole({
+            initChainId: 2,
+            initEvmChainId: block.chainid
+        });
 
-        relayerWormholeSimulator = new WormholeSimulator(
-            address(relayerWormhole),
-            uint256(0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0)
+        relayerWormhole = wormhole;
+        relayerWormholeSimulator = new FakeWormholeSimulator(
+            wormhole
         );
 
         setUpChains(5);
@@ -94,37 +71,18 @@ contract TestCoreRelayer is Test {
         internal
         returns (IWormhole wormholeContract, WormholeSimulator wormholeSimulator)
     {
-        // deploy Setup
-        WormholeSetup setup = new WormholeSetup();
-
-        // deploy Implementation
-        WormholeImplementation implementation = new WormholeImplementation();
-
-        // set guardian set
-        address[] memory guardians = new address[](1);
-        guardians[0] = 0xbeFA429d57cD18b7F8A4d91A2da9AB4AF05d0FBe;
-
         // deploy Wormhole
-        Wormhole wormhole = new Wormhole(
-            address(setup),
-            abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,address[],uint16,uint16,bytes32,uint256)")),
-                address(implementation),
-                guardians,
-                chainId, // wormhole chain id
-                uint16(1), // governance chain id
-                0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
-                block.chainid
-            )
-        );
+        MockWormhole wormhole = new MockWormhole({
+            initChainId: 2,
+            initEvmChainId: block.chainid
+        });
 
         // replace Wormhole with the Wormhole Simulator contract (giving access to some nice helper methods for signing)
-        wormholeSimulator = new WormholeSimulator(
-            address(wormhole),
-            uint256(0xcfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0)
+        wormholeSimulator = new FakeWormholeSimulator(
+            wormhole
         );
 
-        wormholeContract = IWormhole(wormholeSimulator.wormhole());
+        wormholeContract = wormhole;
     }
 
     function setUpRelayProvider(uint16 chainId) internal returns (RelayProvider relayProvider) {
@@ -144,7 +102,7 @@ contract TestCoreRelayer is Test {
         relayProvider = RelayProvider(address(myRelayProvider));
     }
 
-    function setUpCoreRelayer(uint16 chainId, address wormhole, address defaultRelayProvider)
+    function setUpCoreRelayer(uint16 chainId, IWormhole wormhole, address defaultRelayProvider)
         internal
         returns (IWormholeRelayer coreRelayer)
     {
@@ -159,8 +117,8 @@ contract TestCoreRelayer is Test {
                     chainId,
                     wormhole,
                     defaultRelayProvider,
-                    uint16(1), // governance chain id
-                    0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
+                    wormhole.governanceChainId(),
+                    wormhole.governanceContract(),
                     block.chainid
                 )
             )
@@ -274,7 +232,7 @@ contract TestCoreRelayer is Test {
             Contracts memory mapEntry;
             (mapEntry.wormhole, mapEntry.wormholeSimulator) = setUpWormhole(i);
             mapEntry.relayProvider = setUpRelayProvider(i);
-            mapEntry.coreRelayer = setUpCoreRelayer(i, address(mapEntry.wormhole), address(mapEntry.relayProvider));
+            mapEntry.coreRelayer = setUpCoreRelayer(i, mapEntry.wormhole, address(mapEntry.relayProvider));
             mapEntry.coreRelayerFull = CoreRelayer(address(mapEntry.coreRelayer));
             mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
             mapEntry.relayer = address(uint160(uint256(keccak256(abi.encodePacked(bytes("relayer"), i)))));
@@ -306,7 +264,7 @@ contract TestCoreRelayer is Test {
     ) internal {
         bytes32 coreRelayerModule = 0x000000000000000000000000000000000000000000436f726552656c61796572;
         bytes memory message =
-            abi.encodePacked(coreRelayerModule, uint8(2), uint16(currentChainId), chainId, coreRelayerContractAddress);
+            abi.encodePacked(coreRelayerModule, uint8(2), currentChainId, chainId, coreRelayerContractAddress);
         IWormhole.VM memory preSignedMessage = IWormhole.VM({
             version: 1,
             timestamp: uint32(block.timestamp),
@@ -815,6 +773,11 @@ contract TestCoreRelayer is Test {
         CoreRelayer.RedeliveryByTxHashInstruction instruction;
     }
 
+    function invalidateVM(bytes memory message, WormholeSimulator simulator) internal {
+        change(message, message.length - 1);
+        simulator.invalidateVM(message);
+    }
+
     function change(bytes memory message, uint256 index) internal {
         if (message[index] == 0x02) {
             message[index] = 0x04;
@@ -899,7 +862,7 @@ contract TestCoreRelayer is Test {
 
         bytes memory fakeVM = abi.encodePacked(stack.originalDelivery.encodedVMs[2]);
         bytes memory correctVM = abi.encodePacked(stack.originalDelivery.encodedVMs[2]);
-        change(fakeVM, fakeVM.length - 1);
+        invalidateVM(fakeVM, setup.target.wormholeSimulator);
         stack.originalDelivery.encodedVMs[2] = fakeVM;
 
         stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
@@ -936,7 +899,7 @@ contract TestCoreRelayer is Test {
 
         correctVM = abi.encodePacked(stack.redeliveryVM);
         fakeVM = abi.encodePacked(correctVM);
-        change(fakeVM, fakeVM.length - 1);
+        invalidateVM(fakeVM, setup.target.wormholeSimulator);
 
         stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
             fakeVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
@@ -1207,7 +1170,7 @@ contract TestCoreRelayer is Test {
 
         bytes memory fakeVM = abi.encodePacked(stack.deliveryVM);
 
-        change(fakeVM, fakeVM.length - 1);
+        invalidateVM(fakeVM, setup.target.wormholeSimulator);
 
         stack.encodedVMs = new bytes[](3);
         stack.encodedVMs[0] = stack.actualVM1;
