@@ -1142,8 +1142,12 @@ contract TestCoreRelayer is Test {
             stack.encodedVMs[1] = stack.actualVM2;
             stack.encodedVMs[2] = stack.deliveryVM;
 
-            stack.package =
-                CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
+            stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+                encodedVMs: stack.encodedVMs,
+                deliveryIndex: 2,
+                multisendIndex: 0,
+                relayerRefundAddress: payable(setup.target.relayer)
+            });
 
             stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
             stack.instruction =
@@ -1172,14 +1176,14 @@ contract TestCoreRelayer is Test {
             1, abi.encodePacked(uint8(0)), 200
         );
 
-        IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send(
-            setup.targetChainId, //target chain
-            setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
-            setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
-            stack.payment - setup.source.wormhole.messageFee(),
-            0,
-            setup.source.coreRelayer.getDefaultRelayParams()
-        );
+        IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send({
+            targetChain: setup.targetChainId,
+            targetAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
+            refundAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
+            maxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
+            receiverValue: 0,
+            relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
+        });
 
         setup.source.coreRelayer.send{value: stack.payment}(deliveryRequest, 1, address(setup.source.relayProvider));
 
@@ -1206,8 +1210,12 @@ contract TestCoreRelayer is Test {
         stack.encodedVMs[1] = stack.actualVM2;
         stack.encodedVMs[2] = fakeVM;
 
-        stack.package =
-            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
+        stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+            encodedVMs: stack.encodedVMs,
+            deliveryIndex: 2,
+            multisendIndex: 0,
+            relayerRefundAddress: payable(setup.target.relayer)
+        });
 
         stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
         stack.instruction =
@@ -1222,8 +1230,12 @@ contract TestCoreRelayer is Test {
 
         stack.encodedVMs[2] = stack.encodedVMs[0];
 
-        stack.package =
-            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
+        stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+            encodedVMs: stack.encodedVMs,
+            deliveryIndex: 2,
+            multisendIndex: 0,
+            relayerRefundAddress: payable(setup.target.relayer)
+        });
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("InvalidEmitter()"));
@@ -1231,8 +1243,12 @@ contract TestCoreRelayer is Test {
 
         stack.encodedVMs[2] = stack.deliveryVM;
 
-        stack.package =
-            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
+        stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+            encodedVMs: stack.encodedVMs,
+            deliveryIndex: 2,
+            multisendIndex: 0,
+            relayerRefundAddress: payable(setup.target.relayer)
+        });
 
         vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
         setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
@@ -1281,14 +1297,14 @@ contract TestCoreRelayer is Test {
             1, abi.encodePacked(uint8(0), bytes("hi!")), 200
         );
 
-        stack.deliveryRequest = IWormholeRelayer.Send(
-            setup.targetChainId, //target chain
-            setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
-            setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
-            stack.payment - setup.source.wormhole.messageFee(),
-            0,
-            setup.source.coreRelayer.getDefaultRelayParams()
-        );
+        stack.deliveryRequest = IWormholeRelayer.Send({
+            targetChain: setup.targetChainId,
+            targetAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
+            refundAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
+            maxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
+            receiverValue: 0,
+            relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
+        });
 
         vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "25"));
         setup.source.coreRelayer.send{value: stack.payment - 1}(
@@ -1300,14 +1316,14 @@ contract TestCoreRelayer is Test {
         stack.deliveryOverhead = setup.source.relayProvider.quoteDeliveryOverhead(setup.targetChainId);
         vm.assume(stack.deliveryOverhead > 0);
 
-        stack.badSend = IWormholeRelayer.Send(
-            setup.targetChainId, //target chain
-            setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
-            setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
-            stack.deliveryOverhead - 1,
-            0,
-            setup.source.coreRelayer.getDefaultRelayParams()
-        );
+        stack.badSend = IWormholeRelayer.Send({
+            targetChain: setup.targetChainId,
+            targetAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
+            refundAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
+            maxTransactionFee: stack.deliveryOverhead - 1,
+            receiverValue: 0,
+            relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
+        });
 
         vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "26"));
         setup.source.coreRelayer.send{value: stack.deliveryOverhead - 1}(
