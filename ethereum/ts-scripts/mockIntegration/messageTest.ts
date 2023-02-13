@@ -60,7 +60,6 @@ async function sendMessage(
     sentMessage,
     targetChain.chainId,
     targetAddress,
-    targetAddress,
     {
       gasLimit: 1000000,
       value: relayQuote,
