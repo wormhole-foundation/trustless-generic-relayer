@@ -92,17 +92,30 @@ contract MockRelayerIntegration is IWormholeReceiver {
     function sendMessagesWithFurtherInstructions(
         bytes[] memory messages,
         FurtherInstructions memory furtherInstructions,
-        uint16 targetChainId,
-        address destination,
-        address refundAddress,
-        uint256 applicationBudget,
-        uint32 nonce
+        uint16[] memory chains,
+        uint256[] memory computeBudgets
     ) public payable {
         for(uint16 i=0; i<messages.length; i++) {
-            wormhole.publishMessage{value: wormhole.messageFee()}(nonce, messages[i], 200);
+            wormhole.publishMessage{value: wormhole.messageFee()}(1, messages[i], 200);
         }
-        wormhole.publishMessage{value: wormhole.messageFee()}(nonce, encodeFurtherInstructions(furtherInstructions), 200);
-        executeSend(targetChainId, destination, refundAddress, applicationBudget, nonce);
+        wormhole.publishMessage{value: wormhole.messageFee()}(1, encodeFurtherInstructions(furtherInstructions), 200);
+        ICoreRelayer.DeliveryRequest[] memory requests = new ICoreRelayer.DeliveryRequest[](chains.length);
+        for(uint16 i=0; i<chains.length; i++) {
+             requests[i] = ICoreRelayer.DeliveryRequest({
+                targetChain: chains[i],
+                targetAddress: registeredContracts[chains[i]],
+                refundAddress: registeredContracts[chains[i]],
+                computeBudget: computeBudgets[i],
+                applicationBudget: 0,
+                relayParameters: relayer.getDefaultRelayParams()
+             });
+        }
+        ICoreRelayer.DeliveryRequestsContainer memory container = ICoreRelayer.DeliveryRequestsContainer({
+            payloadId: 1,
+            requests: requests,
+            relayProviderAddress: address(relayer.getDefaultRelayProvider())
+        });
+        relayer.requestMultidelivery{value: (msg.value - wormhole.messageFee()*(1 + messages.length))}(container, 1);
     }
 
     function executeSend(
