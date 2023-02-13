@@ -343,7 +343,7 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         );
 
-        setup.source.integration.sendMessage{value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()}(
+        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -541,7 +541,7 @@ contract TestCoreRelayer is Test {
             // The attacker requests the message to be sent to the malicious contract.
             // It is critical that the refund and destination (aka integrator) addresses are the same.
             setup.source.integration.sendMessage{value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()}(
-                attackMsg, setup.targetChainId, address(attackerContract), address(attackerContract)
+                attackMsg, setup.targetChainId, address(attackerContract)
             );
 
             // The relayer triggers the call to the malicious contract.
@@ -560,7 +560,7 @@ contract TestCoreRelayer is Test {
 
             // We will reutilize the compute budget estimated for the attacker to simplify the code here.
             // The victim requests their message to be sent.
-            setup.source.integration.sendMessage{value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()}(
+            setup.source.integration.sendMessageWithRefundAddress{value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()}(
                 victimMsg, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
             );
 
@@ -604,7 +604,7 @@ contract TestCoreRelayer is Test {
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
-        setup.source.integration.sendMessage{value: paymentNotEnough}(
+        setup.source.integration.sendMessageWithRefundAddress{value: paymentNotEnough}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -663,7 +663,7 @@ contract TestCoreRelayer is Test {
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
-        setup.source.integration.sendMessage{value: paymentNotEnough}(
+        setup.source.integration.sendMessageWithRefundAddress{value: paymentNotEnough}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -747,7 +747,7 @@ contract TestCoreRelayer is Test {
         // start listening to events
         vm.recordLogs();
 
-        setup.source.integration.sendMessage{value: payment}(
+        setup.source.integration.sendMessageWithRefundAddress{value: payment}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -759,7 +759,7 @@ contract TestCoreRelayer is Test {
 
         vm.deal(address(this), type(uint256).max);
 
-        setup.source.integration.sendMessage{value: payment}(
+        setup.source.integration.sendMessageWithRefundAddress{value: payment}(
             secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -852,7 +852,7 @@ contract TestCoreRelayer is Test {
 
         RedeliveryStackTooDeep memory stack;
 
-        setup.source.integration.sendMessage{
+        setup.source.integration.sendMessageWithRefundAddress{
             value: setup.source.coreRelayer.quoteGas(setup.targetChainId, 21000, address(setup.source.relayProvider))
                 + uint256(3) * setup.source.wormhole.messageFee()
         }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
