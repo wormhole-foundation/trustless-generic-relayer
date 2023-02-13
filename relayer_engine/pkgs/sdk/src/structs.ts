@@ -86,6 +86,7 @@ export function parseDeliveryInstructionsContainer(
     )
     idx += 32
     const executionParameters = parseExecutionParameters(bytes, idx)
+    idx += 37
     instructions.push(
       // dumb typechain format
       {
@@ -143,6 +144,8 @@ export function parseRedeliveryByTxHashInstruction(
   idx += 32
 
   const executionParameters = parseExecutionParameters(bytes, idx)
+  idx += 37
+
   return {
     payloadId,
     sourceChain,
