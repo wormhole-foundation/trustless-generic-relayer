@@ -22,10 +22,12 @@ contract TestRelayProvider is Test {
         RelayProviderImplementation relayProviderImplementation = new RelayProviderImplementation();
         RelayProviderProxy myRelayProvider = new RelayProviderProxy(
             address(relayProviderSetup),
-            abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,uint16)")),
-                address(relayProviderImplementation),
-                TEST_ORACLE_CHAIN_ID
+            abi.encodeCall(
+                RelayProviderSetup.setup,
+                (
+                    address(relayProviderImplementation),
+                    TEST_ORACLE_CHAIN_ID
+                )
             )
         );
 

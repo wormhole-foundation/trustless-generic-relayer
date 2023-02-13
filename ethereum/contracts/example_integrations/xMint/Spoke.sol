@@ -55,12 +55,14 @@ contract XmintSpoke is IWormholeReceiver {
         uint256 bridgeAmount = msg.value - deliveryFeeBuffer - core_bridge.messageFee();
 
         (bool success, bytes memory data) = address(token_bridge).call{value: bridgeAmount + core_bridge.messageFee()}(
-            abi.encodeWithSignature(
-                "wrapAndTransferETHWithPayload(unit16,bytes32,uint32,bytes)",
-                hub_contract_chain,
-                hub_contract_address,
-                nonce,
-                abi.encode(core_relayer.toWormholeFormat(msg.sender))
+            abi.encodeCall(
+                ITokenBridge.wrapAndTransferETHWithPayload,
+                (
+                    hub_contract_chain,
+                    hub_contract_address,
+                    nonce,
+                    abi.encode(core_relayer.toWormholeFormat(msg.sender))
+                )
             )
         );
 
