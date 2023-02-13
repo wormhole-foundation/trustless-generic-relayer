@@ -152,11 +152,15 @@ contract MockRelayerIntegration is IWormholeReceiver {
         return verifiedPayloads[hash];
     }
 
-    function getFirstMessage() public view returns (bytes memory) {
+    function getMessage() public view returns (bytes memory) {
         if (messages.length == 0) {
             return new bytes(0);
         }
         return messages[0];
+    }
+
+    function getMessages() public view returns (bytes[] memory) {
+        return messages;
     }
 
     function clearPayload(bytes32 hash) public {

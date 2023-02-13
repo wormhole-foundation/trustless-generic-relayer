@@ -343,17 +343,13 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         );
 
-<<<<<<< HEAD
-        setup.source.integration.sendMessage{value: maxTransactionFee + 2 * setup.source.wormhole.messageFee()}(
-=======
-        setup.source.integration.sendMessage{value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()}(
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        setup.source.integration.sendMessage{value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
         genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
     }
 
     function testFundsCorrect(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
@@ -369,15 +365,9 @@ contract TestCoreRelayer is Test {
         uint256 receiverValueSource = setup.source.coreRelayer.quoteReceiverValue(
             setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
         );
-<<<<<<< HEAD
         uint256 payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + 2 * setup.source.wormhole.messageFee() + receiverValueSource;
-=======
-        uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-        ) + uint256(3) * setup.source.wormhole.messageFee() + applicationBudgetSource;
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        ) + uint256(3) * setup.source.wormhole.messageFee() + receiverValueSource;
 
         setup.source.integration.sendMessageGeneral{value: payment}(
             message,
@@ -390,7 +380,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
         uint256 USDcost = (uint256(payment) - uint256(3) * map[setup.sourceChainId].wormhole.messageFee())
             * feeParams.sourceNativePrice
@@ -403,31 +393,13 @@ contract TestCoreRelayer is Test {
             relayerProfit / gasParams.targetGasPrice / feeParams.targetNativePrice;
         assertTrue(howMuchGasRelayerCouldHavePaidForAndStillProfited >= 30000); // takes around this much gas (seems to go from 36k-200k?!?)
         assertTrue(
-<<<<<<< HEAD
-            USDcost
-                - (
-                    relayerProfit
-                        + uint256(2) * map[setup.sourceChainId].wormhole.messageFee() * feeParams.sourceNativePrice
-                        + (uint256(1) * feeParams.receiverValueTarget * feeParams.targetNativePrice)
-                ) >= 0,
-            "We paid enough"
-        );
-        assertTrue(
-            USDcost
-                - (
-                    relayerProfit
-                        + uint256(2) * map[setup.sourceChainId].wormhole.messageFee() * feeParams.sourceNativePrice
-                        + (uint256(1) * feeParams.receiverValueTarget * feeParams.targetNativePrice)
-                ) < feeParams.sourceNativePrice,
-=======
-            USDcost - (relayerProfit + (uint256(1) * feeParams.applicationBudgetTarget * feeParams.targetNativePrice))
+            USDcost - (relayerProfit + (uint256(1) * feeParams.receiverValueTarget * feeParams.targetNativePrice))
                 >= 0,
             "We paid enough"
         );
         assertTrue(
-            USDcost - (relayerProfit + (uint256(1) * feeParams.applicationBudgetTarget * feeParams.targetNativePrice))
+            USDcost - (relayerProfit + (uint256(1) * feeParams.receiverValueTarget * feeParams.targetNativePrice))
                 < feeParams.sourceNativePrice,
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
             "We paid the least amount necessary"
         );
     }
@@ -448,15 +420,9 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
         );
 
-<<<<<<< HEAD
         uint256 payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, 21000, address(setup.source.relayProvider)
-        ) + 2 * setup.source.wormhole.messageFee() + receiverValueSource;
-=======
-        uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, 21000, setup.source.relayProvider
-        ) + uint256(3) * setup.source.wormhole.messageFee() + applicationBudgetSource;
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        ) + uint256(3) * setup.source.wormhole.messageFee() + receiverValueSource;
 
         setup.source.integration.sendMessageGeneral{value: payment}(
             message,
@@ -488,41 +454,22 @@ contract TestCoreRelayer is Test {
 
         vm.recordLogs();
         vm.assume(
-<<<<<<< HEAD
             setup.source.coreRelayer.quoteGas(
                 setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-            ) < uint256(2) ** 222
+            ) < uint256(2) ** 221
         );
         vm.assume(
             setup.target.coreRelayer.quoteGas(setup.sourceChainId, 500000, address(setup.target.relayProvider))
-                < uint256(2) ** 222 / feeParams.targetNativePrice
+                < uint256(2) ** 221 / feeParams.targetNativePrice
         );
         // estimate the cost based on the intialized values
         uint256 payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + 2 * setup.source.wormhole.messageFee();
-
-        uint256 payment2 = (
-            setup.target.coreRelayer.quoteGas(setup.sourceChainId, 500000, address(setup.target.relayProvider))
-                + 2 * setup.target.wormhole.messageFee()
-=======
-            setup.source.coreRelayer.quoteGasDeliveryFee(
-                setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
-            ) < uint256(2) ** 221
-        );
-        vm.assume(
-            setup.target.coreRelayer.quoteGasDeliveryFee(setup.sourceChainId, 500000, setup.target.relayProvider)
-                < uint256(2) ** 221 / feeParams.targetNativePrice
-        );
-        // estimate the cost based on the intialized values
-        uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
         ) + uint256(3) * setup.source.wormhole.messageFee();
 
         uint256 payment2 = (
-            setup.target.coreRelayer.quoteGasDeliveryFee(setup.sourceChainId, 500000, setup.target.relayProvider)
+            setup.target.coreRelayer.quoteGas(setup.sourceChainId, 500000, address(setup.target.relayProvider))
                 + uint256(2) * setup.target.wormhole.messageFee()
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
         ) * feeParams.targetNativePrice / feeParams.sourceNativePrice + 1;
 
         vm.assume((payment + payment2) < (uint256(2) ** 222));
@@ -533,11 +480,11 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
         genericRelayer(setup.targetChainId, 3);
 
-        assertTrue(keccak256(setup.source.integration.getFirstMessage()) == keccak256(bytes("received!")));
+        assertTrue(keccak256(setup.source.integration.getMessage()) == keccak256(bytes("received!")));
     }
 
     function testAttackForwardRequestCache(GasParameters memory gasParams, FeeParameters memory feeParams) public {
@@ -601,7 +548,7 @@ contract TestCoreRelayer is Test {
             genericRelayer(setup.sourceChainId, 3);
 
             // The message delivery should fail
-            assertTrue(keccak256(setup.target.integration.getFirstMessage()) != keccak256(attackMsg));
+            assertTrue(keccak256(setup.target.integration.getMessage()) != keccak256(attackMsg));
         }
 
         {
@@ -623,7 +570,7 @@ contract TestCoreRelayer is Test {
             genericRelayer(setup.sourceChainId, 3);
 
             // Ensures the message was received.
-            assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(victimMsg));
+            assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(victimMsg));
             // Here we assert that the victim's refund is safe.
             assertTrue(victimBalancePreDelivery < setup.target.refundAddress.balance);
         }
@@ -651,15 +598,9 @@ contract TestCoreRelayer is Test {
         uint256 payment = setup.source.coreRelayer.quoteGasResend(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         ) + setup.source.wormhole.messageFee();
-<<<<<<< HEAD
         uint256 paymentNotEnough = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, 10, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee() * 2;
-=======
-        uint256 paymentNotEnough = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, 10, setup.source.relayProvider
         ) + setup.source.wormhole.messageFee() * 3;
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
@@ -670,7 +611,7 @@ contract TestCoreRelayer is Test {
         genericRelayer(setup.sourceChainId, 3);
 
         assertTrue(
-            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -692,20 +633,15 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-<<<<<<< HEAD
-        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
-            redeliveryRequest, 1, address(setup.source.relayProvider)
-=======
         vm.deal(address(this), type(uint256).max);
 
-        setup.source.coreRelayer.requestRedelivery{value: payment + newApplicationBudgetFee}(
-            redeliveryRequest, 1, setup.source.relayProvider
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
+            redeliveryRequest, 1, address(setup.source.relayProvider)
         );
 
         genericRelayer(setup.sourceChainId, 1);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
     }
 
     function testApplicationBudgetFeeWithRedelivery(
@@ -721,15 +657,9 @@ contract TestCoreRelayer is Test {
         uint256 payment = setup.source.coreRelayer.quoteGasResend(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         ) + setup.source.wormhole.messageFee();
-<<<<<<< HEAD
         uint256 paymentNotEnough = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, 10, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee() * 2;
-=======
-        uint256 paymentNotEnough = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, 10, setup.source.relayProvider
         ) + setup.source.wormhole.messageFee() * 3;
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
@@ -740,7 +670,7 @@ contract TestCoreRelayer is Test {
         genericRelayer(setup.sourceChainId, 3);
 
         assertTrue(
-            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
@@ -770,7 +700,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 1);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
         assertTrue(address(setup.target.integration).balance >= oldBalance + feeParams.receiverValueTarget);
 
@@ -796,7 +726,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 1);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
         assertTrue(address(setup.target.integration).balance < oldBalance + feeParams.receiverValueTarget);
     }
@@ -810,15 +740,9 @@ contract TestCoreRelayer is Test {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         // estimate the cost based on the intialized values
-<<<<<<< HEAD
         uint256 payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + 2 * setup.source.wormhole.messageFee();
-=======
-        uint256 payment = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
         ) + uint256(3) * setup.source.wormhole.messageFee();
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
 
         // start listening to events
         vm.recordLogs();
@@ -829,7 +753,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
         vm.getRecordedLogs();
 
@@ -841,7 +765,7 @@ contract TestCoreRelayer is Test {
 
         genericRelayer(setup.sourceChainId, 3);
 
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(secondMessage));
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(secondMessage));
     }
 
     function testRevertNonceZero(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
@@ -858,23 +782,14 @@ contract TestCoreRelayer is Test {
         );
 
         vm.expectRevert(abi.encodeWithSignature("NonceIsZero()"));
-<<<<<<< HEAD
-<<<<<<< HEAD
-        setup.source.integration.sendMessageGeneral{value: maxTransactionFee + 2 * wormholeFee}(
-            abi.encodePacked(uint8(0), message),
-=======
-        setup.source.integration.sendMessageGeneral{value: computeBudget + 2 * wormholeFee}(
+
+        setup.source.integration.sendMessageGeneral{value: maxTransactionFee + 3 * wormholeFee}(
             message,
->>>>>>> 74457f4 (Bugfixes)
             setup.targetChainId,
             address(setup.target.integration),
             address(setup.target.refundAddress),
             0,
             0
-=======
-        setup.source.integration.sendMessageGeneral{value: computeBudget + 3 * wormholeFee}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), 0, 0
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
         );
     }
 
@@ -938,19 +853,14 @@ contract TestCoreRelayer is Test {
         RedeliveryStackTooDeep memory stack;
 
         setup.source.integration.sendMessage{
-<<<<<<< HEAD
             value: setup.source.coreRelayer.quoteGas(setup.targetChainId, 21000, address(setup.source.relayProvider))
-                + 2 * setup.source.wormhole.messageFee()
-=======
-            value: setup.source.coreRelayer.quoteGasDeliveryFee(setup.targetChainId, 21000, setup.source.relayProvider)
                 + uint256(3) * setup.source.wormhole.messageFee()
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
         }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
         genericRelayer(setup.sourceChainId, 3);
 
         assertTrue(
-            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
 
@@ -1007,13 +917,8 @@ contract TestCoreRelayer is Test {
         vm.deal(setup.target.relayer, type(uint256).max);
 
         vm.prank(setup.target.relayer);
-<<<<<<< HEAD
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 1));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-=======
         vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 2));
-        setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[2] = stack.originalDelivery.encodedVMs[0];
 
@@ -1022,13 +927,8 @@ contract TestCoreRelayer is Test {
         );
 
         vm.prank(setup.target.relayer);
-<<<<<<< HEAD
-        vm.expectRevert(abi.encodeWithSignature("InvalidEmitterInOriginalDeliveryVM(uint8)", 1));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-=======
         vm.expectRevert(abi.encodeWithSignature("InvalidEmitterInOriginalDeliveryVM(uint8)", 2));
-        setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[2] = correctVM;
 
@@ -1165,19 +1065,12 @@ contract TestCoreRelayer is Test {
 
         vm.deal(setup.target.relayer, type(uint256).max);
 
-<<<<<<< HEAD
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
-            correctVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
-        );
-
-=======
-        stack.package = ICoreRelayer.TargetRedeliveryByTxHashParamsSingle({
+        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: correctVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
             relayerRefundAddress: payable(setup.target.relayer)
         });
         vm.deal(setup.target.relayer, type(uint256).max);
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
         vm.expectRevert(abi.encodeWithSignature("InsufficientRelayerFunds()"));
         vm.prank(setup.target.relayer);
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget - 1}(stack.package);
@@ -1185,17 +1078,13 @@ contract TestCoreRelayer is Test {
         vm.deal(setup.target.relayer, type(uint256).max);
 
         assertTrue(
-            (keccak256(setup.target.integration.getFirstMessage()) != keccak256(message))
+            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
                 || (keccak256(message) == keccak256(bytes("")))
         );
         vm.prank(setup.target.relayer);
-<<<<<<< HEAD
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
-=======
-        setup.target.coreRelayer.redeliverSingle{value: stack.budget}(stack.package);
-        assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
->>>>>>> 74457f4 (Bugfixes)
+
     }
 
     /**
@@ -1231,14 +1120,8 @@ contract TestCoreRelayer is Test {
             uint256(1) * feeParams.targetNativePrice * gasParams.targetGasPrice
                 < uint256(1) * feeParams.sourceNativePrice * gasParams.sourceGasPrice
         ) {
-<<<<<<< HEAD
-            stack.paymentNotEnough = setup.source.coreRelayer.quoteGas(
-                setup.targetChainId, 600000, address(setup.source.relayProvider)
-            ) + setup.source.wormhole.messageFee();
-=======
             stack.paymentNotEnough =
-                setup.source.coreRelayer.quoteGasDeliveryFee(setup.targetChainId, 600000, setup.source.relayProvider);
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+                setup.source.coreRelayer.quoteGas(setup.targetChainId, 600000, address(setup.source.relayProvider));
 
             setup.source.integration.sendMessageWithForwardedResponse{
                 value: stack.paymentNotEnough + 3 * setup.source.wormhole.messageFee()
@@ -1246,7 +1129,7 @@ contract TestCoreRelayer is Test {
 
             genericRelayer(setup.sourceChainId, 3);
 
-            assertTrue(keccak256(setup.target.integration.getFirstMessage()) == keccak256(message));
+            assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
             stack.entries = vm.getRecordedLogs();
 
             stack.actualVM1 = relayerWormholeSimulator.fetchSignedMessageFromLogs(
@@ -1267,11 +1150,7 @@ contract TestCoreRelayer is Test {
             stack.encodedVMs[2] = stack.deliveryVM;
 
             stack.package =
-<<<<<<< HEAD
-                CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 1, 0, payable(setup.target.relayer));
-=======
-                ICoreRelayer.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+                CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
 
             stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
             stack.instruction =
@@ -1295,16 +1174,12 @@ contract TestCoreRelayer is Test {
             1, abi.encodePacked(uint8(0), bytes("hi!")), 200
         );
 
-<<<<<<< HEAD
-        IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send(
-=======
         vm.prank(address(setup.source.integration));
         setup.source.wormhole.publishMessage{value: setup.source.wormhole.messageFee()}(
             1, abi.encodePacked(uint8(0)), 200
         );
 
-        ICoreRelayer.DeliveryRequest memory deliveryRequest = ICoreRelayer.DeliveryRequest(
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send(
             setup.targetChainId, //target chain
             setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
             setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
@@ -1339,11 +1214,7 @@ contract TestCoreRelayer is Test {
         stack.encodedVMs[2] = fakeVM;
 
         stack.package =
-<<<<<<< HEAD
-            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 1, 0, payable(setup.target.relayer));
-=======
-            ICoreRelayer.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
 
         stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
         stack.instruction =
@@ -1353,22 +1224,13 @@ contract TestCoreRelayer is Test {
             + setup.target.wormhole.messageFee();
 
         vm.prank(setup.target.relayer);
-<<<<<<< HEAD
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 1));
-        setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
-=======
         vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 2));
-        setup.target.coreRelayer.deliverSingle{value: stack.budget}(stack.package);
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+        setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
 
         stack.encodedVMs[2] = stack.encodedVMs[0];
 
         stack.package =
-<<<<<<< HEAD
-            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 1, 0, payable(setup.target.relayer));
-=======
-            ICoreRelayer.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("InvalidEmitter()"));
@@ -1377,11 +1239,7 @@ contract TestCoreRelayer is Test {
         stack.encodedVMs[2] = stack.deliveryVM;
 
         stack.package =
-<<<<<<< HEAD
-            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 1, 0, payable(setup.target.relayer));
-=======
-            ICoreRelayer.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+            CoreRelayerStructs.TargetDeliveryParametersSingle(stack.encodedVMs, 2, 0, payable(setup.target.relayer));
 
         vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
         setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
@@ -1568,48 +1426,28 @@ contract TestCoreRelayer is Test {
     ) internal {
         uint8 payloadId = parsedInstruction.payload.toUint8(0);
         if (payloadId == 1) {
-<<<<<<< HEAD
             CoreRelayer.DeliveryInstructionsContainer memory container =
-                contracts.coreRelayerFull.getDeliveryInstructionsContainer(parsed.payload);
-=======
-            ICoreRelayer.DeliveryInstructionsContainer memory container =
-                contracts.coreRelayer.getDeliveryInstructionsContainer(parsedInstruction.payload);
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+                contracts.coreRelayerFull.getDeliveryInstructionsContainer(parsedInstruction.payload);
             for (uint8 k = 0; k < container.instructions.length; k++) {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
                 uint16 targetChain = container.instructions[k].targetChain;
-<<<<<<< HEAD
                 CoreRelayer.TargetDeliveryParametersSingle memory package = CoreRelayerStructs
                     .TargetDeliveryParametersSingle({
-                    encodedVMs: deliveryInstructions,
-=======
-                ICoreRelayer.TargetDeliveryParametersSingle memory package = ICoreRelayer.TargetDeliveryParametersSingle({
                     encodedVMs: encodedVMsToBeDelivered,
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
                     deliveryIndex: counter,
                     multisendIndex: k,
                     relayerRefundAddress: payable(map[targetChain].relayer)
                 });
                 uint256 wormholeFee = map[targetChain].wormhole.messageFee();
                 vm.prank(map[targetChain].relayer);
-<<<<<<< HEAD
                 map[targetChain].coreRelayerFull.deliverSingle{value: (budget + wormholeFee)}(package);
-                pastDeliveries[keccak256(abi.encodePacked(parsed.hash, k))] = package;
-            }
-        } else if (payloadId == 2) {
-            CoreRelayer.RedeliveryByTxHashInstruction memory instruction =
-                contracts.coreRelayerFull.getRedeliveryByTxHashInstruction(parsed.payload);
-            CoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
-=======
-                map[targetChain].coreRelayer.deliverSingle{value: (budget + wormholeFee)}(package);
                 pastDeliveries[keccak256(abi.encodePacked(parsedInstruction.hash, k))] = package;
             }
         } else if (payloadId == 2) {
-            ICoreRelayer.RedeliveryByTxHashInstruction memory instruction =
-                contracts.coreRelayer.getRedeliveryByTxHashInstruction(parsedInstruction.payload);
-            ICoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
->>>>>>> b38b112 (New MockRelayerIntegration contract, and modified forge tests to still pass! (literal hours of debugging :'( ))
+            CoreRelayer.RedeliveryByTxHashInstruction memory instruction =
+                contracts.coreRelayerFull.getRedeliveryByTxHashInstruction(parsedInstruction.payload);
+            CoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
             uint256 budget = instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
