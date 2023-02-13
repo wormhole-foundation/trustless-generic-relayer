@@ -89,6 +89,22 @@ contract MockRelayerIntegration is IWormholeReceiver {
         executeSend(targetChainId, destination, refundAddress, receiverValue, nonce);
     }
 
+    function sendMessagesWithFurtherInstructions(
+        bytes[] memory messages,
+        FurtherInstructions memory furtherInstructions,
+        uint16 targetChainId,
+        address destination,
+        address refundAddress,
+        uint256 applicationBudget,
+        uint32 nonce
+    ) public payable {
+        for(uint16 i=0; i<messages.length; i++) {
+            wormhole.publishMessage{value: wormhole.messageFee()}(nonce, messages[i], 200);
+        }
+        wormhole.publishMessage{value: wormhole.messageFee()}(nonce, encodeFurtherInstructions(furtherInstructions), 200);
+        executeSend(targetChainId, destination, refundAddress, applicationBudget, nonce);
+    }
+
     function executeSend(
         uint16 targetChainId,
         address destination,
