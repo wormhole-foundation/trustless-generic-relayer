@@ -78,14 +78,16 @@ contract XmintHub is ERC20, IWormholeReceiver {
     function bridgeTokens(uint16 remoteChain, bytes memory payload, uint256 amount) internal {
         (bool success, bytes memory data) = address(token_bridge).call{value: amount + core_bridge.messageFee()}(
             //token, amount, receipientChain, recipientAddress, nonce, payload
-            abi.encodeWithSignature(
-                "transferTokensWithPayload(address,uint256,uint16,bytes32,nonce,bytes memory)",
-                address(this),
-                amount,
-                remoteChain,
-                trustedContracts[remoteChain],
-                nonce,
-                payload
+            abi.encodeCall(
+                ITokenBridge.transferTokensWithPayload,
+                (
+                    address(this),
+                    amount,
+                    remoteChain,
+                    trustedContracts[remoteChain],
+                    nonce,
+                    payload
+                )
             )
         );
     }

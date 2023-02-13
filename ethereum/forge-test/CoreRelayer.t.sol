@@ -132,10 +132,12 @@ contract TestCoreRelayer is Test {
         RelayProviderImplementation relayProviderImplementation = new RelayProviderImplementation();
         RelayProviderProxy myRelayProvider = new RelayProviderProxy(
             address(relayProviderSetup),
-            abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,uint16)")),
-                address(relayProviderImplementation),
-                chainId
+            abi.encodeCall(
+                RelayProviderSetup.setup,
+                (
+                    address(relayProviderImplementation),
+                    chainId
+                )
             )
         );
 
@@ -150,15 +152,17 @@ contract TestCoreRelayer is Test {
         CoreRelayerImplementation coreRelayerImplementation = new CoreRelayerImplementation();
         CoreRelayerProxy myCoreRelayer = new CoreRelayerProxy(
             address(coreRelayerSetup),
-            abi.encodeWithSelector(
-                bytes4(keccak256("setup(address,uint16,address,address,uint16,bytes32,uint256)")),
-                address(coreRelayerImplementation),
-                chainId,
-                wormhole,
-                defaultRelayProvider,
-                uint16(1), // governance chain id
-                0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
-                block.chainid
+            abi.encodeCall(
+                CoreRelayerSetup.setup,
+                (
+                    address(coreRelayerImplementation),
+                    chainId,
+                    wormhole,
+                    defaultRelayProvider,
+                    uint16(1), // governance chain id
+                    0x0000000000000000000000000000000000000000000000000000000000000004, // governance contract
+                    block.chainid
+                )
             )
         );
         coreRelayer = IWormholeRelayer(address(myCoreRelayer));

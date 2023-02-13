@@ -4,6 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
+import "../interfaces/IWormholeReceiver.sol";
 
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
@@ -409,7 +410,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         (bool success,) = fromWormholeFormat(internalInstruction.targetAddress).call{
             gas: internalInstruction.executionParameters.gasLimit,
             value: internalInstruction.receiverValueTarget
-        }(abi.encodeWithSignature("receiveWormholeMessages(bytes[],bytes[])", encodedVMs, new bytes[](0)));
+        }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
 
         uint256 postGas = gasleft();
         // There's no easy way to measure the exact cost of the CALL instruction.
