@@ -343,9 +343,9 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         );
 
-        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
-        );
+        setup.source.integration.sendMessageWithRefundAddress{
+            value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
+        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
         genericRelayer(setup.sourceChainId, 3);
 
@@ -560,9 +560,9 @@ contract TestCoreRelayer is Test {
 
             // We will reutilize the compute budget estimated for the attacker to simplify the code here.
             // The victim requests their message to be sent.
-            setup.source.integration.sendMessageWithRefundAddress{value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()}(
-                victimMsg, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
-            );
+            setup.source.integration.sendMessageWithRefundAddress{
+                value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()
+            }(victimMsg, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
             // The relayer delivers the victim's message.
             // During the delivery process, the forward request injected by the malicious contract is acknowledged.
