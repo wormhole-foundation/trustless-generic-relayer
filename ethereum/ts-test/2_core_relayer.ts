@@ -210,4 +210,68 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log(`Received message: ${message2}`)
     expect(message2).to.equal(arbitraryPayload1)
   })
+  it("Executes a multiforward", async () => {
+    const arbitraryPayload1 = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    const arbitraryPayload2 = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    console.log(`Sent message: ${arbitraryPayload1}`)
+    const value1 = await sourceCoreRelayer.quoteGasDeliveryFee(
+      sourceChain.chainId,
+      500000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    const value2 = await targetCoreRelayer.quoteGasDeliveryFee(
+      sourceChain.chainId,
+      500000,
+      await targetCoreRelayer.getDefaultRelayProvider()
+    )
+    const value3 = await targetCoreRelayer.quoteGasDeliveryFee(
+      targetChain.chainId,
+      500000,
+      await targetCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee: ${value1.add(value2).add(value3)}`)
+
+    const furtherInstructions: MockRelayerIntegration.FurtherInstructionsStruct = {
+      keepSending: true,
+      newMessages: [arbitraryPayload2, "0x00"],
+      chains: [sourceChain.chainId, targetChain.chainId],
+      gasLimits: [500000, 500000],
+    }
+    const tx = await sourceMockIntegration.sendMessagesWithFurtherInstructions(
+      [arbitraryPayload1],
+      furtherInstructions,
+      [targetChain.chainId],
+      [value1.add(value2).add(value3)],
+      { value: value1.add(value2).add(value3), gasLimit: 500000 }
+    )
+    console.log("Sent delivery request!")
+    const rx = await tx.wait()
+    console.log("Message confirmed!")
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+
+    console.log("Checking if first forward was relayed")
+    const message1 = await sourceMockIntegration.getMessage()
+    console.log(
+      `Sent message: ${arbitraryPayload2}`
+    )
+    console.log(`Received message: ${message1}`)
+    expect(message1).to.equal(arbitraryPayload2)
+
+    console.log("Checking if second forward was relayed")
+    const message2 = await sourceMockIntegration.getMessage()
+    console.log(
+      `Sent message: ${arbitraryPayload2}`
+    )
+    console.log(`Received message: ${message2}`)
+    expect(message2).to.equal(arbitraryPayload2)
+  })
 })
