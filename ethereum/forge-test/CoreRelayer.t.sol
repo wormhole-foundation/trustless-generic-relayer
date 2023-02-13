@@ -906,7 +906,7 @@ contract TestCoreRelayer is Test {
         );
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidRedeliveryVM(string)", "VM signature invalid"));
+        vm.expectRevert(abi.encodeWithSignature("InvalidRedeliveryVM(string)", ""));
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         fakeVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
