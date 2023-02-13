@@ -80,14 +80,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
             //token, amount, receipientChain, recipientAddress, nonce, payload
             abi.encodeCall(
                 ITokenBridge.transferTokensWithPayload,
-                (
-                    address(this),
-                    amount,
-                    remoteChain,
-                    trustedContracts[remoteChain],
-                    nonce,
-                    payload
-                )
+                (address(this), amount, remoteChain, trustedContracts[remoteChain], nonce, payload)
             )
         );
     }
