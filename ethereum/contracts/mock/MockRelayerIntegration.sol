@@ -44,10 +44,10 @@ contract MockRelayerIntegration is IWormholeReceiver {
     }
 
     function sendMessage(bytes memory _message, uint16 targetChainId, address destination) public payable {
-        sendMessage(_message, targetChainId, destination, destination);
+        sendMessageGeneral(_message, targetChainId, destination, destination, 0, 1);
     }
 
-    function sendMessage(bytes memory _message, uint16 targetChainId, address destination, address refundAddress)
+    function sendMessageWithRefundAddress(bytes memory _message, uint16 targetChainId, address destination, address refundAddress)
         public
         payable
     {
