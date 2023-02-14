@@ -169,9 +169,11 @@ contract MockRelayerIntegration is IWormholeReceiver {
                     relayParameters: relayer.getDefaultRelayParams()
                 });
             }
-            IWormholeRelayer.MultichainSend memory container =
-                IWormholeRelayer.MultichainSend({requests: sendRequests, relayProviderAddress: relayer.getDefaultRelayProvider()});
-             
+            IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({
+                requests: sendRequests,
+                relayProviderAddress: relayer.getDefaultRelayProvider()
+            });
+
             relayer.multichainForward(container, sendRequests[0].targetChain, parsed.nonce);
         }
     }

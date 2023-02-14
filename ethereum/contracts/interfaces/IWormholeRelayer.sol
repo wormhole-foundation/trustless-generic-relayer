@@ -41,12 +41,11 @@ interface IWormholeRelayer {
         payable
         returns (uint64 sequence);
 
-
     /**
      * @dev When requesting a multiforward, the rollover chain is the chain where any remaining funds should be sent once all
      * the requested budgets have been covered. The remaining funds will be added to the maxTransactionFee of the rollover chain.
      */
-     
+
     function multichainForward(MultichainSend memory deliveryRequests, uint16 rolloverChain, uint32 nonce)
         external
         payable;
