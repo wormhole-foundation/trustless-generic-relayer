@@ -14,7 +14,7 @@ import {
   loadCoreRelayers,
   loadMockIntegrations,
 } from "../ts-scripts/helpers/env"
-import { MockRelayerIntegration } from "../../sdk/src"
+import { MockRelayerIntegration, CoreRelayerStructs } from "../../sdk/src"
 const ETHEREUM_ROOT = `${__dirname}/..`
 
 init()
@@ -273,5 +273,72 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     )
     console.log(`Received message: ${message2}`)
     expect(message2).to.equal(arbitraryPayload2)
+  })
+
+  it("Executes a redelivery", async () => {
+    const arbitraryPayload = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    console.log(`Sent message: ${arbitraryPayload}`)
+    const valueNotEnough = await sourceCoreRelayer.quoteGas(
+      targetChain.chainId,
+      10000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    const value = await sourceCoreRelayer.quoteGas(
+      targetChain.chainId,
+      500000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee (not enough): ${valueNotEnough}`)
+    const tx = await sourceMockIntegration.sendMessage(
+      arbitraryPayload,
+      targetChain.chainId,
+      targetMockIntegrationAddress,
+      { value: valueNotEnough, gasLimit: 500000 }
+    )
+    console.log("Sent delivery request!")
+    const rx = await tx.wait()
+    console.log("Message confirmed!")
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 2000)
+    })
+
+    console.log("Checking if message was relayed (it shouldn't have been!)")
+    const message = await targetMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload}`)
+    console.log(`Received message: ${message}`)
+    expect(message).to.not.equal(arbitraryPayload)
+
+    console.log("Resending the message");
+    const request: CoreRelayerStructs.ResendByTxStruct = {
+      sourceChain: sourceChain.chainId,
+      sourceTxHash: tx.hash,
+      sourceNonce: 1,
+      targetChain: targetChain.chainId, 
+      deliveryIndex: 2,
+      multisendIndex: 0,
+      newMaxTransactionFee: value, 
+      newReceiverValue: 0,
+      newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
+    };
+    await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
+    console.log("Message resent");
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+
+    console.log("Checking if message was relayed")
+    const messageNew = await targetMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload}`)
+    console.log(`Received message: ${messageNew}`)
+    expect(messageNew).to.equal(arbitraryPayload)
+
   })
 })
