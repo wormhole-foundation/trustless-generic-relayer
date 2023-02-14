@@ -1,5 +1,11 @@
-import { EVMChainId } from "@certusone/wormhole-sdk"
+import {
+  EVMChainId,
+  CONTRACTS,
+  coalesceChainName,
+  ChainId,
+} from "@certusone/wormhole-sdk"
 import * as relayerEngine from "@wormhole-foundation/relayer-engine"
+import { EnvType, validateStringEnum } from "@wormhole-foundation/relayer-engine"
 import GenericRelayerPluginDef, {
   ChainInfo,
   GenericRelayerPluginConfig,
@@ -12,9 +18,19 @@ type ContractsJson = {
   mockIntegrations: ContractConfigEntry[]
 }
 
+enum Flag {
+  Tilt = "--tilt",
+  Testnet = "--testnet",
+  K8sTestnet = "--k8s-testnet",
+  Mainnet = "--mainnet",
+}
+
 async function main() {
+  // todo: turn flag into enum
+  const flag: Flag = validateStringEnum(Flag, process.argv[2])
+
   // load plugin config
-  const envType = selectPluginConfig(process.argv[2] ?? "")
+  const envType = selectPluginConfig(flag)
   const pluginConfig = (await relayerEngine.loadFileAndParseToObject(
     `./src/plugin/config/${envType}.json`
   )) as GenericRelayerPluginConfig
@@ -25,7 +41,8 @@ async function main() {
   )) as ContractsJson
   pluginConfig.supportedChains = transfromContractsToSupportedChains(
     contracts,
-    pluginConfig.supportedChains as any
+    pluginConfig.supportedChains as any,
+    flag
   ) as any
 
   // run relayer engine
@@ -36,24 +53,10 @@ async function main() {
   })
 }
 
-function selectPluginConfig(flag: string): string {
-  switch (flag) {
-    case "--testnet":
-      return relayerEngine.EnvType.DEVNET.toLowerCase()
-    case "--mainnet":
-      return relayerEngine.EnvType.MAINNET.toLowerCase()
-    case "--tilt":
-      return relayerEngine.EnvType.TILT.toLowerCase()
-    case "--k8s-testnet":
-      return "k8s-testnet"
-    default:
-      return relayerEngine.EnvType.TILT.toLowerCase()
-  }
-}
-
 function transfromContractsToSupportedChains(
   contracts: ContractsJson,
-  supportedChains: Record<EVMChainId, ChainInfo>
+  supportedChains: Record<EVMChainId, ChainInfo>,
+  flag: Flag
 ): Record<EVMChainId, ChainInfo> {
   contracts.relayProviders.forEach(
     ({ chainId, address }: ContractConfigEntry) =>
@@ -67,7 +70,42 @@ function transfromContractsToSupportedChains(
     ({ chainId, address }: ContractConfigEntry) =>
       (supportedChains[chainId].mockIntegrationContractAddress = address)
   )
+  const whContracts = CONTRACTS[flagToWormholeContracts(flag)]
+  for (const [chain, entry] of Object.entries(supportedChains)) {
+    const chainName = coalesceChainName(Number(chain) as ChainId)
+    entry.coreContract = whContracts[chainName].core!
+  }
   return supportedChains
+}
+
+function selectPluginConfig(flag: Flag): string {
+  switch (flag) {
+    case Flag.Testnet:
+      return relayerEngine.EnvType.DEVNET.toLowerCase()
+    case Flag.Mainnet:
+      return relayerEngine.EnvType.MAINNET.toLowerCase()
+    case Flag.Tilt:
+      return relayerEngine.EnvType.TILT.toLowerCase()
+    case Flag.K8sTestnet:
+      return "k8s-testnet"
+    default:
+      return relayerEngine.EnvType.TILT.toLowerCase()
+  }
+}
+
+function flagToWormholeContracts(flag: string): "MAINNET" | "TESTNET" | "DEVNET" {
+  switch (flag) {
+    case Flag.K8sTestnet:
+      return "TESTNET"
+    case Flag.Testnet:
+      return "TESTNET"
+    case Flag.Mainnet:
+      return "MAINNET"
+    case Flag.Tilt:
+      return "DEVNET"
+    default:
+      throw new Error("Unexpected flag ")
+  }
 }
 
 // allow main to be an async function and block until it rejects or resolves

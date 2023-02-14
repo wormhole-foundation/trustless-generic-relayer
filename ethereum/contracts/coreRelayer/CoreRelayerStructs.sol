@@ -9,10 +9,10 @@ abstract contract CoreRelayerStructs {
     //This first group of structs are external facing API objects,
     //which should be considered untrusted and unmodifiable
 
-    struct DeliveryRequestsContainer {
+    struct MultichainSend {
         uint8 payloadId; // payloadID = 1
         address relayProviderAddress;
-        DeliveryRequest[] requests;
+        Send[] requests;
     }
 
     // struct TargetDeliveryParameters {
@@ -43,24 +43,24 @@ abstract contract CoreRelayerStructs {
         address payable relayerRefundAddress;
     }
 
-    struct DeliveryRequest {
+    struct Send {
         uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
-        uint256 computeBudget;
-        uint256 applicationBudget;
+        uint256 maxTransactionFee;
+        uint256 receiverValue;
         bytes relayParameters;
     }
 
-    struct RedeliveryByTxHashRequest {
+    struct ResendByTx {
         uint16 sourceChain;
         bytes32 sourceTxHash;
         uint32 sourceNonce;
         uint16 targetChain;
         uint8 deliveryIndex;
         uint8 multisendIndex;
-        uint256 newComputeBudget;
-        uint256 newApplicationBudget;
+        uint256 newMaxTransactionFee;
+        uint256 newReceiverValue;
         bytes newRelayParameters;
     }
 
@@ -83,7 +83,7 @@ abstract contract CoreRelayerStructs {
         bytes32 targetAddress;
         bytes32 refundAddress;
         uint256 maximumRefundTarget;
-        uint256 applicationBudgetTarget;
+        uint256 receiverValueTarget;
         ExecutionParameters executionParameters; //Has the gas limit to execute with
     }
 
@@ -102,7 +102,7 @@ abstract contract CoreRelayerStructs {
         uint8 deliveryIndex;
         uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
-        uint256 newApplicationBudgetTarget;
+        uint256 newReceiverValueTarget;
         ExecutionParameters executionParameters;
     }
 
@@ -125,22 +125,4 @@ abstract contract CoreRelayerStructs {
         uint256 msgValue;
         bool isValid;
     }
-
-    // struct DeliveryStatus {
-    //     uint8 payloadID; // payloadID = 2;
-    //     bytes32 batchHash;
-    //     bytes32 emitterAddress;
-    //     uint64 sequence;
-    //     uint16 deliveryCount;
-    //     bool deliverySuccess;
-    // }
-
-    // // TODO: WIP
-    // struct RewardPayout {
-    //     uint8 payloadID; // payloadID = 100; prevent collisions with new blueprint payloads
-    //     uint16 fromChain;
-    //     uint16 chain;
-    //     uint256 amount;
-    //     bytes32 receiver;
-    // }
 }

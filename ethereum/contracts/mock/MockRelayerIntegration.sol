@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
 import "../interfaces/IWormhole.sol";
-import "../interfaces/ICoreRelayer.sol";
+import "../interfaces/IWormholeRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
 
 import "forge-std/console.sol";
@@ -17,7 +17,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
     IWormhole immutable wormhole;
 
     // trusted relayer contract on this chain
-    ICoreRelayer immutable relayer;
+    IWormholeRelayer immutable relayer;
 
     // deployer of this contract
     address immutable owner;
@@ -29,7 +29,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
     constructor(address _wormholeCore, address _coreRelayer) {
         wormhole = IWormhole(_wormholeCore);
-        relayer = ICoreRelayer(_coreRelayer);
+        relayer = IWormholeRelayer(_coreRelayer);
         owner = msg.sender;
     }
 
@@ -54,10 +54,10 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint16 targetChainId,
         address destination,
         address refundAddress,
-        uint256 applicationBudget,
+        uint256 receiverValue,
         uint32 nonce
     ) public payable {
-        executeSend(fullMessage, targetChainId, destination, refundAddress, applicationBudget, nonce);
+        executeSend(fullMessage, targetChainId, destination, refundAddress, receiverValue, nonce);
     }
 
     function executeSend(
@@ -65,23 +65,21 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint16 targetChainId,
         address destination,
         address refundAddress,
-        uint256 applicationBudget,
+        uint256 receiverValue,
         uint32 nonce
     ) internal {
         wormhole.publishMessage{value: wormhole.messageFee()}(nonce, fullMessage, 200);
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+        IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
-            computeBudget: msg.value - 2 * wormhole.messageFee() - applicationBudget,
-            applicationBudget: applicationBudget, // not needed in this case.
+            maxTransactionFee: msg.value - 2 * wormhole.messageFee() - receiverValue,
+            receiverValue: receiverValue, // not needed in this case.
             relayParameters: relayer.getDefaultRelayParams() //no overrides
         });
 
-        relayer.requestDelivery{value: msg.value - wormhole.messageFee()}(
-            request, nonce, relayer.getDefaultRelayProvider()
-        );
+        relayer.send{value: msg.value - wormhole.messageFee()}(request, nonce, relayer.getDefaultRelayProvider());
     }
 
     function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
@@ -100,19 +98,19 @@ contract MockRelayerIntegration is IWormholeReceiver {
                     parsed.nonce, abi.encodePacked(uint8(0), bytes("received!")), 200
                 );
 
-                uint256 computeBudget =
-                    relayer.quoteGasDeliveryFee(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
+                uint256 maxTransactionFee =
+                    relayer.quoteGas(parsed.emitterChainId, 500000, relayer.getDefaultRelayProvider());
 
-                ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+                IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
                     targetChain: parsed.emitterChainId,
                     targetAddress: parsed.emitterAddress,
                     refundAddress: parsed.emitterAddress,
-                    computeBudget: computeBudget,
-                    applicationBudget: 0,
+                    maxTransactionFee: maxTransactionFee,
+                    receiverValue: 0,
                     relayParameters: relayer.getDefaultRelayParams()
                 });
 
-                relayer.requestForward(request, parsed.nonce, relayer.getDefaultRelayProvider());
+                relayer.forward(request, parsed.nonce, relayer.getDefaultRelayProvider());
             }
 
             unchecked {

@@ -35,7 +35,7 @@ contract RelayProviderStorage {
         // Set of relayer addresses used to deliver or redeliver wormhole messages.
         mapping(address => bool) approvedSenders;
         // The following two fields are a percentage buffer that is used to upcharge the user for the application budget.
-        // The cost of getting ‘targetAmount’ on ‘targetChain’ for the applicationBudget is
+        // The cost of getting ‘targetAmount’ on ‘targetChain’ for the receiverValue is
         // (denominator + buffer) / (denominator) * (the converted amount in source chain currency using the ‘quoteAssetPrice’ values)
         // Dictionary of wormhole chain id -> assetConversionBuffer buffer
         mapping(uint16 => uint16) assetConversionBuffer;

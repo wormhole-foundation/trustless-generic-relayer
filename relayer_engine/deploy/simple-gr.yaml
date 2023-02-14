@@ -15,10 +15,10 @@ spec:
       labels:
         app:  simple-gr
     spec:
-      restartPolicy: Always 
+      restartPolicy: Always
       containers:
       - name:  simple-gr
-        image:  ghcr.io/wormhole-foundation/trustless-generic-relayer:pr-65
+        image:  ghcr.io/wormhole-foundation/trustless-generic-relayer:pr-76
         imagePullPolicy: Always
         # uncomment to explore filesystem during crash loop
         # command: [ "/bin/sh", "-c", "--" ]
@@ -43,31 +43,34 @@ spec:
             secretKeyRef:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_4
-              optional: false 
+              optional: false
         - name: PRIVATE_KEYS_CHAIN_5
           valueFrom:
             secretKeyRef:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_5
-              optional: false 
+              optional: false
         - name: PRIVATE_KEYS_CHAIN_6
           valueFrom:
             secretKeyRef:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_6
-              optional: false 
-        - name: PRIVATE_KEYS_CHAIN_14 
+              optional: false
+        - name: PRIVATE_KEYS_CHAIN_14
           valueFrom:
             secretKeyRef:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_14
-              optional: false 
+              optional: false
         - name: PRIVATE_KEYS_CHAIN_16
           valueFrom:
             secretKeyRef:
               name: private-keys
               key: PRIVATE_KEYS_CHAIN_16
-              optional: false 
+              optional: false
+        envFrom:
+          - secretRef:
+              name: redis-generic-relayer
       volumes:
         - name: relayer-contracts
           configMap:

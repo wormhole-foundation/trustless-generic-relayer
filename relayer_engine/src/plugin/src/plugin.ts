@@ -36,14 +36,13 @@ import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
-
-const wormholeRpc = "https://wormhole-v2-testnet-api.certus.one"
+import { hexToNativeStringAlgorand } from "@certusone/wormhole-sdk/lib/cjs/algorand"
 
 let PLUGIN_NAME: string = "GenericRelayerPlugin"
 
 export interface ChainInfo {
   relayProvider: string
-  coreContract?: IWormhole
+  coreContract: string
   relayerAddress: string
   mockIntegrationContractAddress: string
 }
@@ -79,7 +78,6 @@ interface WorkflowPayloadParsed {
  * DB types
  */
 
-const RESOLVED = "resolved"
 const PENDING = "pending"
 interface Pending {
   startTime: string
@@ -109,7 +107,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   pluginConfig: GenericRelayerPluginConfig
 
   constructor(
-    readonly engineConfig: CommonPluginEnv,
+    readonly engineConfig: CommonPluginEnv & { wormholeRpc: string },
     pluginConfigRaw: Record<string, any>,
     readonly logger: Logger
   ) {
@@ -127,14 +125,10 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   ) {
     // connect to the core wh contract for each chain
     for (const [chainId, info] of this.pluginConfig.supportedChains.entries()) {
-      const chainName = wh.coalesceChainName(chainId)
-      const { core } = wh.CONTRACTS.TESTNET[chainName]
-      if (!core || !wh.isEVMChain(chainId)) {
-        this.logger.error("No known core contract for chain", chainName)
-        throw new PluginError("No known core contract for chain", { chainName })
+      const { coreContract } = info
+      if (!coreContract || !wh.isEVMChain(chainId)) {
+        throw new PluginError("No known core contract for chain", { chainId })
       }
-      const provider = providers.evm[chainId as wh.EVMChainId]
-      info.coreContract = IWormhole__factory.connect(core, provider)
     }
 
     if (listenerResources) {
@@ -156,64 +150,49 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
       // track which delivery vaa hashes have all vaas ready this iteration
       let newlyResolved = new Map<string, Entry>()
-      await db.withKey(
-        [PENDING, RESOLVED],
-        async (kv: { [RESOLVED]?: Resolved[]; [PENDING]?: Pending[] }) => {
-          // if objects have not been crearted, initialize
-          if (!kv.pending) {
-            kv.pending = []
-          }
-          if (!kv.resolved) {
-            kv.resolved = []
-          }
-          logger.debug(`Pending: ${JSON.stringify(kv.pending, undefined, 4)}`)
-          logger.debug(`Resolved: ${JSON.stringify(kv.resolved, undefined, 4)}`)
+      await db.withKey([PENDING], async (kv: { [PENDING]?: Pending[] }, tx) => {
+        // if objects have not been created, initialize
+        if (!kv.pending) {
+          kv.pending = []
+        }
+        logger.debug(`Pending: ${JSON.stringify(kv.pending, undefined, 4)}`)
 
-          // filter to the pending items that are due to be retried
-          const entriesToFetch = kv.pending.filter(
-            (delivery) =>
-              new Date(JSON.parse(delivery.nextRetryTime)).getTime() < Date.now()
-          )
-          if (entriesToFetch.length === 0) {
-            return { newKV: kv, val: undefined }
-          }
-
-          logger.info(`Attempting to fetch ${entriesToFetch.length} entries`)
-          await db.withKey(
-            // get `Entry`s for each hash
-            entriesToFetch.map((d) => d.hash),
-            async (kv: Record<string, Entry>) => {
-              const promises = Object.entries(kv).map(async ([hash, entry]) => {
-                if (entry.allFetched) {
-                  // nothing to do
-                  logger.warn("Entry in pending but nothing to fetch " + hash)
-                  return [hash, entry]
-                }
-                const newEntry: Entry = await this.fetchEntry(hash, entry, logger)
-                if (newEntry.allFetched) {
-                  newlyResolved.set(hash, newEntry)
-                }
-                return [hash, newEntry]
-              })
-
-              const newKV = Object.fromEntries(await Promise.all(promises))
-              return { newKV, val: undefined }
-            }
-          )
-
-          // todo: gc resolved eventually
-          // todo: currently not used, but the idea is to refire resolved events
-          // in the case of a restart or smt. Maybe should just remove it for now...
-          kv.resolved.push(
-            ...Array.from(newlyResolved.keys()).map((hash) => ({
-              hash,
-            }))
-          )
-          kv.pending = kv.pending.filter((p) => !newlyResolved.has(p.hash))
-
+        // filter to the pending items that are due to be retried
+        const entriesToFetch = kv.pending.filter(
+          (delivery) =>
+            new Date(JSON.parse(delivery.nextRetryTime)).getTime() < Date.now()
+        )
+        if (entriesToFetch.length === 0) {
           return { newKV: kv, val: undefined }
         }
-      )
+
+        logger.info(`Attempting to fetch ${entriesToFetch.length} entries`)
+        await db.withKey(
+          // get `Entry`s for each hash
+          entriesToFetch.map((d) => d.hash),
+          async (kv: Record<string, Entry>) => {
+            const promises = Object.entries(kv).map(async ([hash, entry]) => {
+              if (entry.allFetched) {
+                // nothing to do
+                logger.warn("Entry in pending but nothing to fetch " + hash)
+                return [hash, entry]
+              }
+              const newEntry: Entry = await this.fetchEntry(hash, entry, logger)
+              if (newEntry.allFetched) {
+                newlyResolved.set(hash, newEntry)
+              }
+              return [hash, newEntry]
+            })
+
+            const newKV = Object.fromEntries(await Promise.all(promises))
+            return { newKV, val: undefined }
+          },
+          tx
+        )
+
+        kv.pending = kv.pending.filter((p) => !newlyResolved.has(p.hash))
+        return { newKV: kv, val: undefined }
+      })
       // kick off an engine listener event for each resolved delivery vaa
       for (const entry of newlyResolved.values()) {
         this.logger.info("Kicking off engine listener event for resolved entry")
@@ -228,6 +207,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
   async fetchEntry(hash: string, value: Entry, logger: Logger): Promise<Entry> {
     // track if there are missing vaas after trying to fetch
+    this.logger.info("Fetching entry...", { hash })
     let hasMissingVaas = false
     const vaas = await Promise.all(
       value.vaas.map(async ({ emitter, sequence, bytes }, idx) => {
@@ -238,7 +218,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         try {
           // try to fetch vaa from guardian rpc
           const resp = await wh.getSignedVAA(
-            wormholeRpc,
+            this.engineConfig.wormholeRpc,
             value.chainId as wh.EVMChainId,
             emitter,
             sequence,
@@ -272,8 +252,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   async consumeEvent(
     coreRelayerVaa: ParsedVaaWithBytes,
     db: StagingAreaKeyLock,
-    _providers: Providers
-  ): Promise<{ workflowData?: WorkflowPayload }> {
+    providers: Providers
+  ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     this.logger.debug(
       `Consuming event from chain ${
         coreRelayerVaa.emitterChain
@@ -281,26 +261,44 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         coreRelayerVaa.hash
       ).toString("base64")}`
     )
+
+    // Kick off workflow if entry has already been fetched
     const payloadId = parsePayloadType(coreRelayerVaa.payload)
+    const hash = coreRelayerVaa.hash.toString("base64")
+    const { [hash]: fetched } = await db.getKeys<Record<typeof hash, Entry>>([hash])
+    if (fetched?.allFetched) {
+      // if all vaas have been fetched, kick off workflow
+      this.logger.info(`All fetched, queueing workflow for ${hash}...`)
+      return {
+        workflowData: {
+          payloadId,
+          deliveryVaaIndex: fetched.deliveryVaaIdx,
+          vaas: fetched.vaas.map((v) => v.bytes),
+          redeliveryVaa: fetched.redeliveryVaa,
+        },
+      }
+    }
+
     switch (payloadId) {
       case RelayerPayloadId.Delivery:
-        return this.consumeDeliveryEvent(coreRelayerVaa, db)
+        return this.consumeDeliveryEvent(coreRelayerVaa, db, hash, providers)
       case RelayerPayloadId.Redelivery:
-        return this.consumeRedeliveryEvent(coreRelayerVaa, db)
+        return this.consumeRedeliveryEvent(coreRelayerVaa, db, providers)
     }
   }
 
   async consumeRedeliveryEvent(
     redeliveryVaa: ParsedVaaWithBytes,
-    db: StagingAreaKeyLock
-  ): Promise<{ workflowData?: WorkflowPayload }> {
+    db: StagingAreaKeyLock,
+    providers: Providers
+  ): Promise<{ workflowData: WorkflowPayload } | undefined> {
     const redeliveryInstruction = parseRedeliveryByTxHashInstruction(
       redeliveryVaa.payload
     )
     const chainId = redeliveryInstruction.sourceChain as wh.EVMChainId
+    const provider = providers.evm[chainId]
     const config = this.pluginConfig.supportedChains.get(chainId)!
-    const coreWHContract = config.coreContract!
-    const rx = await coreWHContract.provider.getTransactionReceipt(
+    const rx = await provider.getTransactionReceipt(
       ethers.utils.hexlify(redeliveryInstruction.sourceTxHash, {
         allowMissingPrefix: true,
       })
@@ -333,70 +331,55 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
   async consumeDeliveryEvent(
     coreRelayerVaa: ParsedVaaWithBytes,
-    db: StagingAreaKeyLock
-  ): Promise<{ workflowData?: WorkflowPayload }> {
-    const hash = coreRelayerVaa.hash.toString("base64")
-    const { [hash]: fetched } = await db.getKeys<Record<typeof hash, Entry>>([hash])
+    db: StagingAreaKeyLock,
+    hash: string,
+    providers: Providers
+  ): Promise<{ workflowData: WorkflowPayload } | undefined> {
+    this.logger.info(
+      `Not fetched, fetching receipt and filtering to synthetic batch for ${hash}...`
+    )
+    const chainId = coreRelayerVaa.emitterChain as wh.EVMChainId
+    const provider = providers.evm[chainId]
+    const rx = await this.fetchReceipt(coreRelayerVaa.sequence, chainId, provider)
 
-    if (fetched?.allFetched) {
-      // if all vaas have been fetched, kick off workflow
-      this.logger.info(`All fetched, queueing workflow for ${hash}...`)
-      return dbg(
-        {
-          workflowData: {
-            payloadId: RelayerPayloadId.Delivery,
-            deliveryVaaIndex: fetched.deliveryVaaIdx,
-            vaas: fetched.vaas.map((v) => v.bytes),
-          },
-        },
-        "workflow from consume event"
-      )
-    } else {
-      this.logger.info(
-        `Not fetched, fetching receipt and filtering to synthetic batch for ${hash}...`
-      )
-      const chainId = coreRelayerVaa.emitterChain as wh.EVMChainId
-      const rx = await this.fetchReceipt(coreRelayerVaa.sequence, chainId)
+    const emitter = wh.tryNativeToHexString(
+      wh.tryUint8ArrayToNative(coreRelayerVaa.emitterAddress, "ethereum"),
+      "ethereum"
+    )
+    const { vaas, deliveryVaaIdx } = this.filterLogs(
+      rx,
+      chainId,
+      emitter,
+      coreRelayerVaa.nonce
+    )
+    vaas[deliveryVaaIdx].bytes = coreRelayerVaa.bytes.toString("base64")
 
-      const emitter = wh.tryNativeToHexString(
-        wh.tryUint8ArrayToNative(coreRelayerVaa.emitterAddress, "ethereum"),
-        "ethereum"
-      )
-      const { vaas, deliveryVaaIdx } = this.filterLogs(
-        rx,
-        chainId,
-        emitter,
-        coreRelayerVaa.nonce
-      )
-      vaas[deliveryVaaIdx].bytes = coreRelayerVaa.bytes.toString("base64")
-
-      // create entry and pending in db
-      const newEntry: Entry = {
-        vaas,
-        chainId,
-        deliveryVaaIdx,
-        allFetched: false,
-      }
-
-      const maybeResolvedEntry = await this.fetchEntry(hash, newEntry, this.logger)
-      if (maybeResolvedEntry.allFetched) {
-        this.logger.info("Resolved entry immediately")
-        return {
-          workflowData: {
-            payloadId: RelayerPayloadId.Delivery,
-            deliveryVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
-            vaas: maybeResolvedEntry.vaas.map((v) => v.bytes),
-          },
-        }
-      }
-
-      this.logger.debug(`Entry: ${JSON.stringify(newEntry, undefined, 4)}`)
-      // todo: retry if withKey throws (possible contention with worker process)
-      await this.addEntryToPendingQueue(hash, newEntry, db)
-
-      // do not create workflow until we have collected all VAAs
-      return {}
+    // create entry and pending in db
+    const newEntry: Entry = {
+      vaas,
+      chainId,
+      deliveryVaaIdx,
+      allFetched: false,
     }
+
+    const maybeResolvedEntry = await this.fetchEntry(hash, newEntry, this.logger)
+    if (maybeResolvedEntry.allFetched) {
+      this.logger.info("Resolved entry immediately")
+      return {
+        workflowData: {
+          payloadId: RelayerPayloadId.Delivery,
+          deliveryVaaIndex: maybeResolvedEntry.deliveryVaaIdx,
+          vaas: maybeResolvedEntry.vaas.map((v) => v.bytes),
+        },
+      }
+    }
+
+    this.logger.debug(`Entry: ${JSON.stringify(newEntry, undefined, 4)}`)
+    // todo: retry if withKey throws (possible contention with worker process)
+    await this.addEntryToPendingQueue(hash, newEntry, db)
+
+    // do not create workflow until we have collected all VAAs
+    return
   }
 
   async addEntryToPendingQueue(hash: string, newEntry: Entry, db: StagingAreaKeyLock) {
@@ -410,9 +393,12 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             // @ts-ignore
             let oldEntry: Entry | null = kv[hash]
             if (oldEntry?.allFetched) {
-              return { newKV: kv, val: undefined }
+              return { newKV: kv, val: true }
             }
-            // todo: check that hash is not in pending list already
+            if (kv[PENDING].findIndex((e) => e.hash === hash) !== -1) {
+              return { newKV: kv, val: true }
+            }
+
             const now = Date.now().toString()
             kv.pending.push({
               nextRetryTime: now,
@@ -425,24 +411,26 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             return { newKV: kv, val: true }
           }
         )
-      } catch {}
+      } catch (e) {
+        this.logger.warn(e)
+      }
     })
   }
 
   // fetch  the contract transaction receipt for the given sequence number emitted by the core relayer contract
   async fetchReceipt(
     sequence: BigInt,
-    chainId: wh.EVMChainId
+    chainId: wh.EVMChainId,
+    provider: ethers.providers.Provider
   ): Promise<ethers.ContractReceipt> {
     const config = this.pluginConfig.supportedChains.get(chainId)!
-    const coreWHContract = config.coreContract!
+    const coreWHContract = IWormhole__factory.connect(config.coreContract!, provider)
     const filter = coreWHContract.filters.LogMessagePublished(config.relayerAddress)
-
     const blockNumber = await coreWHContract.provider.getBlockNumber()
     for (let i = 0; i < 20; ++i) {
       let paginatedLogs
       if (i === 0) {
-        paginatedLogs = await coreWHContract.queryFilter(filter, -20)
+        paginatedLogs = await coreWHContract.queryFilter(filter, -30)
       } else {
         paginatedLogs = await coreWHContract.queryFilter(
           filter,
@@ -460,7 +448,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     try {
       return await retryAsyncUntilDefined(
         async () => {
-          const paginatedLogs = await coreWHContract.queryFilter(filter, -20)
+          const paginatedLogs = await coreWHContract.queryFilter(filter, -50)
           const log = paginatedLogs.find(
             (log) => log.args.sequence.toString() === sequence.toString()
           )
@@ -491,8 +479,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   } {
     const onlyVAALogs = rx.logs.filter(
       (log) =>
-        log.address ===
-        this.pluginConfig.supportedChains.get(chainId)?.coreContract?.address
+        log.address === this.pluginConfig.supportedChains.get(chainId)?.coreContract
     )
     const vaas = onlyVAALogs.flatMap((bridgeLog: ethers.providers.Log) => {
       const iface = Implementation__factory.createInterface()
@@ -543,7 +530,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     for (let i = 0; i < payload.deliveryInstructionsContainer.instructions.length; i++) {
       const ix = payload.deliveryInstructionsContainer.instructions[i]
       const chainId = assertEvmChainId(ix.targetChain)
-      const budget = ix.applicationBudgetTarget.add(ix.maximumRefundTarget).add(100)
+      const budget = ix.receiverValueTarget.add(ix.maximumRefundTarget).add(100)
 
       // todo: consider parallelizing this
       await execute.onEVM({
@@ -604,8 +591,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           return
         }
 
-        const { newApplicationBudgetTarget, newMaximumRefundTarget } = redelivery.ix
-        const budget = newApplicationBudgetTarget.add(newMaximumRefundTarget).add(100)
+        const { newReceiverValueTarget, newMaximumRefundTarget } = redelivery.ix
+        const budget = newReceiverValueTarget.add(newMaximumRefundTarget).add(100)
         const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
           sourceEncodedVMs: payload.vaas,
           redeliveryVM: redelivery.vaa.bytes,

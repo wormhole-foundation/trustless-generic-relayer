@@ -1,9 +1,18 @@
 {
   "mode": "BOTH",
-  "logLevel": "info",
-  "storeType": "InMemory",
-  "redisPort": 6379,
-  "redisHost": "redis-master.default.svc.cluster.local",
+  "logLevel": "debug",
+  "storeType": "Redis",
+  "redis": {
+    "port": 6379,
+    "host": "OVERRIDEN BY ENV VAR",
+    "tls": true,
+    "cluster": true
+  },
+  "namespace": "{gr}",
+  "defaultWorkflowOptions": {
+    "maxRetries": 3
+  },
+  "wormholeRpc": "https://wormhole-v2-testnet-api.certus.one",
   "readinessPort": 2000,
   "numGuardians": 1,
   "supportedChains": [

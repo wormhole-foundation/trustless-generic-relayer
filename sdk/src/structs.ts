@@ -18,7 +18,7 @@ export interface DeliveryInstruction {
   targetAddress: Buffer
   refundAddress: Buffer
   maximumRefundTarget: BigNumber
-  applicationBudgetTarget: BigNumber
+  receiverValueTarget: BigNumber
   executionParameters: ExecutionParameters
 }
 
@@ -37,7 +37,7 @@ export interface RedeliveryByTxHashInstruction {
   deliveryIndex: number
   multisendIndex: number
   newMaximumRefundTarget: BigNumber
-  newApplicationBudgetTarget: BigNumber
+  newReceiverValueTarget: BigNumber
   executionParameters: ExecutionParameters
 }
 
@@ -81,7 +81,7 @@ export function parseDeliveryInstructionsContainer(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
-    const applicationBudgetTarget = ethers.BigNumber.from(
+    const receiverValueTarget = ethers.BigNumber.from(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
@@ -93,7 +93,7 @@ export function parseDeliveryInstructionsContainer(
         targetAddress,
         refundAddress,
         maximumRefundTarget,
-        applicationBudgetTarget,
+        receiverValueTarget,
         executionParameters,
       }
     )
@@ -139,7 +139,7 @@ export function parseRedeliveryByTxHashInstruction(
   const newMaximumRefundTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
 
-  const newApplicationBudgetTarget = BigNumber.from(bytes.slice(idx, idx + 32))
+  const newReceiverValueTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
 
   const executionParameters = parseExecutionParameters(bytes, idx)
@@ -152,7 +152,7 @@ export function parseRedeliveryByTxHashInstruction(
     deliveryIndex,
     multisendIndex,
     newMaximumRefundTarget,
-    newApplicationBudgetTarget,
+    newReceiverValueTarget,
     executionParameters,
   }
 }
