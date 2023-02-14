@@ -393,8 +393,7 @@ contract TestCoreRelayer is Test {
             relayerProfit / gasParams.targetGasPrice / feeParams.targetNativePrice;
         assertTrue(howMuchGasRelayerCouldHavePaidForAndStillProfited >= 30000); // takes around this much gas (seems to go from 36k-200k?!?)
         assertTrue(
-            USDcost - (relayerProfit + (uint256(1) * feeParams.receiverValueTarget * feeParams.targetNativePrice))
-                >= 0,
+            USDcost - (relayerProfit + (uint256(1) * feeParams.receiverValueTarget * feeParams.targetNativePrice)) >= 0,
             "We paid enough"
         );
         assertTrue(
@@ -517,18 +516,18 @@ contract TestCoreRelayer is Test {
         );
 
         vm.assume(
-            setup.source.coreRelayer.quoteGasDeliveryFee(
-                setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
+            setup.source.coreRelayer.quoteGas(
+                setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
             ) < uint256(2) ** 222
         );
         vm.assume(
-            setup.target.coreRelayer.quoteGasDeliveryFee(setup.sourceChainId, 500000, setup.target.relayProvider)
+            setup.target.coreRelayer.quoteGas(setup.sourceChainId, 500000, address(setup.target.relayProvider))
                 < uint256(2) ** 222 / feeParams.targetNativePrice
         );
 
         // Estimate the cost based on the initialized values
-        uint256 computeBudget = setup.source.coreRelayer.quoteGasDeliveryFee(
-            setup.targetChainId, gasParams.targetGasLimit, setup.source.relayProvider
+        uint256 computeBudget = setup.source.coreRelayer.quoteGas(
+            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         );
 
         {
@@ -784,12 +783,7 @@ contract TestCoreRelayer is Test {
         vm.expectRevert(abi.encodeWithSignature("NonceIsZero()"));
 
         setup.source.integration.sendMessageGeneral{value: maxTransactionFee + 3 * wormholeFee}(
-            message,
-            setup.targetChainId,
-            address(setup.target.integration),
-            address(setup.target.refundAddress),
-            0,
-            0
+            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), 0, 0
         );
     }
 
@@ -1084,7 +1078,6 @@ contract TestCoreRelayer is Test {
         vm.prank(setup.target.relayer);
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
-
     }
 
     /**

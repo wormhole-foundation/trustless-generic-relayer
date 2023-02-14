@@ -95,27 +95,26 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint16[] memory chains,
         uint256[] memory computeBudgets
     ) public payable {
-        for(uint16 i=0; i<messages.length; i++) {
+        for (uint16 i = 0; i < messages.length; i++) {
             wormhole.publishMessage{value: wormhole.messageFee()}(1, messages[i], 200);
         }
         wormhole.publishMessage{value: wormhole.messageFee()}(1, encodeFurtherInstructions(furtherInstructions), 200);
-        ICoreRelayer.DeliveryRequest[] memory requests = new ICoreRelayer.DeliveryRequest[](chains.length);
-        for(uint16 i=0; i<chains.length; i++) {
-             requests[i] = ICoreRelayer.DeliveryRequest({
+        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](chains.length);
+        for (uint16 i = 0; i < chains.length; i++) {
+            requests[i] = IWormholeRelayer.Send({
                 targetChain: chains[i],
                 targetAddress: registeredContracts[chains[i]],
                 refundAddress: registeredContracts[chains[i]],
-                computeBudget: computeBudgets[i],
-                applicationBudget: 0,
+                maxTransactionFee: computeBudgets[i],
+                receiverValue: 0,
                 relayParameters: relayer.getDefaultRelayParams()
-             });
+            });
         }
-        ICoreRelayer.DeliveryRequestsContainer memory container = ICoreRelayer.DeliveryRequestsContainer({
-            payloadId: 1,
+        IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({
             requests: requests,
-            relayProviderAddress: address(relayer.getDefaultRelayProvider())
+            relayProviderAddress: relayer.getDefaultRelayProvider()
         });
-        relayer.requestMultidelivery{value: (msg.value - wormhole.messageFee()*(1 + messages.length))}(container, 1);
+        relayer.multichainSend{value: (msg.value - wormhole.messageFee() * (1 + messages.length))}(container, 1);
     }
 
     function executeSend(
@@ -129,14 +128,12 @@ contract MockRelayerIntegration is IWormholeReceiver {
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
-            maxTransactionFee: msg.value - 3 * wormhole.messageFee() - applicationBudget,
+            maxTransactionFee: msg.value - 3 * wormhole.messageFee() - receiverValue,
             receiverValue: receiverValue,
             relayParameters: relayer.getDefaultRelayParams()
         });
 
-        relayer.send{value: msg.value - 2 * wormhole.messageFee()}(
-            request, nonce, relayer.getDefaultRelayProvider()
-        );
+        relayer.send{value: msg.value - 2 * wormhole.messageFee()}(request, nonce, relayer.getDefaultRelayProvider());
     }
 
     function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
@@ -159,8 +156,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             for (uint16 i = 0; i < instructions.newMessages.length; i++) {
                 wormhole.publishMessage{value: wormhole.messageFee()}(parsed.nonce, instructions.newMessages[i], 200);
             }
-            IWormholeRelayer.Send[] memory sendRequests =
-                new IWormholeRelayer.Send[](instructions.chains.length);
+            IWormholeRelayer.Send[] memory sendRequests = new IWormholeRelayer.Send[](instructions.chains.length);
             for (uint16 i = 0; i < instructions.chains.length; i++) {
                 sendRequests[i] = IWormholeRelayer.Send({
                     targetChain: instructions.chains[i],
@@ -173,8 +169,9 @@ contract MockRelayerIntegration is IWormholeReceiver {
                     relayParameters: relayer.getDefaultRelayParams()
                 });
             }
-            IWormholeRelayer.SendContainer memory container =
-                IWormholeRelayer.SendContainer(1, address(relayer.getDefaultRelayProvider()), sendRequests);
+            IWormholeRelayer.MultichainSend memory container =
+                IWormholeRelayer.MultichainSend({requests: sendRequests, relayProviderAddress: relayer.getDefaultRelayProvider()});
+             
             relayer.multichainForward(container, sendRequests[0].targetChain, parsed.nonce);
         }
     }
