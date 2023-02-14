@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../interfaces/IWormhole.sol";
 import "../interfaces/IWormholeReceiver.sol";
-import "../interfaces/ICoreRelayer.sol";
+import "../interfaces/IWormholeRelayer.sol";
 
 /**
  * This contract is a malicious "integration" that attempts to attack the forward mechanism.
@@ -14,7 +14,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
     mapping(bytes32 => bool) consumedMessages;
     address attackerReward;
     IWormhole wormhole;
-    ICoreRelayer core_relayer;
+    IWormholeRelayer core_relayer;
     uint32 nonce = 1;
     uint16 targetChainId;
 
@@ -22,7 +22,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
     // This just needs to be enough to pay for the call to the destination address.
     uint32 SAFE_DELIVERY_GAS_CAPTURE = 30000;
 
-    constructor(IWormhole initWormhole, ICoreRelayer initCoreRelayer, uint16 chainId, address initAttackerReward) {
+    constructor(IWormhole initWormhole, IWormholeRelayer initCoreRelayer, uint16 chainId, address initAttackerReward) {
         attackerReward = initAttackerReward;
         wormhole = initWormhole;
         core_relayer = initCoreRelayer;
@@ -43,21 +43,21 @@ contract AttackForwardIntegration is IWormholeReceiver {
     }
 
     function requestForward(uint16 targetChain, bytes32 attackerRewardAddress) internal {
-        uint256 computeBudget = core_relayer.quoteGasDeliveryFee(
+        uint256 maxTransactionFee = core_relayer.quoteGas(
             targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider()
         );
 
-        ICoreRelayer.DeliveryRequest memory request = ICoreRelayer.DeliveryRequest({
+        IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
             targetAddress: attackerRewardAddress,
             // All remaining funds will be returned to the attacker
             refundAddress: attackerRewardAddress,
-            computeBudget: computeBudget,
-            applicationBudget: 0,
+            maxTransactionFee: maxTransactionFee,
+            receiverValue: 0,
             relayParameters: core_relayer.getDefaultRelayParams()
         });
 
-        core_relayer.requestForward{value: computeBudget}(request, nonce, core_relayer.getDefaultRelayProvider());
+        core_relayer.forward{value: maxTransactionFee}(request, nonce, core_relayer.getDefaultRelayProvider());
     }
 
     function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {

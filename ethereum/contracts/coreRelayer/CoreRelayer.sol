@@ -57,7 +57,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         Send[] memory requests = new Send[](1);
         requests[0] = request;
         MultichainSend memory container =
-            MultichainSend({payloadId: 1, relayProviderAddress: address(provider), requests: requests});
+            MultichainSend({ relayProviderAddress: address(provider), requests: requests});
         return multichainSend(container, nonce);
     }
 
@@ -65,7 +65,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         Send[] memory requests = new Send[](1);
         requests[0] = request;
         MultichainSend memory container =
-            MultichainSend({payloadId: 1, relayProviderAddress: address(provider), requests: requests});
+            MultichainSend({relayProviderAddress: address(provider), requests: requests});
         return multichainForward(container, request.targetChain, nonce);
     }
 

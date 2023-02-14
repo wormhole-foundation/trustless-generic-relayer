@@ -10,7 +10,6 @@ abstract contract CoreRelayerStructs {
     //which should be considered untrusted and unmodifiable
 
     struct MultichainSend {
-        uint8 payloadId; // payloadID = 1
         address relayProviderAddress;
         Send[] requests;
     }

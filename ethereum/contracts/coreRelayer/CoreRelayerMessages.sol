@@ -198,6 +198,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
 
         return
-            MultichainSend({payloadId: payloadId, relayProviderAddress: relayProviderAddress, requests: requestArray});
+            MultichainSend({ relayProviderAddress: relayProviderAddress, requests: requestArray});
     }
 }
