@@ -39,10 +39,10 @@ contract AttackForwardIntegration is IWormholeReceiver {
         // The core relayer could in principle accept the request due to this being the target of the message at the same time as being the refund address.
         // Note that, if succesful, this forward request would be processed after the time for processing forwards is past.
         // Thus, the request would "linger" in the forward request cache and be attended to in the next delivery.
-        requestForward(targetChainId, toWormholeFormat(attackerReward));
+        forward(targetChainId, toWormholeFormat(attackerReward));
     }
 
-    function requestForward(uint16 targetChain, bytes32 attackerRewardAddress) internal {
+    function forward(uint16 targetChain, bytes32 attackerRewardAddress) internal {
         uint256 maxTransactionFee =
             core_relayer.quoteGas(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
 
