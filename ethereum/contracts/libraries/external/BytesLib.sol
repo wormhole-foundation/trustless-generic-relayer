@@ -18,12 +18,12 @@ library BytesLib {
         bytes memory tempBytes;
 
         assembly ("memory-safe") {
+            // Get a location of some free memory and store it in tempBytes as
+            // Solidity does for memory variables.
+            tempBytes := mload(0x40)
+
             switch iszero(_length)
             case 0 {
-                // Get a location of some free memory and store it in tempBytes as
-                // Solidity does for memory variables.
-                tempBytes := mload(0x40)
-
                 // The first word of the slice result is potentially a partial
                 // word read from the original array. To read it, we calculate
                 // the length of that partial word and start copying that many
@@ -58,7 +58,6 @@ library BytesLib {
             }
             //if we want a zero-length slice let's just return a zero-length array
             default {
-                tempBytes := mload(0x40)
                 //zero out the 32 bytes slice we are about to return
                 //we need to do it because Solidity does not garbage collect
                 mstore(tempBytes, 0)
