@@ -197,7 +197,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             revert InvalidSendsPayload(encoded.length);
         }
 
-        return
-            MultichainSend({ relayProviderAddress: relayProviderAddress, requests: requestArray});
+        return MultichainSend({relayProviderAddress: relayProviderAddress, requests: requestArray});
     }
 }

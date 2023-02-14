@@ -43,9 +43,8 @@ contract AttackForwardIntegration is IWormholeReceiver {
     }
 
     function requestForward(uint16 targetChain, bytes32 attackerRewardAddress) internal {
-        uint256 maxTransactionFee = core_relayer.quoteGas(
-            targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider()
-        );
+        uint256 maxTransactionFee =
+            core_relayer.quoteGas(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
 
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
