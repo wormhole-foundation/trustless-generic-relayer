@@ -69,7 +69,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload}`)
-    const value = await sourceCoreRelayer.quoteGasDeliveryFee(
+    const value = await sourceCoreRelayer.quoteGas(
       targetChain.chainId,
       500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
@@ -106,12 +106,12 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value = await sourceCoreRelayer.quoteGasDeliveryFee(
+    const value = await sourceCoreRelayer.quoteGas(
       targetChain.chainId,
       500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
-    const extraForwardingValue = await targetCoreRelayer.quoteGasDeliveryFee(
+    const extraForwardingValue = await targetCoreRelayer.quoteGas(
       sourceChain.chainId,
       500000,
       await targetCoreRelayer.getDefaultRelayProvider()
@@ -161,12 +161,12 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value1 = await sourceCoreRelayer.quoteGasDeliveryFee(
+    const value1 = await sourceCoreRelayer.quoteGas(
       sourceChain.chainId,
       500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
-    const value2 = await sourceCoreRelayer.quoteGasDeliveryFee(
+    const value2 = await sourceCoreRelayer.quoteGas(
       targetChain.chainId,
       500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
@@ -218,17 +218,17 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value1 = await sourceCoreRelayer.quoteGasDeliveryFee(
+    const value1 = await sourceCoreRelayer.quoteGas(
       sourceChain.chainId,
       500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
-    const value2 = await targetCoreRelayer.quoteGasDeliveryFee(
+    const value2 = await targetCoreRelayer.quoteGas(
       sourceChain.chainId,
       500000,
       await targetCoreRelayer.getDefaultRelayProvider()
     )
-    const value3 = await targetCoreRelayer.quoteGasDeliveryFee(
+    const value3 = await targetCoreRelayer.quoteGas(
       targetChain.chainId,
       500000,
       await targetCoreRelayer.getDefaultRelayProvider()

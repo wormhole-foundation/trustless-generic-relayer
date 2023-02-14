@@ -85,7 +85,7 @@ export function parseDeliveryInstructionsContainer(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
-    const executionParameters = parseExecutionParameters(bytes, idx);
+    const executionParameters = parseExecutionParameters(bytes, idx)
     idx += 37
     instructions.push(
       // dumb typechain format
@@ -143,9 +143,8 @@ export function parseRedeliveryByTxHashInstruction(
   const newReceiverValueTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
 
-  const executionParameters = parseExecutionParameters(bytes, idx);
+  const executionParameters = parseExecutionParameters(bytes, idx)
   idx += 37
-  
   return {
     payloadId,
     sourceChain,
