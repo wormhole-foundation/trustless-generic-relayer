@@ -54,6 +54,10 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.contractLock = status;
     }
 
+    function setLockedTargetAddress(address targetAddress) internal {
+        _state.targetAddress = targetAddress;
+    }
+
     function setEvmChainId(uint256 evmChainId) internal {
         if (evmChainId != block.chainid) {
             revert InvalidEvmChainId();

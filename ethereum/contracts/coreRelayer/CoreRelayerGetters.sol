@@ -60,4 +60,8 @@ contract CoreRelayerGetters is CoreRelayerState {
     function isContractLocked() internal view returns (bool) {
         return _state.contractLock;
     }
+
+    function lockedTargetAddress() internal view returns (address) {
+        return _state.targetAddress;
+    }
 }
