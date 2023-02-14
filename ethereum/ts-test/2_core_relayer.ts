@@ -267,7 +267,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(message1).to.equal(arbitraryPayload2)
 
     console.log("Checking if second forward was relayed")
-    const message2 = await sourceMockIntegration.getMessage()
+    const message2 = await targetMockIntegration.getMessage()
     console.log(
       `Sent message: ${arbitraryPayload2}`
     )
