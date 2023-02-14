@@ -124,8 +124,8 @@ export function parseRedeliveryByTxHashInstruction(
   const sourceTxHash = bytes.slice(idx, idx + 32)
   idx += 32
 
-  const sourceNonce = BigNumber.from(bytes.slice(idx, idx + 32))
-  idx += 32
+  const sourceNonce = BigNumber.from(bytes.slice(idx, idx + 4))
+  idx += 4
 
   const targetChain = bytes.readUInt16BE(idx)
   idx += 2
