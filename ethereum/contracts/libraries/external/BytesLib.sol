@@ -71,7 +71,7 @@ library BytesLib {
         address tempAddress;
 
         assembly ("memory-safe") {
-            // We want to clear the lower 12 bytes
+            // We want to shift into the lower 12 bytes and leave the upper 12 bytes clear.
             // 12 bytes * 8 == 96 bits
             tempAddress := shr(96, mload(add(add(_bytes, 0x20), _start)))
         }
