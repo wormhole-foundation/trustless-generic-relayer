@@ -271,4 +271,6 @@ contract MockRelayerIntegration is IWormholeReceiver {
         furtherInstructions.chains = chains;
         furtherInstructions.gasLimits = gasLimits;
     }
+
+    receive() external payable {}
 }
