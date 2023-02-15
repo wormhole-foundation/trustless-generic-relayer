@@ -518,8 +518,10 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     switch (payload.payloadId) {
       case RelayerPayloadId.Delivery:
         if(payload.deliveryInstructionsContainer.sufficientlyFunded) {
+          
           return await this.handleDeliveryWorkflow(payload, execute)
         }
+        this.logger.info("Delivery instruction is not sufficiently funded")
         return 
       case RelayerPayloadId.Redelivery:
         return await this.handleRedeliveryWorkflow(payload, execute)
