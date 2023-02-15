@@ -11,7 +11,7 @@ pragma solidity >=0.8.0 <0.9.0;
 library BytesLib {
     function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
         unchecked {
-            require(_length + 31 >= _length, "slice_overflow");
+            require(_length + 0x1f >= _length, "slice_overflow");
         }
         require(_bytes.length >= _start + _length, "slice_outOfBounds");
 
@@ -32,8 +32,7 @@ library BytesLib {
                 // land at the beginning of the contents of the new array. When
                 // we're done copying, we overwrite the full first word with
                 // the actual length of the slice.
-                let lengthmod := and(_length, 31)
-
+                let lengthmod := and(_length, 0x1f)
                 // The multiplication in the next line is necessary
                 // because when slicing multiples of 32 bytes (lengthmod == 0)
                 // the following copy loop was copying the origin's length
@@ -54,7 +53,7 @@ library BytesLib {
 
                 //update free-memory pointer
                 //allocating the array padded to 32 bytes like the compiler does now
-                mstore(0x40, and(add(dst, 31), not(31)))
+                mstore(0x40, and(add(dst, 0x1f), not(0x1f)))
             }
             //if we want a zero-length slice let's just return a zero-length array
             default {
