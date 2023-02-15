@@ -42,9 +42,7 @@ library BytesLib {
                 let dst := add(tempBytes, startOffset)
                 let end := add(dst, _length)
 
-                for {
-                    let src := add(add(_bytes, startOffset), _start)
-                } lt(dst, end) {
+                for { let src := add(add(_bytes, startOffset), _start) } lt(dst, end) {
                     dst := add(dst, 0x20)
                     src := add(src, 0x20)
                 } { mstore(dst, mload(src)) }
