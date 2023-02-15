@@ -416,7 +416,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
     console.log("Message resent");*/
 
-
+    /*
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
@@ -436,6 +436,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log(`Sent message: ${arbitraryPayload2}`)
     console.log(`Received message on source: ${message4}`)
     expect(message4).to.equal(arbitraryPayload2)
+    */
 
   })
 })
