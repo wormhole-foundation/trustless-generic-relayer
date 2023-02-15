@@ -74,14 +74,16 @@ library BytesLib {
         address tempAddress;
 
         assembly ("memory-safe") {
-            tempAddress := div(mload(add(add(_bytes, 0x20), _start)), 0x1000000000000000000000000)
+            // We want to clear the lower 12 bytes
+            // 12 bytes * 8 == 96 bits
+            tempAddress := shr(96, mload(add(add(_bytes, 0x20), _start)))
         }
 
         return tempAddress;
     }
 
     function toUint8(bytes memory _bytes, uint256 _start) internal pure returns (uint8) {
-        require(_bytes.length >= _start + 1, "toUint8_outOfBounds");
+        require(_bytes.length > _start, "toUint8_outOfBounds");
         uint8 tempUint;
 
         assembly ("memory-safe") {
