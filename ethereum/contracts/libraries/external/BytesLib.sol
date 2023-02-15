@@ -38,23 +38,23 @@ library BytesLib {
                 // because when slicing multiples of 32 bytes (lengthmod == 0)
                 // the following copy loop was copying the origin's length
                 // and then ending prematurely not copying everything it should.
-                let mc := add(add(tempBytes, lengthmod), mul(0x20, iszero(lengthmod)))
-                let end := add(mc, _length)
+                let startOffset := add(lengthmod, mul(0x20, iszero(lengthmod)))
+
+                let dst := add(tempBytes, startOffset)
+                let end := add(dst, _length)
 
                 for {
-                    // The multiplication in the next line has the same exact purpose
-                    // as the one above.
-                    let cc := add(add(add(_bytes, lengthmod), mul(0x20, iszero(lengthmod))), _start)
-                } lt(mc, end) {
-                    mc := add(mc, 0x20)
-                    cc := add(cc, 0x20)
-                } { mstore(mc, mload(cc)) }
+                    let src := add(add(_bytes, startOffset), _start)
+                } lt(dst, end) {
+                    dst := add(dst, 0x20)
+                    src := add(src, 0x20)
+                } { mstore(dst, mload(src)) }
 
                 mstore(tempBytes, _length)
 
                 //update free-memory pointer
                 //allocating the array padded to 32 bytes like the compiler does now
-                mstore(0x40, and(add(mc, 31), not(31)))
+                mstore(0x40, and(add(dst, 31), not(31)))
             }
             //if we want a zero-length slice let's just return a zero-length array
             default {
