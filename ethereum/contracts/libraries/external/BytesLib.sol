@@ -9,6 +9,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 library BytesLib {
+    uint256 private constant freeMemoryPtr = 0x40;
     function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
         unchecked {
             require(_length + 0x1f >= _length, "slice_overflow");
@@ -20,7 +21,7 @@ library BytesLib {
         assembly ("memory-safe") {
             // Get a location of some free memory and store it in tempBytes as
             // Solidity does for memory variables.
-            tempBytes := mload(0x40)
+            tempBytes := mload(freeMemoryPtr)
 
             switch iszero(_length)
             case 0 {
@@ -51,7 +52,7 @@ library BytesLib {
 
                 //update free-memory pointer
                 //allocating the array padded to 32 bytes like the compiler does now
-                mstore(0x40, and(add(dst, 0x1f), not(0x1f)))
+                mstore(freeMemoryPtr, and(add(dst, 0x1f), not(0x1f)))
             }
             //if we want a zero-length slice let's just return a zero-length array
             default {
@@ -59,7 +60,7 @@ library BytesLib {
                 //we need to do it because Solidity does not garbage collect
                 mstore(tempBytes, 0)
 
-                mstore(0x40, add(tempBytes, 0x20))
+                mstore(freeMemoryPtr, add(tempBytes, 0x20))
             }
         }
 
