@@ -12,7 +12,7 @@ library BytesLib {
     uint256 private constant freeMemoryPtr = 0x40;
     function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
         unchecked {
-            require(_length + 0x1f >= _length, "slice_overflow");
+            require(_length + 31 >= _length, "slice_overflow");
         }
         require(_bytes.length >= _start + _length, "slice_outOfBounds");
 
@@ -33,26 +33,26 @@ library BytesLib {
                 // land at the beginning of the contents of the new array. When
                 // we're done copying, we overwrite the full first word with
                 // the actual length of the slice.
-                let lengthmod := and(_length, 0x1f)
+                let lengthmod := and(_length, 31)
                 // The multiplication in the next line is necessary
                 // because when slicing multiples of 32 bytes (lengthmod == 0)
                 // the following copy loop was copying the origin's length
                 // and then ending prematurely not copying everything it should.
-                let startOffset := add(lengthmod, mul(0x20, iszero(lengthmod)))
+                let startOffset := add(lengthmod, mul(32, iszero(lengthmod)))
 
                 let dst := add(tempBytes, startOffset)
                 let end := add(dst, _length)
 
                 for { let src := add(add(_bytes, startOffset), _start) } lt(dst, end) {
-                    dst := add(dst, 0x20)
-                    src := add(src, 0x20)
+                    dst := add(dst, 32)
+                    src := add(src, 32)
                 } { mstore(dst, mload(src)) }
 
                 mstore(tempBytes, _length)
 
                 //update free-memory pointer
                 //allocating the array padded to 32 bytes like the compiler does now
-                mstore(freeMemoryPtr, and(add(dst, 0x1f), not(0x1f)))
+                mstore(freeMemoryPtr, and(add(dst, 31), not(31)))
             }
             //if we want a zero-length slice let's just return a zero-length array
             default {
@@ -60,7 +60,7 @@ library BytesLib {
                 //we need to do it because Solidity does not garbage collect
                 mstore(tempBytes, 0)
 
-                mstore(freeMemoryPtr, add(tempBytes, 0x20))
+                mstore(freeMemoryPtr, add(tempBytes, 32))
             }
         }
 
