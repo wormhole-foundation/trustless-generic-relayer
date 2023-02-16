@@ -1077,7 +1077,7 @@ contract TestCoreRelayer is Test {
         DeliveryStackTooDeep memory stack;
 
         if (
-            uint256(1) * feeParams.targetNativePrice * gasParams.targetGasPrice
+            uint256(1) * feeParams.targetNativePrice * gasParams.targetGasPrice * 10
                 < uint256(1) * feeParams.sourceNativePrice * gasParams.sourceGasPrice
         ) {
             stack.paymentNotEnough =
