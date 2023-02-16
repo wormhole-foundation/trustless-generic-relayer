@@ -498,7 +498,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         uint256 receiverValuePaid = (success ? internalInstruction.receiverValueTarget : 0);
-        uint256 wormholeFeePaid = getForwardingRequest().isValid ? wormhole.messageFee() : 0;
+        uint256 wormholeFeePaid = forwardingRequest.isValid ? wormhole.messageFee() : 0;
         uint256 relayerRefundAmount = msg.value - weiToRefund - receiverValuePaid - wormholeFeePaid;
         // refund the rest to relayer
         relayerRefund.call{value: relayerRefundAmount}("");
