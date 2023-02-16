@@ -73,7 +73,7 @@ contract TestCoreRelayer is Test {
     {
         // deploy Wormhole
         MockWormhole wormhole = new MockWormhole({
-            initChainId: 2,
+            initChainId: chainId,
             initEvmChainId: block.chainid
         });
 
@@ -1119,9 +1119,8 @@ contract TestCoreRelayer is Test {
             stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
             stack.instruction =
                 setup.target.coreRelayerFull.getDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
-
             stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.receiverValueTarget
-                + setup.target.wormhole.messageFee();
+                + setup.source.wormhole.messageFee();
 
             vm.deal(setup.source.relayer, type(uint256).max);
             vm.prank(setup.source.relayer);
