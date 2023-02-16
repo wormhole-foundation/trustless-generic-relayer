@@ -15,6 +15,7 @@ import {
   loadMockIntegrations,
 } from "../ts-scripts/helpers/env"
 import { MockRelayerIntegration, IWormholeRelayer } from "../../sdk/src"
+import { getDeliveryStatusBySourceTx } from "../../sdk/src"
 const ETHEREUM_ROOT = `${__dirname}/..`
 
 init()
@@ -341,6 +342,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(messageNew).to.equal(arbitraryPayload)
 
   })
+<<<<<<< HEAD
 
   it("Executes a redelivery when delivery succeeds but forward fails", async () => {
     const arbitraryPayload1 = ethers.utils.hexlify(
@@ -374,6 +376,24 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       [targetChain.chainId],
       [value.add(extraForwardingValue)],
       { value: value.add(extraForwardingValue), gasLimit: 500000 }
+=======
+  it("Tests the Typescript SDK during a delivery/redelivery", async () => {
+    const arbitraryPayload = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    console.log(`Sent message: ${arbitraryPayload}`)
+    const value = await sourceCoreRelayer.quoteGas(
+      targetChain.chainId,
+      10000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee: ${value}`)
+    const tx = await sourceMockIntegration.sendMessage(
+      arbitraryPayload,
+      targetChain.chainId,
+      targetMockIntegrationAddress,
+      { value, gasLimit: 500000 }
+>>>>>>> fd8a3ec (WIP)
     )
     console.log("Sent delivery request!")
     const rx = await tx.wait()
@@ -382,6 +402,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
+<<<<<<< HEAD
       }, 4000)
     })
 
@@ -438,5 +459,15 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(message4).to.equal(arbitraryPayload2)
     */
 
+=======
+      }, 2000)
+    })
+
+    console.log("Checking status using SDK")
+    const message = await targetMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload}`)
+    console.log(`Received message: ${message}`)
+    expect(message).to.equal(arbitraryPayload)
+>>>>>>> fd8a3ec (WIP)
   })
 })

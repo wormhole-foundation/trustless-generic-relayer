@@ -13,16 +13,8 @@ import { BigNumber, ContractReceipt, ethers } from "ethers"
 import { getCoreRelayer, getCoreRelayerAddressNative } from "../consts"
 import {
   CoreRelayer,
-  DeliveryFailureEvent,
-  DeliveryFailureEventFilter,
-  DeliverySuccessEvent,
-  DeliverySuccessEventFilter,
-  ForwardRequestFailureEvent,
-  ForwardRequestFailureEventFilter,
-  ForwardRequestSuccessEvent,
-  ForwardRequestSuccessEventFilter,
-  InvalidRedeliveryEvent,
-  InvalidRedeliveryEventFilter,
+  DeliveryEvent,
+  DeliveryEventFilter,
 } from "../ethers-contracts/CoreRelayer"
 
 type DeliveryStatus =
