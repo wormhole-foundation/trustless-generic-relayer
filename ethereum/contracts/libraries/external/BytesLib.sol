@@ -10,7 +10,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 library BytesLib {
     uint256 private constant freeMemoryPtr = 0x40;
-    uint256 private constant mask32ByteAlignment = 0x1f;
+    uint256 private constant maskModulo32 = 0x1f;
     /**
      * Size of word read by `mload` instruction.
      */
@@ -50,7 +50,7 @@ library BytesLib {
                 // land at the beginning of the contents of the new array. When
                 // we're done copying, we overwrite the full first word with
                 // the actual length of the slice.
-                let lengthmod := and(length, mask32ByteAlignment)
+                let lengthmod := and(length, maskModulo32)
                 // The multiplication in the next line is necessary
                 // because when slicing multiples of 32 bytes (lengthmod == 0)
                 // the following copy loop was copying the origin's length
@@ -65,9 +65,10 @@ library BytesLib {
                     src := add(src, memoryWord)
                 } { mstore(dst, mload(src)) }
 
-                //update free-memory pointer
-                //allocating the array padded to 32 bytes like the compiler does now
-                mstore(freeMemoryPtr, and(add(dst, mask32ByteAlignment), not(mask32ByteAlignment)))
+                // Update free-memory pointer
+                // allocating the array padded to 32 bytes like the compiler does now
+                // Note that negating bitwise the `maskModulo32` produces a mask that aligns addressing to 32 bytes.
+                mstore(freeMemoryPtr, and(add(dst, maskModulo32), not(maskModulo32)))
             }
             //if we want a zero-length slice let's just return a zero-length array
             default { mstore(freeMemoryPtr, add(tempBytes, memoryWord)) }
