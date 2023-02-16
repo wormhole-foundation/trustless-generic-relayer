@@ -86,6 +86,7 @@ export function parseDeliveryInstructionsContainer(
     )
     idx += 32
     const executionParameters = parseExecutionParameters(bytes, idx)
+    idx += 37
     instructions.push(
       // dumb typechain format
       {
@@ -123,8 +124,8 @@ export function parseRedeliveryByTxHashInstruction(
   const sourceTxHash = bytes.slice(idx, idx + 32)
   idx += 32
 
-  const sourceNonce = BigNumber.from(bytes.slice(idx, idx + 32))
-  idx += 32
+  const sourceNonce = BigNumber.from(bytes.slice(idx, idx + 4))
+  idx += 4
 
   const targetChain = bytes.readUInt16BE(idx)
   idx += 2
@@ -143,6 +144,7 @@ export function parseRedeliveryByTxHashInstruction(
   idx += 32
 
   const executionParameters = parseExecutionParameters(bytes, idx)
+  idx += 37
   return {
     payloadId,
     sourceChain,
