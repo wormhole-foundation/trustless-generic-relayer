@@ -48,7 +48,6 @@ library BytesLib {
                     src := add(src, 32)
                 } { mstore(dst, mload(src)) }
 
-                mstore(tempBytes, _length)
 
                 //update free-memory pointer
                 //allocating the array padded to 32 bytes like the compiler does now
@@ -56,12 +55,12 @@ library BytesLib {
             }
             //if we want a zero-length slice let's just return a zero-length array
             default {
-                //zero out the 32 bytes slice we are about to return
-                //we need to do it because Solidity does not garbage collect
-                mstore(tempBytes, 0)
-
                 mstore(freeMemoryPtr, add(tempBytes, 32))
             }
+
+            // Store the length of the buffer
+            // We need to do it even if the length is zero because Solidity does not garbage collect
+            mstore(tempBytes, _length)
         }
 
         return tempBytes;
