@@ -559,7 +559,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             return
           }
 
-          relayProvider
+          await relayProvider
             .deliverSingle(input, { value: budget, gasLimit: 3000000 })
             .then((x) => x.wait())
 
@@ -603,7 +603,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
           relayerRefundAddress: wallet.address,
         }
 
-        relayProvider
+        await relayProvider
           .redeliverSingle(input, { value: budget, gasLimit: 3000000 })
           .then((x) => x.wait())
 
