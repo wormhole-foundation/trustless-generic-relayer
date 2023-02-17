@@ -828,7 +828,7 @@ contract TestCoreRelayer is Test {
         uint16 indexed sourceChain,
         uint64 indexed sequence,
         bytes32 deliveryVaaHash,
-        uint8 status
+        DeliveryStatus status
     );
 
     enum DeliveryStatus {
@@ -990,7 +990,7 @@ contract TestCoreRelayer is Test {
             sourceChain: setup.sourceChainId,
             sequence: 1,
             deliveryVaaHash: redeliveryVmHash,
-            status: uint8(DeliveryStatus.INVALID_REDELIVERY)
+            status: DeliveryStatus.INVALID_REDELIVERY
         });
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
@@ -1005,7 +1005,7 @@ contract TestCoreRelayer is Test {
             sourceChain: setup.sourceChainId,
             sequence: 1,
             deliveryVaaHash: redeliveryVmHash,
-            status: uint8(DeliveryStatus.INVALID_REDELIVERY)
+            status: DeliveryStatus.INVALID_REDELIVERY
         });
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
@@ -1054,7 +1054,7 @@ contract TestCoreRelayer is Test {
             sourceChain: setup.sourceChainId,
             sequence: 3,
             deliveryVaaHash: redeliveryVmHash,
-            status: uint8(DeliveryStatus.INVALID_REDELIVERY)
+            status: DeliveryStatus.INVALID_REDELIVERY
         });
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayerFull.redeliverSingle{

@@ -25,7 +25,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint16 indexed sourceChain,
         uint64 indexed sequence,
         bytes32 deliveryVaaHash,
-        uint8 status
+        DeliveryStatus status
     );
 
     error InsufficientFunds(string reason);
@@ -454,7 +454,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                     sourceChain: sourceChain,
                     sequence: sourceSequence,
                     deliveryVaaHash: deliveryVaaHash,
-                    status: uint8(DeliveryStatus.FORWARD_REQUEST_SUCCESS)
+                    status: DeliveryStatus.FORWARD_REQUEST_SUCCESS
                 });
             } else {
                 (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
@@ -468,7 +468,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                     sourceChain: sourceChain,
                     sequence: sourceSequence,
                     deliveryVaaHash: deliveryVaaHash,
-                    status: uint8(DeliveryStatus.FORWARD_REQUEST_FAILURE)
+                    status: DeliveryStatus.FORWARD_REQUEST_FAILURE
                 });
             }
         } else {
@@ -485,7 +485,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                     sourceChain: sourceChain,
                     sequence: sourceSequence,
                     deliveryVaaHash: deliveryVaaHash,
-                    status: uint8(DeliveryStatus.SUCCESS)
+                    status: DeliveryStatus.SUCCESS
                 });
             } else {
                 emit Delivery({
@@ -493,7 +493,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                     sourceChain: sourceChain,
                     sequence: sourceSequence,
                     deliveryVaaHash: deliveryVaaHash,
-                    status: uint8(DeliveryStatus.RECEIVER_FAILURE)
+                    status: DeliveryStatus.RECEIVER_FAILURE
                 });
             }
         }
@@ -596,7 +596,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 sourceChain: redeliveryVM.emitterChainId,
                 sequence: redeliveryVM.sequence,
                 deliveryVaaHash: redeliveryVM.hash,
-                status: uint8(DeliveryStatus.INVALID_REDELIVERY)
+                status: DeliveryStatus.INVALID_REDELIVERY
             });
             targetParams.relayerRefundAddress.send(msg.value);
             return;
