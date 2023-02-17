@@ -1274,7 +1274,7 @@ contract TestCoreRelayer is Test {
         setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
     }
 
-    struct sendStackTooDeep {
+    struct SendStackTooDeep {
         uint256 payment;
         IWormholeRelayer.Send deliveryRequest;
         uint256 deliveryOverhead;
@@ -1284,14 +1284,14 @@ contract TestCoreRelayer is Test {
      * Request delivery 25-27
      */
 
-    function testRevertsendErrors(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message)
+    function testRevertSendErrors(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         vm.recordLogs();
 
-        sendStackTooDeep memory stack;
+        SendStackTooDeep memory stack;
 
         stack.payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
@@ -1310,7 +1310,7 @@ contract TestCoreRelayer is Test {
             relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "25"));
+        vm.expectRevert(abi.encodeWithSignature("MsgValueTooLow()"));
         setup.source.coreRelayer.send{value: stack.payment - 1}(
             stack.deliveryRequest, 1, address(setup.source.relayProvider)
         );
@@ -1329,7 +1329,7 @@ contract TestCoreRelayer is Test {
             relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "26"));
+        vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough()"));
         setup.source.coreRelayer.send{value: stack.deliveryOverhead - 1}(
             stack.badSend, 1, address(setup.source.relayProvider)
         );
@@ -1340,7 +1340,7 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, uint256(gasParams.targetGasLimit - 1) * gasParams.targetGasPrice
         );
 
-        vm.expectRevert(abi.encodeWithSignature("InsufficientFunds(string)", "27"));
+        vm.expectRevert(abi.encodeWithSignature("FundsTooMuch()"));
         setup.source.coreRelayer.send{value: stack.payment}(
             stack.deliveryRequest, 1, address(setup.source.relayProvider)
         );
