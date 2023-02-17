@@ -40,7 +40,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         emit ApprovedSenderUpdated(sender, approved);
     }
 
-    function updateRewardAddress(address newAddress) public onlyOwner {
+    function updateRewardAddress(address payable newAddress) public onlyOwner {
         setRewardAddress(newAddress);
         emit RewardAddressUpdated(newAddress);
     }
