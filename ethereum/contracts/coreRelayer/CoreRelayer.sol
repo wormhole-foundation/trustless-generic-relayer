@@ -619,8 +619,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         RedeliveryByTxHashInstruction memory redeliveryInstruction,
         DeliveryInstruction memory originalInstruction
     ) internal view returns (DeliveryInstruction memory deliveryInstruction, bool isValid) {
-        //All the same checks as delivery single, with a couple additional
-        isValid = true;
+        // All the same checks as delivery single, with a couple additional
 
         // The same relay provider must be specified when doing a single VAA redeliver.
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
@@ -628,31 +627,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert MismatchingRelayProvidersInRedelivery();
         }
 
-        //msg.sender must be the provider
-        if (msg.sender != providerAddress) {
-            isValid = false; //"Relay provider differed from the specified address");
-        }
-
-        //redelivery must target this chain
-        if (chainId() != redeliveryInstruction.targetChain) {
-            isValid = false; //"Redelivery request does not target this chain.");
-        }
-
-        //original delivery must target this chain
-        if (chainId() != originalInstruction.targetChain) {
-            isValid = false; //"Original delivery request did not target this chain.");
-        }
-
-        //maxTransactionFee & receiverValue must be at least as large as the initial delivery
-        if (originalInstruction.receiverValueTarget > redeliveryInstruction.newReceiverValueTarget) {
-            isValid = false; //new application budget is smaller than the original
-        }
-
-        if (originalInstruction.executionParameters.gasLimit > redeliveryInstruction.executionParameters.gasLimit) {
-            isValid = false; //new gasLimit is smaller than the original
-        }
-
-        //relayer must have covered the necessary funds
+        // relayer must have covered the necessary funds
         if (
             msg.value
                 < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newReceiverValueTarget
@@ -660,11 +635,28 @@ contract CoreRelayer is CoreRelayerGovernance {
         ) {
             revert InsufficientRelayerFunds();
         }
-        //Overwrite compute budget and application budget on the original request and proceed.
-        originalInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
-        originalInstruction.receiverValueTarget = redeliveryInstruction.newReceiverValueTarget;
-        originalInstruction.executionParameters = redeliveryInstruction.executionParameters;
+
+        uint16 whChainId = chainId();
+        // msg.sender must be the provider
+        // "Relay provider differed from the specified address");
+        isValid = msg.sender == providerAddress
+        // redelivery must target this chain
+        // "Redelivery request does not target this chain.");
+        && whChainId == redeliveryInstruction.targetChain
+        // original delivery must target this chain
+        // "Original delivery request did not target this chain.");
+        && whChainId == originalInstruction.targetChain
+        // gasLimit & receiverValue must be at least as large as the initial delivery
+        // "New receiver value is smaller than the original"
+        && originalInstruction.receiverValueTarget <= redeliveryInstruction.newReceiverValueTarget
+        // "New gasLimit is smaller than the original"
+        && originalInstruction.executionParameters.gasLimit <= redeliveryInstruction.executionParameters.gasLimit;
+
+        // Overwrite compute budget and application budget on the original request and proceed.
         deliveryInstruction = originalInstruction;
+        deliveryInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
+        deliveryInstruction.receiverValueTarget = redeliveryInstruction.newReceiverValueTarget;
+        deliveryInstruction.executionParameters = redeliveryInstruction.executionParameters;
     }
 
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) public payable {
