@@ -442,18 +442,18 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
         (log) => log.args.sequence.toString() === sequence.toString()
       )
       if (log) {
-        return await log.getTransactionReceipt()
+        return log.getTransactionReceipt()
       }
     }
     try {
-      return await retryAsyncUntilDefined(
+      return retryAsyncUntilDefined(
         async () => {
           const paginatedLogs = await coreWHContract.queryFilter(filter, -50)
           const log = paginatedLogs.find(
             (log) => log.args.sequence.toString() === sequence.toString()
           )
           if (log) {
-            return await log.getTransactionReceipt()
+            return log.getTransactionReceipt()
           }
           return undefined
         },
@@ -517,14 +517,13 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     const payload = this.parseWorkflowPayload(workflow)
     switch (payload.payloadId) {
       case RelayerPayloadId.Delivery:
-        if(payload.deliveryInstructionsContainer.sufficientlyFunded) {
-          
-          return await this.handleDeliveryWorkflow(payload, execute)
+        if (payload.deliveryInstructionsContainer.sufficientlyFunded) {
+          return this.handleDeliveryWorkflow(payload, execute)
         }
         this.logger.info("Delivery instruction is not sufficiently funded")
-        return 
+        return
       case RelayerPayloadId.Redelivery:
-        return await this.handleRedeliveryWorkflow(payload, execute)
+        return this.handleRedeliveryWorkflow(payload, execute)
     }
   }
 
