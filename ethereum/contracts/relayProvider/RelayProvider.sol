@@ -52,7 +52,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     }
 
     //Returns the address on this chain that rewards should be sent to
-    function getRewardAddress() public view override returns (address) {
+    function getRewardAddress() public view override returns (address payable) {
         return rewardAddress();
     }
 

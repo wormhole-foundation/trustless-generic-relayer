@@ -40,7 +40,7 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.wormholeFee[chainId] = wormholeFee;
     }
 
-    function setRewardAddress(address rewardAddress) internal {
+    function setRewardAddress(address payable rewardAddress) internal {
         _state.rewardAddress = rewardAddress;
     }
 

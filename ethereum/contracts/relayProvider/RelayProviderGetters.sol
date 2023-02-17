@@ -52,7 +52,7 @@ contract RelayProviderGetters is RelayProviderState {
         return _state.wormholeFee[targetChainId];
     }
 
-    function rewardAddress() public view returns (address) {
+    function rewardAddress() public view returns (address payable) {
         return _state.rewardAddress;
     }
 

@@ -220,8 +220,8 @@ contract TestCoreRelayer is Test {
         CoreRelayer coreRelayerFull;
         MockRelayerIntegration integration;
         address relayer;
-        address rewardAddress;
-        address refundAddress;
+        address payable rewardAddress;
+        address payable refundAddress;
         uint16 chainId;
     }
 
@@ -236,8 +236,10 @@ contract TestCoreRelayer is Test {
             mapEntry.coreRelayerFull = CoreRelayer(address(mapEntry.coreRelayer));
             mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
             mapEntry.relayer = address(uint160(uint256(keccak256(abi.encodePacked(bytes("relayer"), i)))));
-            mapEntry.refundAddress = address(uint160(uint256(keccak256(abi.encodePacked(bytes("refundAddress"), i)))));
-            mapEntry.rewardAddress = address(uint160(uint256(keccak256(abi.encodePacked(bytes("rewardAddress"), i)))));
+            mapEntry.refundAddress =
+                payable(address(uint160(uint256(keccak256(abi.encodePacked(bytes("refundAddress"), i))))));
+            mapEntry.rewardAddress =
+                payable(address(uint160(uint256(keccak256(abi.encodePacked(bytes("rewardAddress"), i))))));
             mapEntry.chainId = i;
             map[i] = mapEntry;
         }

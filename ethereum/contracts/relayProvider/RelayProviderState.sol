@@ -42,7 +42,7 @@ contract RelayProviderStorage {
         // Dictionary of wormhole chain id -> assetConversionBufferDenominator
         mapping(uint16 => uint16) assetConversionBufferDenominator;
         // Reward address for the relayer. The CoreRelayer contract transfers the reward for relaying messages here.
-        address rewardAddress;
+        address payable rewardAddress;
     }
 }
 

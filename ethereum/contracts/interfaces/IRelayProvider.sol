@@ -26,7 +26,7 @@ interface IRelayProvider {
     //Otherwise, the delivery on the target chain (msg.sender) must equal this address.
     function getDeliveryAddress(uint16 targetChain) external view returns (bytes32 whAddress);
 
-    function getRewardAddress() external view returns (address rewardAddress);
+    function getRewardAddress() external view returns (address payable rewardAddress);
 
     function getConsistencyLevel() external view returns (uint8 consistencyLevel);
 }
