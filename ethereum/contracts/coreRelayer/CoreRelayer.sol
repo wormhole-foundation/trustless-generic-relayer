@@ -27,7 +27,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint8 status
     );
 
-    error InsufficientFunds(string reason);
+    error FundsTooMuch();
+    error MaxTransactionFeeNotEnough();
     error MsgValueTooLow(); // msg.value must cover the budget specified
     error NonceIsZero();
     error ForwardRequestFromWrongAddress();
@@ -77,7 +78,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint256 maximumRefund,
             uint256 receiverValueTarget,
             bool isSufficient,
-            string memory reason
+            uint8 reason
         ) = verifyFunding(
             VerifyFundingCalculation({
                 provider: provider,
@@ -89,7 +90,11 @@ contract CoreRelayer is CoreRelayerGovernance {
             })
         );
         if (!isSufficient) {
-            revert InsufficientFunds(reason);
+            if(reason == 26) {
+                revert MaxTransactionFeeNotEnough();
+            } else {
+                revert FundsTooMuch();
+            }
         }
         uint256 totalFee = requestFee + wormhole().messageFee();
 
@@ -98,7 +103,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert MsgValueTooLow();
         }
 
-        emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider);
+        sequence = emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider);
 
         //Send the delivery fees to the specified address of the provider.
         provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
@@ -138,9 +143,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        (uint256 totalCost, bool isSufficient, string memory cause) = sufficientFundsHelper(deliveryRequests, msg.value);
+        (uint256 totalCost, bool isSufficient, uint8 cause) = sufficientFundsHelper(deliveryRequests, msg.value);
         if (!isSufficient) {
-            revert InsufficientFunds(cause);
+            if(cause == 26) {
+                revert MaxTransactionFeeNotEnough();
+            } else if(cause == 25) {
+                revert MsgValueTooLow();  
+            } else {
+                revert FundsTooMuch();
+            }
         }
         if (nonce == 0) {
             revert NonceIsZero();
@@ -298,7 +309,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     function sufficientFundsHelper(MultichainSend memory deliveryRequests, uint256 funds)
         internal
         view
-        returns (uint256 totalFees, bool isSufficient, string memory reason)
+        returns (uint256 totalFees, bool isSufficient, uint8 reason)
     {
         totalFees = wormhole().messageFee();
         IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
@@ -311,7 +322,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 uint256 maximumRefund,
                 uint256 receiverValueTarget,
                 bool isSufficient,
-                string memory reason
+                uint8 reason
             ) = verifyFunding(
                 VerifyFundingCalculation({
                     provider: provider,
@@ -329,11 +340,11 @@ contract CoreRelayer is CoreRelayerGovernance {
 
             totalFees = totalFees + requestFee;
             if (funds < totalFees) {
-                return (0, false, "25"); //"Insufficient funds were provided to cover the delivery fees.");
+                return (0, false, 25); //"Insufficient funds were provided to cover the delivery fees.");
             }
         }
 
-        return (totalFees, true, "");
+        return (totalFees, true, 0);
     }
 
     struct VerifyFundingCalculation {
@@ -353,7 +364,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint256 maximumRefund,
             uint256 receiverValueTarget,
             bool isSufficient,
-            string memory reason
+            uint8 reason
         )
     {
         requestFee = args.maxTransactionFeeSource + args.receiverValueSource;
@@ -370,7 +381,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //Make sure the maxTransactionFee covers the minimum delivery cost to the targetChain
         if (args.maxTransactionFeeSource < overheadFeeSource) {
             isSufficient = false;
-            reason = "26"; //Insufficient msg.value to cover minimum delivery costs.";
+            reason = 26; //Insufficient msg.value to cover minimum delivery costs.";
         }
         //Make sure the budget does not exceed the maximum for the provider on that chain; //This added value is totalBudgetTarget
         else if (
@@ -378,10 +389,10 @@ contract CoreRelayer is CoreRelayerGovernance {
                 < (maximumRefund + overheadBudgetTarget + receiverValueTarget)
         ) {
             isSufficient = false;
-            reason = "27"; //"Specified budget exceeds the maximum allowed by the provider";
+            reason = 27; //"Specified budget exceeds the maximum allowed by the provider";
         } else {
             isSufficient = true;
-            reason = "";
+            reason = 0;
         }
     }
 
