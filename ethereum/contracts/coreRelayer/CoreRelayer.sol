@@ -449,13 +449,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (forwardingRequest.isValid) {
             (, success) = emitForward(weiToRefund, forwardingRequest);
             if (success) {
-                emit Delivery(
-                    fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain,
-                    sourceSequence,
-                    deliveryVaaHash,
-                    uint8(DeliveryStatus.FORWARD_REQUEST_SUCCESS)
-                    );
+                emit Delivery({
+                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+                    sourceChain: sourceChain,
+                    sequence: sourceSequence,
+                    deliveryVaaHash: deliveryVaaHash,
+                    status: uint8(DeliveryStatus.FORWARD_REQUEST_SUCCESS)
+                });
             } else {
                 (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
 
@@ -463,13 +463,13 @@ contract CoreRelayer is CoreRelayerGovernance {
                     // if refunding fails, pay out full refund to relayer
                     weiToRefund = 0;
                 }
-                emit Delivery(
-                    fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain,
-                    sourceSequence,
-                    deliveryVaaHash,
-                    uint8(DeliveryStatus.FORWARD_REQUEST_FAILURE)
-                    );
+                emit Delivery({
+                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+                    sourceChain: sourceChain,
+                    sequence: sourceSequence,
+                    deliveryVaaHash: deliveryVaaHash,
+                    status: uint8(DeliveryStatus.FORWARD_REQUEST_FAILURE)
+                });
             }
         } else {
             (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
@@ -480,21 +480,21 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
 
             if (success) {
-                emit Delivery(
-                    fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain,
-                    sourceSequence,
-                    deliveryVaaHash,
-                    uint8(DeliveryStatus.SUCCESS)
-                    );
+                emit Delivery({
+                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+                    sourceChain: sourceChain,
+                    sequence: sourceSequence,
+                    deliveryVaaHash: deliveryVaaHash,
+                    status: uint8(DeliveryStatus.SUCCESS)
+                });
             } else {
-                emit Delivery(
-                    fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain,
-                    sourceSequence,
-                    deliveryVaaHash,
-                    uint8(DeliveryStatus.RECEIVER_FAILURE)
-                    );
+                emit Delivery({
+                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+                    sourceChain: sourceChain,
+                    sequence: sourceSequence,
+                    deliveryVaaHash: deliveryVaaHash,
+                    status: uint8(DeliveryStatus.RECEIVER_FAILURE)
+                });
             }
         }
 
@@ -591,13 +591,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
 
         if (!valid) {
-            emit Delivery(
-                fromWormholeFormat(instruction.targetAddress),
-                redeliveryVM.emitterChainId,
-                redeliveryVM.sequence,
-                redeliveryVM.hash,
-                uint8(DeliveryStatus.INVALID_REDELIVERY)
-                );
+            emit Delivery({
+                recipientContract: fromWormholeFormat(instruction.targetAddress),
+                sourceChain: redeliveryVM.emitterChainId,
+                sequence: redeliveryVM.sequence,
+                deliveryVaaHash: redeliveryVM.hash,
+                status: uint8(DeliveryStatus.INVALID_REDELIVERY)
+            });
             targetParams.relayerRefundAddress.send(msg.value);
             return;
         }
