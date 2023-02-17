@@ -103,7 +103,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider);
 
         //Send the delivery fees to the specified address of the provider.
-        provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
+        pay(provider.getRewardAddress(), msg.value - wormhole().messageFee());
     }
 
     function emitRedelivery(
@@ -165,7 +165,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, provider.getConsistencyLevel());
 
         //pay fee to provider
-        provider.getRewardAddress().call{value: totalCost - wormhole.messageFee()}("");
+        pay(provider.getRewardAddress(), totalCost - wormhole.messageFee());
     }
 
     /**
@@ -246,7 +246,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
         if (funded) {
-            provider.getRewardAddress().call{value: refundAmount}("");
+            pay(provider.getRewardAddress(), refundAmount);
         }
 
         //clear forwarding request from cache
@@ -459,8 +459,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                     status: DeliveryStatus.FORWARD_REQUEST_SUCCESS
                 });
             } else {
-                (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
-
+                bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
                 if (!sent) {
                     // if refunding fails, pay out full refund to relayer
                     weiToRefund = 0;
@@ -474,8 +473,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 });
             }
         } else {
-            (bool sent,) = fromWormholeFormat(internalInstruction.refundAddress).call{value: weiToRefund}("");
-
+            bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
             if (!sent) {
                 // if refunding fails, pay out full refund to relayer
                 weiToRefund = 0;
@@ -504,7 +502,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 wormholeFeePaid = forwardingRequest.isValid ? wormhole.messageFee() : 0;
         uint256 relayerRefundAmount = msg.value - weiToRefund - receiverValuePaid - wormholeFeePaid;
         // refund the rest to relayer
-        relayerRefund.call{value: relayerRefundAmount}("");
+        pay(relayerRefund, relayerRefundAmount);
     }
 
     //REVISE, consider implementing this system into the RelayProvider.
@@ -600,7 +598,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 deliveryVaaHash: redeliveryVM.hash,
                 status: DeliveryStatus.INVALID_REDELIVERY
             });
-            targetParams.relayerRefundAddress.send(msg.value);
+            pay(targetParams.relayerRefundAddress, msg.value);
             return;
         }
 
@@ -956,5 +954,13 @@ contract CoreRelayer is CoreRelayerGovernance {
             calculateTargetGasDeliveryAmount(request.targetChain, request.maxTransactionFee, provider),
             provider.getDeliveryAddress(request.targetChain)
         );
+    }
+
+    function pay(address payable receiver, uint256 amount) internal returns (bool success) {
+        if (amount > 0) {
+            (success,) = receiver.call{value: amount}("");
+        } else {
+            success = true;
+        }
     }
 }
