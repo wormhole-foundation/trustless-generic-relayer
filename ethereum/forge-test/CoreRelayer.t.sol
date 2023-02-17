@@ -596,7 +596,7 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        vm.deal(address(this), type(uint256).max);
+        vm.deal(address(this), type(uint256).max >> 2);
 
         setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
             redeliveryRequest, 1, address(setup.source.relayProvider)
@@ -655,7 +655,7 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        vm.deal(address(this), type(uint256).max);
+        vm.deal(address(this), type(uint256).max >> 2);
 
         setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
             redeliveryRequest, 1, address(setup.source.relayProvider)
@@ -720,7 +720,7 @@ contract TestCoreRelayer is Test {
 
         vm.getRecordedLogs();
 
-        vm.deal(address(this), type(uint256).max);
+        vm.deal(address(this), type(uint256).max >> 2);
 
         setup.source.integration.sendMessageWithRefundAddress{value: payment}(
             secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
@@ -844,7 +844,7 @@ contract TestCoreRelayer is Test {
             newReceiverValue: 0,
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
-        vm.deal(address(this), type(uint256).max);
+        vm.deal(address(this), type(uint256).max >> 2);
         vm.expectRevert(abi.encodeWithSignature("MsgValueTooLow()"));
         setup.source.coreRelayer.resend{value: stack.payment - 1}(
             stack.redeliveryRequest, 1, address(setup.source.relayProvider)
@@ -877,7 +877,7 @@ contract TestCoreRelayer is Test {
         stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newReceiverValueTarget
             + setup.target.wormhole.messageFee();
 
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 2));
@@ -923,7 +923,7 @@ contract TestCoreRelayer is Test {
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         setup.source.relayProvider.updateDeliveryAddress(setup.targetChainId, bytes32(uint256(uint160(address(this)))));
-        vm.deal(address(this), type(uint256).max);
+        vm.deal(address(this), type(uint256).max >> 2);
         vm.getRecordedLogs();
         setup.source.coreRelayer.resend{value: stack.payment}(
             stack.redeliveryRequest, 1, address(setup.source.relayProvider)
@@ -963,7 +963,7 @@ contract TestCoreRelayer is Test {
         if (setup.targetChainId == 2) {
             differentChainId = 3;
         }
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
         vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
         emit Delivery({
             recipientContract: address(setup.target.integration),
@@ -975,7 +975,7 @@ contract TestCoreRelayer is Test {
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
@@ -993,7 +993,7 @@ contract TestCoreRelayer is Test {
         setup.source.relayProvider.updateDeliveryAddress(
             differentChainId, bytes32(uint256(uint160(address(setup.target.relayer))))
         );
-        vm.deal(address(this), type(uint256).max);
+        vm.deal(address(this), type(uint256).max >> 2);
         vm.getRecordedLogs();
         setup.source.coreRelayer.resend{value: stack.payment}(
             stack.redeliveryRequest, 1, address(setup.source.relayProvider)
@@ -1011,7 +1011,7 @@ contract TestCoreRelayer is Test {
         );
 
         redeliveryVmHash = relayerWormhole.parseVM(fakeVM).hash;
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
 
         vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
         emit Delivery({
@@ -1026,19 +1026,19 @@ contract TestCoreRelayer is Test {
             value: stack.payment + map[differentChainId].wormhole.messageFee()
         }(stack.package);
 
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
 
         stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: correctVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
             relayerRefundAddress: payable(setup.target.relayer)
         });
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
         vm.expectRevert(abi.encodeWithSignature("InsufficientRelayerFunds()"));
         vm.prank(setup.target.relayer);
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget - 1}(stack.package);
 
-        vm.deal(setup.target.relayer, type(uint256).max);
+        vm.deal(setup.target.relayer, type(uint256).max >> 2);
 
         assertTrue(
             (keccak256(setup.target.integration.getMessage()) != keccak256(message))
@@ -1124,7 +1124,7 @@ contract TestCoreRelayer is Test {
             stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.receiverValueTarget
                 + setup.source.wormhole.messageFee();
 
-            vm.deal(setup.source.relayer, type(uint256).max);
+            vm.deal(setup.source.relayer, type(uint256).max >> 2);
             vm.prank(setup.source.relayer);
             vm.expectRevert(abi.encodeWithSignature("SendNotSufficientlyFunded()"));
             setup.source.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
