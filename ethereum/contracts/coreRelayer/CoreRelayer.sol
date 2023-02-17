@@ -92,7 +92,9 @@ contract CoreRelayer is CoreRelayerGovernance {
                 revert FundsTooMuch();
             }
         }
-        uint256 totalFee = requestFee + wormhole().messageFee();
+        IWormhole wormhole = wormhole();
+        uint256 wormholeMessageFee = wormhole.messageFee();
+        uint256 totalFee = requestFee + wormholeMessageFee;
 
         //Make sure the msg.value covers the budget they specified
         if (msg.value < totalFee) {
@@ -100,10 +102,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         sequence =
-            emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider);
+            emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider, wormhole, wormholeMessageFee);
 
         //Send the delivery fees to the specified address of the provider.
-        pay(provider.getRewardAddress(), msg.value - wormhole().messageFee());
+        pay(provider.getRewardAddress(), msg.value - wormholeMessageFee);
     }
 
     function emitRedelivery(
@@ -112,7 +114,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint8 consistencyLevel,
         uint256 receiverValueTarget,
         uint256 maximumRefund,
-        IRelayProvider provider
+        IRelayProvider provider,
+        IWormhole wormhole,
+        uint256 wormholeMessageFee
     ) internal returns (uint64 sequence) {
         bytes memory instruction = convertToEncodedRedeliveryByTxHashInstruction(
             request,
@@ -122,7 +126,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             provider
         );
 
-        sequence = wormhole().publishMessage{value: wormhole().messageFee()}(nonce, instruction, consistencyLevel);
+        sequence = wormhole.publishMessage{value: wormholeMessageFee}(nonce, instruction, consistencyLevel);
     }
 
     /**
@@ -160,12 +164,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         // emit delivery message
         IWormhole wormhole = wormhole();
         IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
+        uint256 wormholeMessageFee = wormhole.messageFee();
 
         sequence =
-            wormhole.publishMessage{value: wormhole.messageFee()}(nonce, container, provider.getConsistencyLevel());
+            wormhole.publishMessage{value: wormholeMessageFee}(nonce, container, provider.getConsistencyLevel());
 
         //pay fee to provider
-        pay(provider.getRewardAddress(), totalCost - wormhole.messageFee());
+        pay(provider.getRewardAddress(), totalCost - wormholeMessageFee);
     }
 
     /**
