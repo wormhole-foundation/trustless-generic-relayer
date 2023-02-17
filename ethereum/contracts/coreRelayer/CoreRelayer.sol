@@ -906,10 +906,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint32(request.sourceNonce),
             uint16(request.targetChain),
             uint8(request.deliveryIndex),
-            uint8(request.multisendIndex)
-        );
-        encoded = abi.encodePacked(
-            encoded,
+            uint8(request.multisendIndex),
             maximumRefund,
             receiverValueTarget,
             uint8(1), //version for ExecutionParameters
