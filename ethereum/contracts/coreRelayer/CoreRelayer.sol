@@ -942,14 +942,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         view
         returns (bytes memory newEncoded)
     {
-        newEncoded = abi.encodePacked(encoded, request.targetChain, request.targetAddress, request.refundAddress);
         newEncoded = abi.encodePacked(
-            newEncoded,
+            encoded,
+            request.targetChain,
+            request.targetAddress,
+            request.refundAddress,
             calculateTargetDeliveryMaximumRefund(request.targetChain, request.maxTransactionFee, provider),
-            convertApplicationBudgetAmount(request.receiverValue, request.targetChain, provider)
-        );
-        newEncoded = abi.encodePacked(
-            newEncoded,
+            convertApplicationBudgetAmount(request.receiverValue, request.targetChain, provider),
             uint8(1), //version for ExecutionParameters
             calculateTargetGasDeliveryAmount(request.targetChain, request.maxTransactionFee, provider),
             provider.getDeliveryAddress(request.targetChain)
