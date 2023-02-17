@@ -271,6 +271,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IRelayProvider selectedProvider = IRelayProvider(container.relayProviderAddress);
 
         for (uint16 i = 0; i < container.requests.length; i++) {
+            // TODO: Optimization opportunity here by reducing multiple calls to only one with all requested addresses.
             if (selectedProvider.getDeliveryAddress(container.requests[i].targetChain) == 0) {
                 revert RelayProviderDoesNotSupportTargetChain();
             }
@@ -926,7 +927,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             uint8(container.requests.length) //number of requests in the array
         );
 
-        //Append all the messages to the array.
+        // TODO: this probably results in a quadratic algorithm. Further optimization can be done here.
+        // Append all the messages to the array.
         for (uint256 i = 0; i < container.requests.length; i++) {
             encoded = appendDeliveryInstruction(
                 encoded, container.requests[i], IRelayProvider(container.relayProviderAddress)
