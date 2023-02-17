@@ -341,4 +341,102 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(messageNew).to.equal(arbitraryPayload)
 
   })
+
+  it("Executes a redelivery when delivery succeeds but forward fails", async () => {
+    const arbitraryPayload1 = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    const arbitraryPayload2 = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    console.log(`Sent message: ${arbitraryPayload1}`)
+    const value = await sourceCoreRelayer.quoteGas(
+      targetChain.chainId,
+      500000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    const extraForwardingValue = await targetCoreRelayer.quoteGas(
+      sourceChain.chainId,
+      10000,
+      await targetCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee: ${value.add(extraForwardingValue)}`)
+
+    const furtherInstructions: MockRelayerIntegration.FurtherInstructionsStruct = {
+      keepSending: true,
+      newMessages: [arbitraryPayload2, "0x00"],
+      chains: [sourceChain.chainId],
+      gasLimits: [500000],
+    }
+    const tx = await sourceMockIntegration.sendMessagesWithFurtherInstructions(
+      [arbitraryPayload1],
+      furtherInstructions,
+      [targetChain.chainId],
+      [value.add(extraForwardingValue)],
+      { value: value.add(extraForwardingValue), gasLimit: 500000 }
+    )
+    console.log("Sent delivery request!")
+    const rx = await tx.wait()
+    console.log("Message confirmed!")
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+
+    console.log("Checking if message was relayed")
+    const message1 = await targetMockIntegration.getMessage()
+    console.log(
+      `Sent message: ${arbitraryPayload1} (expecting ${arbitraryPayload2} from forward)`
+    )
+    console.log(`Received message on target: ${message1}`)
+    expect(message1).to.equal(arbitraryPayload1)
+
+    console.log("Checking if forward message was relayed back (it shouldn't have been!)")
+    const message2 = await sourceMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload2}`)
+    console.log(`Received message on source: ${message2}`)
+    expect(message2).to.not.equal(arbitraryPayload2)
+
+    // RESEND THE MESSAGE SOMEHOW!
+
+    /*console.log("Resending the message");
+    const request: CoreRelayerStructs.ResendByTxStruct = {
+      sourceChain: sourceChain.chainId,
+      sourceTxHash: tx.hash,
+      sourceNonce: 1,
+      targetChain: targetChain.chainId, 
+      deliveryIndex: 2,
+      multisendIndex: 0,
+      newMaxTransactionFee: value, 
+      newReceiverValue: 0,
+      newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
+    };
+    await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
+    console.log("Message resent");*/
+
+    /*
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+
+    console.log("Checking if message was relayed")
+    const message3 = await targetMockIntegration.getMessage()
+    console.log(
+      `Sent message: ${arbitraryPayload1} (expecting ${arbitraryPayload2} from forward)`
+    )
+    console.log(`Received message on target: ${message3}`)
+    expect(message3).to.equal(arbitraryPayload1)
+
+    console.log("Checking if forward message was relayed back (it shouldn't have been!)")
+    const message4 = await sourceMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload2}`)
+    console.log(`Received message on source: ${message4}`)
+    expect(message4).to.equal(arbitraryPayload2)
+    */
+
+  })
 })
