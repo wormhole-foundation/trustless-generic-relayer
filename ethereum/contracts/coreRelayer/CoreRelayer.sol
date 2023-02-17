@@ -101,8 +101,16 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert MsgValueTooLow();
         }
 
-        sequence =
-            emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider, wormhole, wormholeMessageFee);
+        sequence = emitRedelivery(
+            request,
+            nonce,
+            provider.getConsistencyLevel(),
+            receiverValueTarget,
+            maximumRefund,
+            provider,
+            wormhole,
+            wormholeMessageFee
+        );
 
         //Send the delivery fees to the specified address of the provider.
         pay(provider.getRewardAddress(), msg.value - wormholeMessageFee);
@@ -166,8 +174,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
         uint256 wormholeMessageFee = wormhole.messageFee();
 
-        sequence =
-            wormhole.publishMessage{value: wormholeMessageFee}(nonce, container, provider.getConsistencyLevel());
+        sequence = wormhole.publishMessage{value: wormholeMessageFee}(nonce, container, provider.getConsistencyLevel());
 
         //pay fee to provider
         pay(provider.getRewardAddress(), totalCost - wormholeMessageFee);
