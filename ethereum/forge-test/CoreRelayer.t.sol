@@ -115,7 +115,7 @@ contract TestCoreRelayer is Test {
                 (
                     address(coreRelayerImplementation),
                     chainId,
-                    wormhole,
+                    address(wormhole),
                     defaultRelayProvider,
                     wormhole.governanceChainId(),
                     wormhole.governanceContract(),
