@@ -203,7 +203,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert CantRequestMultipleForwards();
         }
 
-        //We want to catch malformed requests in this function, and only underfunded requests when emitting.
+        // We want to catch malformed requests in this function, and only underfunded requests when emitting.
         verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
 
         bytes memory encodedMultichainSend = encodeMultichainSend(deliveryRequests);
@@ -383,18 +383,19 @@ contract CoreRelayer is CoreRelayerGovernance {
             ? calculateTargetDeliveryMaximumRefund(args.targetChain, args.maxTransactionFeeSource, args.provider)
             : calculateTargetRedeliveryMaximumRefund(args.targetChain, args.maxTransactionFeeSource, args.provider);
 
-        //Make sure the maxTransactionFee covers the minimum delivery cost to the targetChain
+        // Make sure the maxTransactionFee covers the minimum delivery cost to the targetChain
         if (args.maxTransactionFeeSource < overheadFeeSource) {
             isSufficient = false;
             reason = 26; //Insufficient msg.value to cover minimum delivery costs.";
         }
-        //Make sure the budget does not exceed the maximum for the provider on that chain; //This added value is totalBudgetTarget
+        // Make sure the budget does not exceed the maximum for the provider on that chain;
+        // This added value is totalBudgetTarget
         else if (
             args.provider.quoteMaximumBudget(args.targetChain)
                 < (maximumRefund + overheadBudgetTarget + receiverValueTarget)
         ) {
             isSufficient = false;
-            reason = 27; //"Specified budget exceeds the maximum allowed by the provider";
+            reason = 27; // "Specified budget exceeds the maximum allowed by the provider";
         } else {
             isSufficient = true;
             reason = 0;
@@ -410,7 +411,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint16 sourceChain,
         uint64 sourceSequence
     ) internal {
-        //REVISE Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
+        // REVISE Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
         if (isContractLocked()) {
@@ -433,9 +434,10 @@ contract CoreRelayer is CoreRelayerGovernance {
         // to setup the arguments for the call just after our measurement.
         // This means the refund could be off by a few units of gas.
         // Thus, we ensure the overhead doesn't cause an overflow in our refund formula here.
-        uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
-            ? internalInstruction.executionParameters.gasLimit
-            : (preGas - postGas);
+        uint256 gasUsed = preGas - postGas;
+        if (gasUsed > internalInstruction.executionParameters.gasLimit) {
+            gasUsed = internalInstruction.executionParameters.gasLimit;
+        }
 
         // refund unused gas budget
         uint256 weiToRefund = internalInstruction.receiverValueTarget;
@@ -852,6 +854,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
     }
 
+    // Converts sourceAmount on sourceChain to targetChain using prices provided by `Provider`
+    // A fee of `multiplier`/`multiplierDenominator` is applied
     function assetConversionHelper(
         uint16 sourceChain,
         uint256 sourceAmount,
@@ -873,6 +877,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 numerator = sourceAmount * srcNativeCurrencyPrice * multiplier;
         uint256 denominator = dstNativeCurrencyPrice * multiplierDenominator;
         if (roundUp) {
+            // ensures that during integer division the result is (denom - 1) / denom greater than
+            // the numerator, which means the result is effectively rounded up
             targetAmount = (numerator + denominator - 1) / denominator;
         } else {
             targetAmount = numerator / denominator;
