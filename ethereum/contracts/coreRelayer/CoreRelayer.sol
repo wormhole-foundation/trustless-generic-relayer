@@ -69,11 +69,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return multichainForward(container, request.targetChain, nonce);
     }
 
-    function resend(ResendByTx memory request, uint32 nonce, IRelayProvider provider)
-        public
-        payable
-        returns (uint64 sequence)
-    {
+    function resend(ResendByTx memory request, IRelayProvider provider) public payable returns (uint64 sequence) {
         (uint256 requestFee, uint256 maximumRefund, uint256 receiverValueTarget, bool isSufficient, uint8 reason) =
         verifyFunding(
             VerifyFundingCalculation({
@@ -103,7 +99,6 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         sequence = emitRedelivery(
             request,
-            nonce,
             provider.getConsistencyLevel(),
             receiverValueTarget,
             maximumRefund,
@@ -118,7 +113,6 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function emitRedelivery(
         ResendByTx memory request,
-        uint32 nonce,
         uint8 consistencyLevel,
         uint256 receiverValueTarget,
         uint256 maximumRefund,
@@ -134,7 +128,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             provider
         );
 
-        sequence = wormhole.publishMessage{value: wormholeMessageFee}(nonce, instruction, consistencyLevel);
+        sequence = wormhole.publishMessage{value: wormholeMessageFee}(0, instruction, consistencyLevel);
     }
 
     /**
