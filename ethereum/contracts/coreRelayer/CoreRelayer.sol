@@ -37,7 +37,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     error NoDeliveryInProcess();
     error CantRequestMultipleForwards();
     error RelayProviderDoesNotSupportTargetChain();
-    error RolloverChainNotIncluded(); // Rollover chain was not included in the forwarding request
     error ChainNotFoundInSends(uint16 chainId); // Required chain not found in the delivery requests
     error ReentrantCall();
     error InvalidEmitterInOriginalDeliveryVM(uint8 index);
@@ -67,7 +66,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
         requests[0] = request;
         IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({relayProviderAddress: address(provider), requests: requests});
-        return multichainForward(container, request.targetChain, nonce);
+        return multichainForward(container, nonce);
     }
 
     function resend(IWormholeRelayer.ResendByTx memory request, uint32 nonce, IRelayProvider provider)
@@ -193,10 +192,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function multichainForward(IWormholeRelayer.MultichainSend memory deliveryRequests, uint16 rolloverChain, uint32 nonce)
-        public
-        payable
-    {
+    function multichainForward(IWormholeRelayer.MultichainSend memory deliveryRequests, uint32 nonce) public payable {
         // Can only forward while a delivery is in process.
         if (!isContractLocked()) {
             revert NoDeliveryInProcess();
@@ -206,13 +202,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         //We want to catch malformed requests in this function, and only underfunded requests when emitting.
-        verifyForwardingRequest(deliveryRequests, rolloverChain, nonce);
+        verifyForwardingRequest(deliveryRequests, nonce);
 
         bytes memory encodedMultichainSend = encodeMultichainSend(deliveryRequests);
         setForwardingRequest(
             ForwardingRequest({
                 deliveryRequestsContainer: encodedMultichainSend,
-                rolloverChain: rolloverChain,
                 nonce: nonce,
                 msgValue: msg.value,
                 sender: msg.sender,
@@ -236,18 +231,17 @@ contract CoreRelayer is CoreRelayerGovernance {
         //REVISE consider deducting the cost of this process from the refund amount?
 
         if (funded) {
-            //find the delivery instruction for the rollover chain
-            uint16 rolloverInstructionIndex = findDeliveryIndex(container, forwardingRequest.rolloverChain);
+            // the rollover chain is the chain in the first request
 
             //calc how much budget is used by chains other than the rollover chain
-            uint256 rolloverChainCostEstimate = container.requests[rolloverInstructionIndex].maxTransactionFee
-                + container.requests[rolloverInstructionIndex].receiverValue;
+            uint256 rolloverChainCostEstimate =
+                container.requests[0].maxTransactionFee + container.requests[0].receiverValue;
             //uint256 nonrolloverBudget = totalMinimumFees - rolloverChainCostEstimate; //stack too deep
-            uint256 rolloverBudget = refundAmount - (totalMinimumFees - rolloverChainCostEstimate)
-                - container.requests[rolloverInstructionIndex].receiverValue;
+            uint256 rolloverBudget =
+                refundAmount - (totalMinimumFees - rolloverChainCostEstimate) - container.requests[0].receiverValue;
 
             //overwrite the gas budget on the rollover chain to the remaining budget amount
-            container.requests[rolloverInstructionIndex].maxTransactionFee = rolloverBudget;
+            container.requests[0].maxTransactionFee = rolloverBudget;
         }
 
         //emit forwarding instruction
@@ -269,33 +263,13 @@ contract CoreRelayer is CoreRelayerGovernance {
         return (sequence, funded);
     }
 
-    function verifyForwardingRequest(IWormholeRelayer.MultichainSend memory container, uint16 rolloverChain, uint32 nonce)
-        internal
-        view
-    {
+    function verifyForwardingRequest(IWormholeRelayer.MultichainSend memory container, uint32 nonce) internal view {
         if (nonce == 0) {
             revert NonceIsZero();
         }
 
         if (msg.sender != lockedTargetAddress()) {
             revert ForwardRequestFromWrongAddress();
-        }
-
-        bool foundRolloverChain = false;
-        IRelayProvider selectedProvider = IRelayProvider(container.relayProviderAddress);
-
-        for (uint16 i = 0; i < container.requests.length; i++) {
-            // TODO: Optimization opportunity here by reducing multiple calls to only one with all requested addresses.
-            if (selectedProvider.getDeliveryAddress(container.requests[i].targetChain) == 0) {
-                revert RelayProviderDoesNotSupportTargetChain();
-            }
-            if (container.requests[i].targetChain == rolloverChain) {
-                foundRolloverChain = true;
-            }
-        }
-
-        if (!foundRolloverChain) {
-            revert RolloverChainNotIncluded();
         }
     }
 
