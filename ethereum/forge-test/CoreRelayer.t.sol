@@ -1284,9 +1284,7 @@ contract TestCoreRelayer is Test {
      * Request delivery 25-27
      */
 
-    function testRevertSendErrors(GasParameters memory gasParams, FeeParameters memory feeParams)
-        public
-    {
+    function testRevertSendErrors(GasParameters memory gasParams, FeeParameters memory feeParams) public {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         vm.recordLogs();
