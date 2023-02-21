@@ -438,11 +438,9 @@ contract CoreRelayer is CoreRelayerGovernance {
             : (preGas - postGas);
 
         // refund unused gas budget
-        uint256 weiToRefund = internalInstruction.receiverValueTarget;
-        if (success) {
-            weiToRefund = (internalInstruction.executionParameters.gasLimit - gasUsed)
-                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
-        }
+        uint256 weiToRefund = (internalInstruction.executionParameters.gasLimit - gasUsed)
+            * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit
+            + (success ? 0 : internalInstruction.receiverValueTarget);
 
         // unlock the contract
         setContractLock(false);
