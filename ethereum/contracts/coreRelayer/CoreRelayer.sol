@@ -51,6 +51,21 @@ contract CoreRelayer is CoreRelayerGovernance {
     error AlreadyDelivered(); // The message was already delivered.
     error TargetChainIsNotThisChain(uint16 targetChainId);
 
+    function send(
+        uint16 targetChain,
+        bytes32 targetAddress,
+        bytes32 refundAddress,
+        uint256 maxTransactionFee,
+        uint256 receiverValue,
+        uint32 nonce
+    ) external payable returns (uint64 sequence) {
+        sequence = send(
+            Send(targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()),
+            nonce,
+            getDefaultRelayProvider()
+        );
+    }
+
     function send(Send memory request, uint32 nonce, IRelayProvider provider)
         public
         payable
