@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { ethers } from "ethers"
+import { ethers, providers } from "ethers"
 import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk"
 import { ChainInfo, RELAYER_DEPLOYER_PRIVATE_KEY } from "./helpers/consts"
 import { generateRandomString } from "./helpers/utils"
@@ -15,7 +15,7 @@ import {
   loadMockIntegrations,
 } from "../ts-scripts/helpers/env"
 import { MockRelayerIntegration, IWormholeRelayer } from "../../sdk/src"
-import { getDeliveryStatusBySourceTx } from "../../sdk/src"
+import { getDeliveryInfoBySourceTx } from "../../sdk/src"
 const ETHEREUM_ROOT = `${__dirname}/..`
 
 init()
@@ -343,6 +343,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
 
   })
 <<<<<<< HEAD
+<<<<<<< HEAD
 
   it("Executes a redelivery when delivery succeeds but forward fails", async () => {
     const arbitraryPayload1 = ethers.utils.hexlify(
@@ -378,13 +379,16 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       { value: value.add(extraForwardingValue), gasLimit: 500000 }
 =======
   it("Tests the Typescript SDK during a delivery/redelivery", async () => {
+=======
+  it("Tests the Typescript SDK during a delivery", async () => {
+>>>>>>> afc4e63 (Typescript test for statusByTx)
     const arbitraryPayload = ethers.utils.hexlify(
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload}`)
     const value = await sourceCoreRelayer.quoteGas(
       targetChain.chainId,
-      10000,
+      500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value}`)
@@ -399,9 +403,14 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     const rx = await tx.wait()
     console.log("Message confirmed!")
 
+    console.log("Checking status using SDK");
+    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    expect(status).to.equal("Pending Delivery")
+
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
+<<<<<<< HEAD
 <<<<<<< HEAD
       }, 4000)
     })
@@ -461,13 +470,101 @@ describe("Core Relayer Integration Test - Two Chains", () => {
 
 =======
       }, 2000)
+=======
+      }, 4000)
+>>>>>>> afc4e63 (Typescript test for statusByTx)
     })
-
-    console.log("Checking status using SDK")
+    
     const message = await targetMockIntegration.getMessage()
     console.log(`Sent message: ${arbitraryPayload}`)
     console.log(`Received message: ${message}`)
     expect(message).to.equal(arbitraryPayload)
+<<<<<<< HEAD
 >>>>>>> fd8a3ec (WIP)
+=======
+
+    console.log("Checking status using SDK");
+    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    expect(status).to.equal("Delivery Success")
+
+  })
+  it("Tests the Typescript SDK during a redelivery", async () => {
+    const arbitraryPayload = ethers.utils.hexlify(
+      ethers.utils.toUtf8Bytes(generateRandomString(32))
+    )
+    console.log(`Sent message: ${arbitraryPayload}`)
+    const valueNotEnough = await sourceCoreRelayer.quoteGas(
+      targetChain.chainId,
+      10000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    const value = await sourceCoreRelayer.quoteGas(
+      targetChain.chainId,
+      500000,
+      await sourceCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee: ${value}`)
+    const tx = await sourceMockIntegration.sendMessage(
+      arbitraryPayload,
+      targetChain.chainId,
+      targetMockIntegrationAddress,
+      { value: valueNotEnough, gasLimit: 500000 }
+    )
+    console.log("Sent delivery request!")
+    const rx = await tx.wait()
+    console.log("Message confirmed!")
+
+    console.log("Checking status using SDK");
+    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    expect(status).to.equal("Pending Delivery")
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+    
+    const message = await targetMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload}`)
+    console.log(`Received message: ${message}`)
+    expect(message).to.not.equal(arbitraryPayload)
+
+    console.log("Checking status using SDK");
+    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    expect(status).to.equal("Receiver Failure")
+
+    console.log("Resending the message");
+    const request: CoreRelayerStructs.ResendByTxStruct = {
+      sourceChain: sourceChain.chainId,
+      sourceTxHash: tx.hash,
+      sourceNonce: 1,
+      targetChain: targetChain.chainId, 
+      deliveryIndex: 2,
+      multisendIndex: 0,
+      newMaxTransactionFee: value, 
+      newReceiverValue: 0,
+      newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
+    };
+    const newTx = await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000});
+    await newTx.wait();
+    console.log("Message resent");
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(0)
+      }, 4000)
+    })
+
+    console.log("Checking if message was relayed")
+    const messageNew = await targetMockIntegration.getMessage()
+    console.log(`Sent message: ${arbitraryPayload}`)
+    console.log(`Received message: ${messageNew}`)
+    expect(messageNew).to.equal(arbitraryPayload)
+
+    console.log("Checking status using SDK");
+    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, newTx.hash, 1, targetChain.chainId, providerTarget))[0].status
+
+    expect(status).to.equal("Delivery Success")
+>>>>>>> afc4e63 (Typescript test for statusByTx)
   })
 })

@@ -21,11 +21,11 @@ type DeliveryStatus =
   | "Waiting for VAA"
   | "Pending Delivery"
   | "Delivery Success"
-  | "Delivery Failure"
+  | "Receiver Failure"
   | "Invalid Redelivery"
   | "Forward Request Success"
   | "Forward Request Failure"
-  | "Delivery Exception"
+  | "This should never happen. Contact Support."
 
 type DeliveryInfo = {
   status: DeliveryStatus
@@ -35,7 +35,7 @@ type DeliveryInfo = {
   sourceVaaSequence: BigNumber | null
 }
 
-export async function getDeliveryStatusBySourceTx(
+export async function getDeliveryInfoBySourceTx(
   environment: Network,
   sourceChainId: ChainId,
   sourceChainProvider: ethers.providers.Provider,
@@ -44,7 +44,7 @@ export async function getDeliveryStatusBySourceTx(
   targetChain: ChainId,
   targetChainProvider: ethers.providers.Provider,
   guardianRpcHosts?: string[],
-  deliveryIndex?: number
+  coreRelayerWhMessageIndex?: number
 ): Promise<DeliveryInfo[]> {
   const receipt = await sourceChainProvider.getTransactionReceipt(sourceTransaction)
   const bridgeAddress = CONTRACTS[environment][CHAIN_ID_TO_NAME[sourceChainId]].core
@@ -58,9 +58,10 @@ export async function getDeliveryStatusBySourceTx(
     bridgeAddress,
     tryNativeToHexString(coreRelayerAddress, "ethereum"),
     sourceNonce.toString(),
-    deliveryIndex ? deliveryIndex : 0
+    coreRelayerWhMessageIndex ? coreRelayerWhMessageIndex : 0
   )
 
+  /*
   let vaa: GetSignedVAAResponse | null = null
   if (guardianRpcHosts && guardianRpcHosts.length > 0) {
     vaa = await pullVaa(
@@ -91,7 +92,9 @@ export async function getDeliveryStatusBySourceTx(
       targetChainProvider,
       parseVaa(vaa.vaaBytes).hash.toString("hex")
     )
+    
   }
+  */
 
   const deliveryEvents = await pullEventsBySourceSequence(
     environment,
@@ -113,6 +116,7 @@ export async function getDeliveryStatusBySourceTx(
   return deliveryEvents
 }
 
+/*
 export async function getDeliveryInfoByVaaHash(
   environment: Network,
   targetChain: ChainId,
@@ -139,6 +143,23 @@ export async function getDeliveryInfoByVaaHash(
   return deliveryEventInfos
 }
 
+async function pullEventsByVaaHash(
+  environment: Network,
+  targetChain: ChainId,
+  targetChainProvider: ethers.providers.Provider,
+  vaaHash: string
+): Promise<DeliveryInfo[]> {
+  const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
+
+  const deliverys = coreRelayer.filters.Delivery(null, null, null, vaaHash)
+
+  return combinedQuery(
+    coreRelayer,
+    deliverys
+  )
+}
+*/
+
 async function pullEventsBySourceSequence(
   environment: Network,
   targetChain: ChainId,
@@ -149,182 +170,43 @@ async function pullEventsBySourceSequence(
   const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
 
   //TODO These compile errors on sourceChain look like an ethers bug
-  const deliveryFailures = coreRelayer.filters.DeliveryFailure(
-    null,
-    null,
-    sourceChain as any,
-    sourceVaaSequence
-  )
-  const deliverySuccesses = coreRelayer.filters.DeliverySuccess(
-    null,
-    null,
-    sourceChain as any,
-    sourceVaaSequence
-  )
-  const forwardFailures = coreRelayer.filters.ForwardRequestFailure(
-    null,
-    null,
-    sourceChain as any,
-    sourceVaaSequence
-  )
-  const forwardSuccesses = coreRelayer.filters.ForwardRequestSuccess(
-    null,
-    null,
-    sourceChain as any,
-    sourceVaaSequence
-  )
-  const invalidRedelivery = coreRelayer.filters.InvalidRedelivery(
-    null,
-    null,
-    sourceChain as any,
-    sourceVaaSequence
-  )
+  const deliveryEvents = coreRelayer.filters.Delivery(null, sourceChain, sourceVaaSequence)
 
-  return combinedQuery(
-    coreRelayer,
-    deliveryFailures,
-    deliverySuccesses,
-    forwardFailures,
-    forwardSuccesses,
-    invalidRedelivery
+  //console.log((await coreRelayer.queryFilter(coreRelayer.filters.Delivery(null, sourceChain, null), -2040, 'latest')))
+
+  // There is a max limit on RPCs sometimes for how many blocks to query
+  return transformDeliveryEvents(
+    await coreRelayer.queryFilter(deliveryEvents, -2040, 'latest')
   )
 }
 
-async function pullEventsByVaaHash(
-  environment: Network,
-  targetChain: ChainId,
-  targetChainProvider: ethers.providers.Provider,
-  vaaHash: string
-): Promise<DeliveryInfo[]> {
-  const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
-
-  const deliveryFailures = coreRelayer.filters.DeliveryFailure(vaaHash)
-  const deliverySuccesses = coreRelayer.filters.DeliverySuccess(vaaHash)
-  const forwardFailures = coreRelayer.filters.ForwardRequestFailure(vaaHash)
-  const forwardSuccesses = coreRelayer.filters.ForwardRequestSuccess(vaaHash)
-  const invalidRedelivery = coreRelayer.filters.InvalidRedelivery(vaaHash)
-
-  return combinedQuery(
-    coreRelayer,
-    deliveryFailures,
-    deliverySuccesses,
-    forwardFailures,
-    forwardSuccesses,
-    invalidRedelivery
-  )
+function deliveryStatus(status: number) {
+  switch (status) {
+    case 0: 
+      return "Delivery Success"
+    case 1:
+      return "Receiver Failure"
+    case 2:
+      return "Forward Request Failure"
+    case 3:
+      return "Forward Request Success"
+    case 4: 
+      return "Invalid Redelivery"
+    default:
+      return "This should never happen. Contact Support."
+  }
 }
 
-function transformDeliveryFailureEvents(events: DeliveryFailureEvent[]): DeliveryInfo[] {
+function transformDeliveryEvents(events: DeliveryEvent[]): DeliveryInfo[] {
   return events.map((x) => {
     return {
-      status: "Delivery Failure",
+      status: deliveryStatus(x.args[4]),
       deliveryTxHash: x.transactionHash,
-      vaaHash: x.args[0],
-      sourceVaaSequence: x.args[3],
-      sourceChain: x.args[2],
+      vaaHash: x.args[3],
+      sourceVaaSequence: x.args[2],
+      sourceChain: x.args[1],
     }
   })
-}
-
-function transformDeliverySuccessEvents(events: DeliverySuccessEvent[]): DeliveryInfo[] {
-  return events.map((x) => {
-    return {
-      status: "Delivery Success",
-      deliveryTxHash: x.transactionHash,
-      vaaHash: x.args[0],
-      sourceVaaSequence: x.args[3],
-      sourceChain: x.args[2],
-    }
-  })
-}
-
-function transformForwardRequestSuccessEvents(
-  events: ForwardRequestSuccessEvent[]
-): DeliveryInfo[] {
-  return events.map((x) => {
-    return {
-      status: "Forward Request Success",
-      deliveryTxHash: x.transactionHash,
-      vaaHash: x.args[0],
-      sourceVaaSequence: x.args[3],
-      sourceChain: x.args[2],
-    }
-  })
-}
-
-function transformForwardRequestFailureEvents(
-  events: ForwardRequestFailureEvent[]
-): DeliveryInfo[] {
-  return events.map((x) => {
-    return {
-      status: "Forward Request Failure",
-      deliveryTxHash: x.transactionHash,
-      vaaHash: x.args[0],
-      sourceVaaSequence: x.args[3],
-      sourceChain: x.args[2],
-    }
-  })
-}
-
-function transformInvalidRedeliveryEvents(
-  events: InvalidRedeliveryEvent[]
-): DeliveryInfo[] {
-  return events.map((x) => {
-    return {
-      status: "Invalid Redelivery",
-      deliveryTxHash: x.transactionHash,
-      vaaHash: x.args[0],
-      sourceVaaSequence: x.args[3],
-      sourceChain: x.args[2],
-    }
-  })
-}
-
-async function combinedQuery(
-  coreRelayer: CoreRelayer,
-  deliveryFailureTopics: DeliveryFailureEventFilter,
-  deliverySuccessTopics: DeliverySuccessEventFilter,
-  forwardFailureTopics: ForwardRequestFailureEventFilter,
-  forwardSuccessTopics: ForwardRequestSuccessEventFilter,
-  invalidRedeliveryTopics: InvalidRedeliveryEventFilter
-) {
-  //TODO potentially query for all at once
-  // let combinedTopics : (string | string [])[] = []
-  // deliveryFailures.topics?.forEach(x => combinedTopics.push(x));
-  // deliverySuccesses.topics?.forEach(x => combinedTopics.push(x))
-  // forwardFailures.topics?.forEach(x => combinedTopics.push(x))
-  // forwardSuccesses.topics?.forEach(x => combinedTopics.push(x))
-  // invalidRedelivery.topics?.forEach(x => combinedTopics.push(x))
-
-  // Can't query more than 2048 blocks at a time
-
-  const deliveryFailureEvents = transformDeliveryFailureEvents(
-    await coreRelayer.queryFilter(deliveryFailureTopics, -2040, 'latest')
-  )
-  const deliverySuccessEvents = transformDeliverySuccessEvents(
-    await coreRelayer.queryFilter(deliverySuccessTopics, -2040, 'latest')
-  )
-  const forwardRequestFailureEvents = transformForwardRequestFailureEvents(
-    await coreRelayer.queryFilter(forwardFailureTopics, -2040, 'latest')
-  )
-  const forwardRequestSuccessEvents = transformForwardRequestSuccessEvents(
-    await coreRelayer.queryFilter(forwardSuccessTopics, -2040, 'latest')
-  )
-  const invalidRedeliveryEvents = transformInvalidRedeliveryEvents(
-    await coreRelayer.queryFilter(invalidRedeliveryTopics, -2040, 'latest')
-  )
-
-  return combineDeliveryInfos([
-    deliveryFailureEvents,
-    deliverySuccessEvents,
-    forwardRequestFailureEvents,
-    forwardRequestSuccessEvents,
-    invalidRedeliveryEvents,
-  ])
-}
-
-function combineDeliveryInfos(array: DeliveryInfo[][]): DeliveryInfo[] {
-  return array.flatMap((x) => x)
 }
 
 export function findLog(
