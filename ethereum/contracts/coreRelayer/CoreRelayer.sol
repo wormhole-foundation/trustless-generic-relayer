@@ -73,13 +73,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        (
-            uint256 requestFee,
-            uint256 maximumRefund,
-            uint256 receiverValueTarget,
-            bool isSufficient,
-            uint8 reason
-        ) = verifyFunding(
+        (uint256 requestFee, uint256 maximumRefund, uint256 receiverValueTarget, bool isSufficient, uint8 reason) =
+        verifyFunding(
             VerifyFundingCalculation({
                 provider: provider,
                 sourceChain: chainId(),
@@ -90,7 +85,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             })
         );
         if (!isSufficient) {
-            if(reason == 26) {
+            if (reason == 26) {
                 revert MaxTransactionFeeNotEnough();
             } else {
                 revert FundsTooMuch();
@@ -103,7 +98,8 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert MsgValueTooLow();
         }
 
-        sequence = emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider);
+        sequence =
+            emitRedelivery(request, nonce, provider.getConsistencyLevel(), receiverValueTarget, maximumRefund, provider);
 
         //Send the delivery fees to the specified address of the provider.
         provider.getRewardAddress().call{value: msg.value - wormhole().messageFee()}("");
@@ -145,10 +141,10 @@ contract CoreRelayer is CoreRelayerGovernance {
     {
         (uint256 totalCost, bool isSufficient, uint8 cause) = sufficientFundsHelper(deliveryRequests, msg.value);
         if (!isSufficient) {
-            if(cause == 26) {
+            if (cause == 26) {
                 revert MaxTransactionFeeNotEnough();
-            } else if(cause == 25) {
-                revert MsgValueTooLow();  
+            } else if (cause == 25) {
+                revert MsgValueTooLow();
             } else {
                 revert FundsTooMuch();
             }
@@ -317,13 +313,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
             Send memory request = deliveryRequests.requests[i];
 
-            (
-                uint256 requestFee,
-                uint256 maximumRefund,
-                uint256 receiverValueTarget,
-                bool isSufficient,
-                uint8 reason
-            ) = verifyFunding(
+            (uint256 requestFee, uint256 maximumRefund, uint256 receiverValueTarget, bool isSufficient, uint8 reason) =
+            verifyFunding(
                 VerifyFundingCalculation({
                     provider: provider,
                     sourceChain: chainId(),
