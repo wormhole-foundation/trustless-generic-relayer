@@ -118,7 +118,6 @@ abstract contract CoreRelayerStructs {
 
     struct ForwardingRequest {
         bytes deliveryRequestsContainer;
-        uint16 rolloverChain;
         uint32 nonce;
         address sender;
         uint256 msgValue;

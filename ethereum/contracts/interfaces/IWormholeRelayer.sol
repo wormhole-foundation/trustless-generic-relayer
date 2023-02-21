@@ -263,13 +263,13 @@ interface IWormholeRelayer {
      * and let NEEDED_VALUE = (one wormhole message fee) + Sum_(i=0 -> requests.requests.length - 1) [requests.requests[i].maxTransactionFee + requests.requests[i].receiverValue].
      * The multichainForward will succeed if LEFTOVER_VALUE >= NEEDED_VALUE
      *
+     * note: If LEFTOVER_VALUE > NEEDED_VALUE, then the maxTransactionFee of the first request in the array of sends will be incremented by 'LEFTOVER_VALUE - NEEDED_VALUE'
+     *
      *  @param requests The MultichainSend struct, containing the array of Send requests, as well as the desired relayProviderAddress
-     *  @param rolloverChain If LEFTOVER_VALUE > NEEDED_VALUE, then the maxTransactionFee of one of the requests in the array of sends will be incremented by 'LEFTOVER_VALUE - NEEDED_VALUE'
-     *  Specifically, the 'send' that will have it's maxTransactionFee incremented is the first send in the 'requests.requests' array that has targetChain equal to 'rolloverChain'
      *  @param nonce The messages to be relayed are all of the emitted wormhole messages in the current transaction that have nonce 'nonce'
      *
      */
-    function multichainForward(MultichainSend memory requests, uint16 rolloverChain, uint32 nonce) external payable;
+    function multichainForward(MultichainSend memory requests, uint32 nonce) external payable;
 
     /**
      * @notice quoteGas tells you how much maxTransactionFee (denominated in current (source) chain currency) must be in order to fund a call to
@@ -362,7 +362,6 @@ interface IWormholeRelayer {
     error NoDeliveryInProcess(); // Forwards can only be requested within execution of 'receiveWormholeMessages', or when a delivery is in progress
     error MultipleForwardsRequested(); // Only one forward can be requested in a transaction
     error RelayProviderDoesNotSupportTargetChain(); // Your relay provider does not support the target chain you specified
-    error RolloverChainNotIncluded(); // None of the Send structs in your multiForward are for the target chain 'rolloverChain'
     error ChainNotFoundInSends(uint16 chainId); // This should never happen. Post a Github Issue if this occurs
     error ReentrantCall(); // A delivery cannot occur during another delivery
 }
