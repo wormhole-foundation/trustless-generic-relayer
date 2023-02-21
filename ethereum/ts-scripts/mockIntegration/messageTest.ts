@@ -154,10 +154,10 @@ export async function encodeEmitterAddress(
   emitterAddressStr: string
 ): Promise<string> {
   if (myChainId === wh.CHAIN_ID_SOLANA || myChainId === wh.CHAIN_ID_PYTHNET) {
-    return await wh.getEmitterAddressSolana(emitterAddressStr)
+    return wh.getEmitterAddressSolana(emitterAddressStr)
   }
   if (wh.isTerraChain(myChainId)) {
-    return await wh.getEmitterAddressTerra(emitterAddressStr)
+    return wh.getEmitterAddressTerra(emitterAddressStr)
   }
   if (wh.isEVMChain(myChainId)) {
     return wh.getEmitterAddressEth(emitterAddressStr)

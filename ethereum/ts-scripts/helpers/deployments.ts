@@ -30,10 +30,9 @@ export async function deployRelayProviderImplementation(
   //@ts-ignore
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy()
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 
 export async function deployRelayProviderSetup(chain: ChainInfo): Promise<Deployment> {
@@ -44,10 +43,9 @@ export async function deployRelayProviderSetup(chain: ChainInfo): Promise<Deploy
   //@ts-ignore
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy()
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 export async function deployRelayProviderProxy(
   chain: ChainInfo,
@@ -70,10 +68,9 @@ export async function deployRelayProviderProxy(
   ])
 
   const contract = await factory.deploy(relayProviderSetupAddress, encodedData)
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 
 export async function deployMockIntegration(chain: ChainInfo): Promise<Deployment> {
@@ -87,10 +84,9 @@ export async function deployMockIntegration(chain: ChainInfo): Promise<Deploymen
     chain.wormholeAddress,
     getCoreRelayerAddress(chain)
   )
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 
 export async function deployCoreRelayerLibrary(chain: ChainInfo): Promise<Deployment> {
@@ -101,10 +97,9 @@ export async function deployCoreRelayerLibrary(chain: ChainInfo): Promise<Deploy
   const bytecode = CoreRelayerLibrary__factory.bytecode
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy()
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 
 export async function deployCoreRelayerImplementation(
@@ -135,10 +130,9 @@ export async function deployCoreRelayerImplementation(
     signer
   )
   const contract = await factory.deploy()
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 export async function deployCoreRelayerSetup(chain: ChainInfo): Promise<Deployment> {
   console.log("deployCoreRelayerSetup " + chain.chainId)
@@ -148,10 +142,9 @@ export async function deployCoreRelayerSetup(chain: ChainInfo): Promise<Deployme
   //@ts-ignore
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy()
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 export async function deployCoreRelayerProxy(
   chain: ChainInfo,
@@ -184,10 +177,9 @@ export async function deployCoreRelayerProxy(
   ])
 
   const contract = await factory.deploy(coreRelayerSetupAddress, encodedData)
-  return await contract.deployed().then((result) => {
-    console.log("Successfully deployed contract at " + result.address)
-    return { address: result.address, chainId: chain.chainId }
-  })
+  const result = await contract.deployed()
+  console.log("Successfully deployed contract at " + result.address)
+  return { address: result.address, chainId: chain.chainId }
 }
 function link(bytecode: string, libName: String, libAddress: string) {
   //This doesn't handle the libName, because Forge embed a psuedonym into the bytecode, like
