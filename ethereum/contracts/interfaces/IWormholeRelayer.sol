@@ -213,17 +213,13 @@ interface IWormholeRelayer {
      *  then the user can request a redelivery of these wormhole messages any time in the future through a call to 'resend' using this struct
      *
      *  @param request Information about the resend request, including the source chain and source transaction hash,
-     *  @param nonce This should be 0
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If the targetAddress's receiveWormholeMessage function uses 'gasLimit' units of gas, then we must have newMaxTransactionFee >= quoteGasResend(targetChain, gasLimit, relayProvider)
      *
      *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for your specified relay provider.
      *  The relay provider will listen for these messages, and then execute the redelivery as described
      */
-    function resend(ResendByTx memory request, uint32 nonce, address relayProvider)
-        external
-        payable
-        returns (uint64 sequence);
+    function resend(ResendByTx memory request, address relayProvider) external payable returns (uint64 sequence);
 
     /**
      * @notice This 'MultichainSend' struct represents a collection of send requests 'requests' and a specified relay provider 'relayProviderAddress'
