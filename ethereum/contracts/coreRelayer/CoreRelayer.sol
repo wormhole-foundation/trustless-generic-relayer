@@ -622,7 +622,7 @@ contract CoreRelayer is CoreRelayerGovernance {
             originalDeliveryVM.hash,
             targetParams.relayerRefundAddress,
             originalDeliveryVM.emitterChainId,
-            originalDeliveryVM.sequence
+            redeliveryVM.sequence
         );
     }
 
