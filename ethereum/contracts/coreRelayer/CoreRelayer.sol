@@ -619,9 +619,9 @@ contract CoreRelayer is CoreRelayerGovernance {
             wormhole,
             instruction,
             targetParams.sourceEncodedVMs,
-            originalDeliveryVM.hash,
+            redeliveryVM.hash,
             targetParams.relayerRefundAddress,
-            originalDeliveryVM.emitterChainId,
+            redeliveryVM.emitterChainId,
             redeliveryVM.sequence
         );
     }
