@@ -404,7 +404,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log("Message confirmed!")
 
     console.log("Checking status using SDK");
-    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget)).pop()?.status
     expect(status).to.equal("Pending Delivery")
 
     await new Promise((resolve) => {
@@ -484,7 +484,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
 =======
 
     console.log("Checking status using SDK");
-    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget)).pop()?.status
     expect(status).to.equal("Delivery Success")
 
   })
@@ -515,7 +515,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log("Message confirmed!")
 
     console.log("Checking status using SDK");
-    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget)).pop()?.status
     expect(status).to.equal("Pending Delivery")
 
     await new Promise((resolve) => {
@@ -530,7 +530,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(message).to.not.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget)).pop()?.status
     expect(status).to.equal("Receiver Failure")
 
     console.log("Resending the message");
@@ -562,7 +562,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(messageNew).to.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, newTx.hash, 1, targetChain.chainId, providerTarget))[0].status
+    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, 1, targetChain.chainId, providerTarget)).pop()?.status
 
     expect(status).to.equal("Delivery Success")
 >>>>>>> afc4e63 (Typescript test for statusByTx)

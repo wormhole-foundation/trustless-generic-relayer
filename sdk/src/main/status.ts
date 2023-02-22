@@ -9,7 +9,7 @@ import {
 } from "@certusone/wormhole-sdk"
 import { GetSignedVAAResponse } from "@certusone/wormhole-sdk-proto-web/lib/cjs/publicrpc/v1/publicrpc"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
-import { BigNumber, ContractReceipt, ethers } from "ethers"
+import { BigNumber, ContractReceipt, ethers, providers } from "ethers"
 import { getCoreRelayer, getCoreRelayerAddressNative } from "../consts"
 import {
   CoreRelayer,
@@ -28,7 +28,8 @@ type DeliveryStatus =
   | "This should never happen. Contact Support."
 
 type DeliveryInfo = {
-  status: DeliveryStatus
+  status: DeliveryStatus,
+  reason?: string, 
   deliveryTxHash: string | null
   vaaHash: string | null
   sourceChain: number | null
@@ -40,13 +41,14 @@ export async function getDeliveryInfoBySourceTx(
   sourceChainId: ChainId,
   sourceChainProvider: ethers.providers.Provider,
   sourceTransaction: string,
-  sourceNonce: number,
   targetChain: ChainId,
   targetChainProvider: ethers.providers.Provider,
+  sourceNonce?: number,
   guardianRpcHosts?: string[],
   coreRelayerWhMessageIndex?: number
 ): Promise<DeliveryInfo[]> {
   const receipt = await sourceChainProvider.getTransactionReceipt(sourceTransaction)
+  if(!receipt) throw Error("Transaction has not been mined")
   const bridgeAddress = CONTRACTS[environment][CHAIN_ID_TO_NAME[sourceChainId]].core
   const coreRelayerAddress = getCoreRelayerAddressNative(sourceChainId, environment)
   if (!bridgeAddress || !coreRelayerAddress) {
@@ -57,11 +59,136 @@ export async function getDeliveryInfoBySourceTx(
     receipt,
     bridgeAddress,
     tryNativeToHexString(coreRelayerAddress, "ethereum"),
-    sourceNonce.toString(),
-    coreRelayerWhMessageIndex ? coreRelayerWhMessageIndex : 0
+    coreRelayerWhMessageIndex ? coreRelayerWhMessageIndex : 0,
+    sourceNonce?.toString()
   )
 
-  /*
+  /* Potentially use 'guardianRPCHosts' to get status of VAA; code in comments at end [1] */
+
+  const deliveryEvents = await pullEventsBySourceSequence(
+    environment,
+    targetChain,
+    targetChainProvider,
+    sourceChainId,
+    BigNumber.from(deliveryLog.sequence)
+  )
+  if (deliveryEvents.length == 0) {
+    deliveryEvents.push({
+      status: "Pending Delivery",
+      deliveryTxHash: null,
+      vaaHash: null,
+      sourceChain: sourceChainId,
+      sourceVaaSequence: BigNumber.from(deliveryLog.sequence),
+    })
+  }
+
+  return deliveryEvents
+}
+
+
+async function pullEventsBySourceSequence(
+  environment: Network,
+  targetChain: ChainId,
+  targetChainProvider: ethers.providers.Provider,
+  sourceChain: number,
+  sourceVaaSequence: BigNumber
+): Promise<DeliveryInfo[]> {
+  const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
+  
+  //TODO These compile errors on sourceChain look like an ethers bug
+  const deliveryEvents = coreRelayer.filters.Delivery(null, sourceChain, sourceVaaSequence)
+
+  // There is a max limit on RPCs sometimes for how many blocks to query
+  return await transformDeliveryEvents(
+    await coreRelayer.queryFilter(deliveryEvents, -2040, 'latest'), targetChainProvider
+  )
+}
+
+function deliveryStatus(status: number) {
+  switch (status) {
+    case 0: 
+      return "Delivery Success"
+    case 1:
+      return "Receiver Failure"
+    case 2:
+      return "Forward Request Failure"
+    case 3:
+      return "Forward Request Success"
+    case 4: 
+      return "Invalid Redelivery"
+    default:
+      return "This should never happen. Contact Support."
+  }
+}
+
+async function transformDeliveryEvents(events: DeliveryEvent[], targetProvider: ethers.providers.Provider): Promise<DeliveryInfo[]> {
+  return Promise.all(events.map(async (x) => {
+    let reason = undefined;
+    if(deliveryStatus(x.args[4]) == "Receiver Failure") {
+      const tx = await targetProvider.getTransaction(x.transactionHash);
+      if(tx) {
+        let result = await targetProvider.call(tx as ethers.providers.TransactionRequest, tx.blockNumber);
+        if(result) {
+          reason = ethers.utils.toUtf8String(result.substring(138))
+        }
+      }
+    }
+    return {
+      status: deliveryStatus(x.args[4]),
+      reason,
+      deliveryTxHash: x.transactionHash,
+      vaaHash: x.args[3],
+      sourceVaaSequence: x.args[2],
+      sourceChain: x.args[1],
+    }
+  }))
+}
+
+export function findLog(
+  receipt: ContractReceipt,
+  bridgeAddress: string,
+  emitterAddress: string,
+  index: number,
+  nonce?: string,
+): { log: ethers.providers.Log; sequence: string } {
+  const bridgeLogs = receipt.logs.filter((l) => {
+    return l.address === bridgeAddress
+  })
+
+  if (bridgeLogs.length == 0) {
+    throw Error("No core contract interactions found for this transaction.")
+  }
+
+  const parsed = bridgeLogs.map((bridgeLog) => {
+    const log = Implementation__factory.createInterface().parseLog(bridgeLog)
+    return {
+      sequence: log.args[1].toString(),
+      nonce: log.args[2].toString(),
+      emitterAddress: tryNativeToHexString(log.args[0].toString(), "ethereum"),
+      log: bridgeLog,
+    };
+  })
+
+  const filtered = parsed.filter(
+    (x) =>
+      x.emitterAddress == emitterAddress.toLowerCase() && (!nonce || (x.nonce == nonce.toLowerCase()))
+  )
+
+  if (filtered.length == 0) {
+    throw Error("No CoreRelayer contract interactions found for this transaction.")
+  }
+
+  if (index >= filtered.length) {
+    throw Error("Specified delivery index is out of range.")
+  } else {
+    return {
+      log: filtered[index].log,
+      sequence: filtered[index].sequence,
+    }
+  }
+}
+
+/* [1]
   let vaa: GetSignedVAAResponse | null = null
   if (guardianRpcHosts && guardianRpcHosts.length > 0) {
     vaa = await pullVaa(
@@ -96,25 +223,6 @@ export async function getDeliveryInfoBySourceTx(
   }
   */
 
-  const deliveryEvents = await pullEventsBySourceSequence(
-    environment,
-    targetChain,
-    targetChainProvider,
-    sourceChainId,
-    BigNumber.from(deliveryLog.sequence)
-  )
-  if (deliveryEvents.length == 0) {
-    deliveryEvents.push({
-      status: "Pending Delivery",
-      deliveryTxHash: null,
-      vaaHash: null,
-      sourceChain: sourceChainId,
-      sourceVaaSequence: BigNumber.from(deliveryLog.sequence),
-    })
-  }
-
-  return deliveryEvents
-}
 
 /*
 export async function getDeliveryInfoByVaaHash(
@@ -160,99 +268,8 @@ async function pullEventsByVaaHash(
 }
 */
 
-async function pullEventsBySourceSequence(
-  environment: Network,
-  targetChain: ChainId,
-  targetChainProvider: ethers.providers.Provider,
-  sourceChain: number,
-  sourceVaaSequence: BigNumber
-): Promise<DeliveryInfo[]> {
-  const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
-  
-  //TODO These compile errors on sourceChain look like an ethers bug
-  const deliveryEvents = coreRelayer.filters.Delivery(null, sourceChain, sourceVaaSequence)
 
-  //console.log((await coreRelayer.queryFilter(coreRelayer.filters.Delivery(null, sourceChain, null), -2040, 'latest')))
-
-  // There is a max limit on RPCs sometimes for how many blocks to query
-  return transformDeliveryEvents(
-    await coreRelayer.queryFilter(deliveryEvents, -2040, 'latest')
-  )
-}
-
-function deliveryStatus(status: number) {
-  switch (status) {
-    case 0: 
-      return "Delivery Success"
-    case 1:
-      return "Receiver Failure"
-    case 2:
-      return "Forward Request Failure"
-    case 3:
-      return "Forward Request Success"
-    case 4: 
-      return "Invalid Redelivery"
-    default:
-      return "This should never happen. Contact Support."
-  }
-}
-
-function transformDeliveryEvents(events: DeliveryEvent[]): DeliveryInfo[] {
-  return events.map((x) => {
-    return {
-      status: deliveryStatus(x.args[4]),
-      deliveryTxHash: x.transactionHash,
-      vaaHash: x.args[3],
-      sourceVaaSequence: x.args[2],
-      sourceChain: x.args[1],
-    }
-  })
-}
-
-export function findLog(
-  receipt: ContractReceipt,
-  bridgeAddress: string,
-  emitterAddress: string,
-  nonce: string,
-  index: number
-): { log: ethers.providers.Log; sequence: string } {
-  const bridgeLogs = receipt.logs.filter((l) => {
-    return l.address === bridgeAddress
-  })
-
-  if (bridgeLogs.length == 0) {
-    throw Error("No core contract interactions found for this transaction.")
-  }
-
-  const parsed = bridgeLogs.map((bridgeLog) => {
-    const log = Implementation__factory.createInterface().parseLog(bridgeLog)
-    return {
-      sequence: log.args[1].toString(),
-      nonce: log.args[2].toString(),
-      emitterAddress: tryNativeToHexString(log.args[0].toString(), "ethereum"),
-      log: bridgeLog,
-    };
-  })
-
-  const filtered = parsed.filter(
-    (x) =>
-      x.emitterAddress == emitterAddress.toLowerCase() && x.nonce == nonce.toLowerCase()
-  )
-
-  if (filtered.length == 0) {
-    throw Error("No CoreRelayer contract interactions found for this transaction.")
-  }
-
-  if (index >= filtered.length) {
-    throw Error("Specified delivery index is out of range.")
-  } else {
-    return {
-      log: filtered[index].log,
-      sequence: filtered[index].sequence,
-    }
-  }
-}
-
+/*
 //TODO be able to find the VAA even if the sequence number rolls back
 export async function pullVaa(
   hosts: string[],
@@ -279,3 +296,4 @@ export async function pullVaa(
 export async function pullAllVaasForTx(hosts: string[], txHash: string) {
   //TODO This
 }
+*/
