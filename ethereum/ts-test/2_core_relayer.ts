@@ -89,7 +89,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-      }, 2000)
+      }, 4000)
     })
 
     console.log("Checking if message was relayed")

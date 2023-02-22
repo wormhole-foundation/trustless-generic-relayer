@@ -168,7 +168,7 @@ async function pullEventsBySourceSequence(
   sourceVaaSequence: BigNumber
 ): Promise<DeliveryInfo[]> {
   const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
-
+  
   //TODO These compile errors on sourceChain look like an ethers bug
   const deliveryEvents = coreRelayer.filters.Delivery(null, sourceChain, sourceVaaSequence)
 
@@ -214,7 +214,7 @@ export function findLog(
   bridgeAddress: string,
   emitterAddress: string,
   nonce: string,
-  deliveryIndex: number
+  index: number
 ): { log: ethers.providers.Log; sequence: string } {
   const bridgeLogs = receipt.logs.filter((l) => {
     return l.address === bridgeAddress
@@ -243,12 +243,12 @@ export function findLog(
     throw Error("No CoreRelayer contract interactions found for this transaction.")
   }
 
-  if (deliveryIndex >= filtered.length) {
+  if (index >= filtered.length) {
     throw Error("Specified delivery index is out of range.")
   } else {
     return {
-      log: filtered[deliveryIndex].log,
-      sequence: filtered[deliveryIndex].sequence,
+      log: filtered[index].log,
+      sequence: filtered[index].sequence,
     }
   }
 }
