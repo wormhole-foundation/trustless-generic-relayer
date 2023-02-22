@@ -125,13 +125,14 @@ async function transformDeliveryEvents(events: DeliveryEvent[], targetProvider: 
   return Promise.all(events.map(async (x) => {
     let reason = undefined;
     if(deliveryStatus(x.args[4]) == "Receiver Failure") {
-      const tx = await targetProvider.getTransaction(x.transactionHash);
+      /*const tx = await targetProvider.getTransaction(x.transactionHash);
       if(tx) {
         let result = await targetProvider.call(tx as ethers.providers.TransactionRequest, tx.blockNumber);
         if(result) {
           reason = ethers.utils.toUtf8String(result.substring(138))
         }
-      }
+      }*/
+      // logic for getting reason here!
     }
     return {
       status: deliveryStatus(x.args[4]),
@@ -171,7 +172,7 @@ export function findLog(
 
   const filtered = parsed.filter(
     (x) =>
-      x.emitterAddress == emitterAddress.toLowerCase() && (!nonce || (x.nonce == nonce.toLowerCase()))
+      x.emitterAddress == emitterAddress.toLowerCase() && ((!nonce) || (x.nonce == nonce.toLowerCase()))
   )
 
   if (filtered.length == 0) {
