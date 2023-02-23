@@ -34,17 +34,17 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
-        requests[0] = request;
-        IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({relayProviderAddress: address(provider), requests: requests});
-        return multichainSend(container, nonce);
+        return multichainSend(multichainSendContainer(request, provider), nonce);
     }
 
     function forward(IWormholeRelayer.Send memory request, uint32 nonce, IRelayProvider provider) public payable {
+        return multichainForward(multichainSendContainer(request, provider), nonce);
+    }
+
+    function multichainSendContainer(IWormholeRelayer.Send memory request, IRelayProvider provider) internal pure returns (IWormholeRelayer.MultichainSend memory container) {
         IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
         requests[0] = request;
-        IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({relayProviderAddress: address(provider), requests: requests});
-        return multichainForward(container, nonce);
+        container = IWormholeRelayer.MultichainSend({relayProviderAddress: address(provider), requests: requests});
     }
 
     function resend(IWormholeRelayer.ResendByTx memory request, uint32 nonce, IRelayProvider provider)
