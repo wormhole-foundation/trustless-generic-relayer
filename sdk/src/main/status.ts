@@ -29,7 +29,6 @@ type DeliveryStatus =
 
 type DeliveryInfo = {
   status: DeliveryStatus,
-  reason?: string, 
   deliveryTxHash: string | null
   vaaHash: string | null
   sourceChain: number | null
@@ -44,7 +43,7 @@ export async function getDeliveryInfoBySourceTx(
   targetChain: ChainId,
   targetChainProvider: ethers.providers.Provider,
   sourceNonce?: number,
-  guardianRpcHosts?: string[],
+//  guardianRpcHosts?: string[],
   coreRelayerWhMessageIndex?: number
 ): Promise<DeliveryInfo[]> {
   const receipt = await sourceChainProvider.getTransactionReceipt(sourceTransaction)
@@ -123,20 +122,8 @@ function deliveryStatus(status: number) {
 
 async function transformDeliveryEvents(events: DeliveryEvent[], targetProvider: ethers.providers.Provider): Promise<DeliveryInfo[]> {
   return Promise.all(events.map(async (x) => {
-    let reason = undefined;
-    if(deliveryStatus(x.args[4]) == "Receiver Failure") {
-      /*const tx = await targetProvider.getTransaction(x.transactionHash);
-      if(tx) {
-        let result = await targetProvider.call(tx as ethers.providers.TransactionRequest, tx.blockNumber);
-        if(result) {
-          reason = ethers.utils.toUtf8String(result.substring(138))
-        }
-      }*/
-      // logic for getting reason here!
-    }
     return {
       status: deliveryStatus(x.args[4]),
-      reason,
       deliveryTxHash: x.transactionHash,
       vaaHash: x.args[3],
       sourceVaaSequence: x.args[2],

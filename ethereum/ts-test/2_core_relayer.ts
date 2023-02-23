@@ -533,7 +533,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     const statusArray = await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, targetChain.chainId, providerTarget);
     status = statusArray[statusArray.length - 1]?.status
     expect(status).to.equal("Receiver Failure")
-    console.log(`Reason: ${statusArray[statusArray.length - 1].reason}`)
+    //console.log(`Reason: ${statusArray[statusArray.length - 1].reason}`)
 
     console.log("Resending the message");
     const request: CoreRelayerStructs.ResendByTxStruct = {
