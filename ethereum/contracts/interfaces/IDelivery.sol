@@ -35,4 +35,5 @@ interface IDelivery {
     error SendNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
     error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
     error TargetChainIsNotThisChain(uint16 targetChainId);
+    error ReentrantCall(); // A delivery cannot occur during another delivery
 }

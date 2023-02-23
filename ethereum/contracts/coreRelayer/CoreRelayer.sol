@@ -29,28 +29,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         DeliveryStatus status
     );
 
-    error FundsTooMuch();
-    error MaxTransactionFeeNotEnough();
-    error MsgValueTooLow(); // msg.value must cover the budget specified
-    error NonceIsZero();
-    error ForwardRequestFromWrongAddress();
-    error NoDeliveryInProcess();
-    error CantRequestMultipleForwards();
-    error RelayProviderDoesNotSupportTargetChain();
-    error ChainNotFoundInSends(uint16 chainId); // Required chain not found in the delivery requests
-    error ReentrantCall();
-    error InvalidEmitterInOriginalDeliveryVM(uint8 index);
-    error InvalidRedeliveryVM(string reason);
-    error InvalidEmitterInRedeliveryVM();
-    error MismatchingRelayProvidersInRedelivery(); // The same relay provider must be specified when doing a single VAA redeliver
-    error InvalidVaa(uint8 index);
-    error InvalidEmitter();
-    error SendNotSufficientlyFunded(); // This delivery request was not sufficiently funded, and must request redelivery
-    error UnexpectedRelayer(); // Specified relayer is not the relayer delivering the message
-    error InsufficientRelayerFunds(); // The relayer didn't pass sufficient funds (msg.value does not cover the necessary budget fees)
-    error AlreadyDelivered(); // The message was already delivered.
-    error TargetChainIsNotThisChain(uint16 targetChainId);
-
     function send(IWormholeRelayer.Send memory request, uint32 nonce, IRelayProvider provider)
         public
         payable
@@ -87,9 +65,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
         if (!isSufficient) {
             if (reason == 26) {
-                revert MaxTransactionFeeNotEnough();
+                revert IWormholeRelayer.MaxTransactionFeeNotEnough();
             } else {
-                revert FundsTooMuch();
+                revert IWormholeRelayer.FundsTooMuch();
             }
         }
         IWormhole wormhole = wormhole();
@@ -98,7 +76,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //Make sure the msg.value covers the budget they specified
         if (msg.value < totalFee) {
-            revert MsgValueTooLow();
+            revert IWormholeRelayer.MsgValueTooLow();
         }
 
         sequence = emitRedelivery(
@@ -156,15 +134,15 @@ contract CoreRelayer is CoreRelayerGovernance {
         (uint256 totalCost, bool isSufficient, uint8 cause) = sufficientFundsHelper(deliveryRequests, msg.value);
         if (!isSufficient) {
             if (cause == 26) {
-                revert MaxTransactionFeeNotEnough();
+                revert IWormholeRelayer.MaxTransactionFeeNotEnough();
             } else if (cause == 25) {
-                revert MsgValueTooLow();
+                revert IWormholeRelayer.MsgValueTooLow();
             } else {
-                revert FundsTooMuch();
+                revert IWormholeRelayer.FundsTooMuch();
             }
         }
         if (nonce == 0) {
-            revert NonceIsZero();
+            revert IWormholeRelayer.NonceIsZero();
         }
 
         // encode the DeliveryInstructions
@@ -193,17 +171,18 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it generates a VAA with the encoded DeliveryInstructions
      */
     function multichainForward(IWormholeRelayer.MultichainSend memory deliveryRequests, uint32 nonce) public payable {
-        // Can only forward while a delivery is in process.
         if (!isContractLocked()) {
-            revert NoDeliveryInProcess();
+            revert IWormholeRelayer.NoDeliveryInProgress();
         }
         if (getForwardingRequest().isValid) {
-            revert CantRequestMultipleForwards();
+            revert IWormholeRelayer.MultipleForwardsRequested();
         }
-
-        //We want to catch malformed requests in this function, and only underfunded requests when emitting.
-        verifyForwardingRequest(deliveryRequests, nonce);
-
+        if (nonce == 0) {
+            revert IWormholeRelayer.NonceIsZero();
+        }
+        if (msg.sender != lockedTargetAddress()) {
+            revert IWormholeRelayer.ForwardRequestFromWrongAddress();
+        }
         bytes memory encodedMultichainSend = encodeMultichainSend(deliveryRequests);
         setForwardingRequest(
             ForwardingRequest({
@@ -261,31 +240,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         clearForwardingRequest();
 
         return (sequence, funded);
-    }
-
-    function verifyForwardingRequest(IWormholeRelayer.MultichainSend memory container, uint32 nonce) internal view {
-        if (nonce == 0) {
-            revert NonceIsZero();
-        }
-
-        if (msg.sender != lockedTargetAddress()) {
-            revert ForwardRequestFromWrongAddress();
-        }
-    }
-
-    function findDeliveryIndex(IWormholeRelayer.MultichainSend memory container, uint16 chainId)
-        internal
-        pure
-        returns (uint16 deliveryRequestIndex)
-    {
-        for (uint16 i = 0; i < container.requests.length; i++) {
-            if (container.requests[i].targetChain == chainId) {
-                deliveryRequestIndex = i;
-                return deliveryRequestIndex;
-            }
-        }
-
-        revert ChainNotFoundInSends(chainId);
     }
 
     /*
@@ -390,7 +344,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         // lock the contract to prevent reentrancy
         if (isContractLocked()) {
-            revert ReentrantCall();
+            revert IDelivery.ReentrantCall();
         }
         setContractLock(true);
         setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
@@ -550,11 +504,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
         if (!valid) {
-            revert InvalidRedeliveryVM(reason);
+            revert IDelivery.InvalidRedeliveryVM(reason);
         }
         if (!verifyRelayerVM(redeliveryVM)) {
             // Redelivery VM has an invalid emitter
-            revert InvalidEmitterInRedeliveryVM();
+            revert IDelivery.InvalidEmitterInRedeliveryVM();
         }
 
         RedeliveryByTxHashInstruction memory redeliveryInstruction =
@@ -565,11 +519,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         (originalDeliveryVM, valid, reason) =
             wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[redeliveryInstruction.deliveryIndex]);
         if (!valid) {
-            revert InvalidVaa(redeliveryInstruction.deliveryIndex);
+            revert IDelivery.InvalidVaa(redeliveryInstruction.deliveryIndex);
         }
         if (!verifyRelayerVM(originalDeliveryVM)) {
             // Original Delivery VM has a invalid emitter
-            revert InvalidEmitterInOriginalDeliveryVM(redeliveryInstruction.deliveryIndex);
+            revert IDelivery.InvalidEmitterInOriginalDeliveryVM(redeliveryInstruction.deliveryIndex);
         }
 
         DeliveryInstruction memory instruction;
@@ -611,7 +565,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         // The same relay provider must be specified when doing a single VAA redeliver.
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
         if (providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)) {
-            revert MismatchingRelayProvidersInRedelivery();
+            revert IDelivery.MismatchingRelayProvidersInRedelivery();
         }
 
         // relayer must have covered the necessary funds
@@ -620,7 +574,7 @@ contract CoreRelayer is CoreRelayerGovernance {
                 < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newReceiverValueTarget
                     + wormhole().messageFee()
         ) {
-            revert InsufficientRelayerFunds();
+            revert IDelivery.InsufficientRelayerFunds();
         }
 
         uint16 whChainId = chainId();
@@ -654,16 +608,16 @@ contract CoreRelayer is CoreRelayerGovernance {
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
         if (!valid) {
-            revert InvalidVaa(targetParams.deliveryIndex);
+            revert IDelivery.InvalidVaa(targetParams.deliveryIndex);
         }
         if (!verifyRelayerVM(deliveryVM)) {
-            revert InvalidEmitter();
+            revert IDelivery.InvalidEmitter();
         }
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
         //ensure this is a funded delivery, not a failed forward.
         if (!container.sufficientlyFunded) {
-            revert SendNotSufficientlyFunded();
+            revert IDelivery.SendNotSufficientlyFunded();
         }
 
         // parse the deliveryVM payload into the DeliveryInstructions struct
@@ -671,7 +625,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         //make sure the specified relayer is the relayer delivering this message
         if (fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
-            revert UnexpectedRelayer();
+            revert IDelivery.UnexpectedRelayer();
         }
 
         //make sure relayer passed in sufficient funds
@@ -679,12 +633,12 @@ contract CoreRelayer is CoreRelayerGovernance {
             msg.value
                 < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormhole.messageFee()
         ) {
-            revert InsufficientRelayerFunds();
+            revert IDelivery.InsufficientRelayerFunds();
         }
 
         //make sure this delivery is intended for this chain
         if (chainId() != deliveryInstruction.targetChain) {
-            revert TargetChainIsNotThisChain(deliveryInstruction.targetChain);
+            revert IDelivery.TargetChainIsNotThisChain(deliveryInstruction.targetChain);
         }
 
         _executeDelivery(

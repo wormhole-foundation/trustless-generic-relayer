@@ -359,9 +359,8 @@ interface IWormholeRelayer {
     error MsgValueTooLow(); // msg.value is too low
     // Specifically, (msg.value) + (any leftover funds if this is a forward) is less than (maxTransactionFee + receiverValue), summed over all of your requests if this is a multichainSend/multichainForward
     error NonceIsZero(); // Nonce cannot be 0
-    error NoDeliveryInProcess(); // Forwards can only be requested within execution of 'receiveWormholeMessages', or when a delivery is in progress
+    error NoDeliveryInProgress(); // Forwards can only be requested within execution of 'receiveWormholeMessages', or when a delivery is in progress
     error MultipleForwardsRequested(); // Only one forward can be requested in a transaction
+    error ForwardRequestFromWrongAddress(); // A forward was requested from an address that is not the 'targetAddress' of the original delivery 
     error RelayProviderDoesNotSupportTargetChain(); // Your relay provider does not support the target chain you specified
-    error ChainNotFoundInSends(uint16 chainId); // This should never happen. Post a Github Issue if this occurs
-    error ReentrantCall(); // A delivery cannot occur during another delivery
 }
