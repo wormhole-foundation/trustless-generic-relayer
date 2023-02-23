@@ -200,7 +200,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     function decodeRedeliveryByTxHashInstruction(bytes memory encoded)
-        internal
+        public
         pure
         returns (RedeliveryByTxHashInstruction memory instruction)
     {
@@ -247,7 +247,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
-        internal
+        public
         pure
         returns (DeliveryInstructionsContainer memory)
     {

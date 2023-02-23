@@ -877,7 +877,7 @@ contract TestCoreRelayer is Test {
         );
 
         stack.parsed = relayerWormhole.parseVM(stack.redeliveryVM);
-        stack.instruction = setup.target.coreRelayerFull.getRedeliveryByTxHashInstruction(stack.parsed.payload);
+        stack.instruction = setup.target.coreRelayerFull.decodeRedeliveryByTxHashInstruction(stack.parsed.payload);
 
         stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newReceiverValueTarget
             + setup.target.wormhole.messageFee();
@@ -1121,7 +1121,7 @@ contract TestCoreRelayer is Test {
 
             stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
             stack.instruction =
-                setup.target.coreRelayerFull.getDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
+                setup.target.coreRelayerFull.decodeDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
             stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.receiverValueTarget
                 + setup.source.wormhole.messageFee();
 
@@ -1188,7 +1188,7 @@ contract TestCoreRelayer is Test {
 
         stack.parsed = relayerWormhole.parseVM(stack.deliveryVM);
         stack.instruction =
-            setup.target.coreRelayerFull.getDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
+            setup.target.coreRelayerFull.decodeDeliveryInstructionsContainer(stack.parsed.payload).instructions[0];
 
         stack.budget = stack.instruction.maximumRefundTarget + stack.instruction.receiverValueTarget
             + setup.target.wormhole.messageFee();
@@ -1403,7 +1403,7 @@ contract TestCoreRelayer is Test {
         uint8 payloadId = parsedInstruction.payload.toUint8(0);
         if (payloadId == 1) {
             CoreRelayer.DeliveryInstructionsContainer memory container =
-                contracts.coreRelayerFull.getDeliveryInstructionsContainer(parsedInstruction.payload);
+                contracts.coreRelayerFull.decodeDeliveryInstructionsContainer(parsedInstruction.payload);
             for (uint8 k = 0; k < container.instructions.length; k++) {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
@@ -1422,7 +1422,7 @@ contract TestCoreRelayer is Test {
             }
         } else if (payloadId == 2) {
             CoreRelayer.RedeliveryByTxHashInstruction memory instruction =
-                contracts.coreRelayerFull.getRedeliveryByTxHashInstruction(parsedInstruction.payload);
+                contracts.coreRelayerFull.decodeRedeliveryByTxHashInstruction(parsedInstruction.payload);
             IDelivery.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
