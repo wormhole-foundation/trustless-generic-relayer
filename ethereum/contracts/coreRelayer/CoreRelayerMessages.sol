@@ -7,6 +7,7 @@ import "../libraries/external/BytesLib.sol";
 
 import "./CoreRelayerGetters.sol";
 import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayer.sol";
 
 contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     using BytesLib for bytes;
@@ -122,7 +123,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         });
     }
 
-    function encodeMultichainSend(MultichainSend memory container) internal pure returns (bytes memory encoded) {
+    function encodeMultichainSend(IWormholeRelayer.MultichainSend memory container) internal pure returns (bytes memory encoded) {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
             address(container.relayProviderAddress),
@@ -131,7 +132,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         //Append all the messages to the array.
         for (uint256 i = 0; i < container.requests.length; i++) {
-            Send memory request = container.requests[i];
+            IWormholeRelayer.Send memory request = container.requests[i];
 
             encoded = abi.encodePacked(
                 encoded,
@@ -146,7 +147,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    function decodeMultichainSend(bytes memory encoded) internal pure returns (MultichainSend memory) {
+    function decodeMultichainSend(bytes memory encoded) internal pure returns (IWormholeRelayer.MultichainSend memory) {
         uint256 index = 0;
 
         uint8 payloadId = encoded.toUint8(index);
@@ -159,10 +160,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint8 arrayLen = encoded.toUint8(index);
         index += 1;
 
-        Send[] memory requestArray = new Send[](arrayLen);
+        IWormholeRelayer.Send[] memory requestArray = new IWormholeRelayer.Send[](arrayLen);
 
         for (uint8 i = 0; i < arrayLen; i++) {
-            Send memory request;
+            IWormholeRelayer.Send memory request;
 
             // target chain of the delivery request
             request.targetChain = encoded.toUint16(index);
@@ -197,6 +198,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             revert InvalidSendsPayload(encoded.length);
         }
 
-        return MultichainSend({relayProviderAddress: relayProviderAddress, requests: requestArray});
+        return IWormholeRelayer.MultichainSend({relayProviderAddress: relayProviderAddress, requests: requestArray});
     }
 }

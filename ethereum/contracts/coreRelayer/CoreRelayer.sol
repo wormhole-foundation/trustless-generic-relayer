@@ -4,8 +4,9 @@
 pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
+import "../interfaces/IWormholeRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
-
+import "../interfaces/IDelivery.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
@@ -51,25 +52,25 @@ contract CoreRelayer is CoreRelayerGovernance {
     error AlreadyDelivered(); // The message was already delivered.
     error TargetChainIsNotThisChain(uint16 targetChainId);
 
-    function send(Send memory request, uint32 nonce, IRelayProvider provider)
+    function send(IWormholeRelayer.Send memory request, uint32 nonce, IRelayProvider provider)
         public
         payable
         returns (uint64 sequence)
     {
-        Send[] memory requests = new Send[](1);
+        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
         requests[0] = request;
-        MultichainSend memory container = MultichainSend({relayProviderAddress: address(provider), requests: requests});
+        IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({relayProviderAddress: address(provider), requests: requests});
         return multichainSend(container, nonce);
     }
 
-    function forward(Send memory request, uint32 nonce, IRelayProvider provider) public payable {
-        Send[] memory requests = new Send[](1);
+    function forward(IWormholeRelayer.Send memory request, uint32 nonce, IRelayProvider provider) public payable {
+        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
         requests[0] = request;
-        MultichainSend memory container = MultichainSend({relayProviderAddress: address(provider), requests: requests});
+        IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({relayProviderAddress: address(provider), requests: requests});
         return multichainForward(container, request.targetChain, nonce);
     }
 
-    function resend(ResendByTx memory request, uint32 nonce, IRelayProvider provider)
+    function resend(IWormholeRelayer.ResendByTx memory request, uint32 nonce, IRelayProvider provider)
         public
         payable
         returns (uint64 sequence)
@@ -117,7 +118,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function emitRedelivery(
-        ResendByTx memory request,
+        IWormholeRelayer.ResendByTx memory request,
         uint32 nonce,
         uint8 consistencyLevel,
         uint256 receiverValueTarget,
@@ -147,7 +148,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function multichainSend(MultichainSend memory deliveryRequests, uint32 nonce)
+    function multichainSend(IWormholeRelayer.MultichainSend memory deliveryRequests, uint32 nonce)
         public
         payable
         returns (uint64 sequence)
@@ -191,7 +192,7 @@ contract CoreRelayer is CoreRelayerGovernance {
      * it checks that the passed nonce is not zero (VAAs with a nonce of zero will not be batched)
      * it generates a VAA with the encoded DeliveryInstructions
      */
-    function multichainForward(MultichainSend memory deliveryRequests, uint16 rolloverChain, uint32 nonce)
+    function multichainForward(IWormholeRelayer.MultichainSend memory deliveryRequests, uint16 rolloverChain, uint32 nonce)
         public
         payable
     {
@@ -223,7 +224,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         internal
         returns (uint64, bool)
     {
-        MultichainSend memory container = decodeMultichainSend(forwardingRequest.deliveryRequestsContainer);
+        IWormholeRelayer.MultichainSend memory container = decodeMultichainSend(forwardingRequest.deliveryRequestsContainer);
 
         //Add any additional funds which were passed in to the refund amount
         refundAmount = refundAmount + forwardingRequest.msgValue;
@@ -267,7 +268,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return (sequence, funded);
     }
 
-    function verifyForwardingRequest(MultichainSend memory container, uint16 rolloverChain, uint32 nonce)
+    function verifyForwardingRequest(IWormholeRelayer.MultichainSend memory container, uint16 rolloverChain, uint32 nonce)
         internal
         view
     {
@@ -297,7 +298,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function findDeliveryIndex(MultichainSend memory container, uint16 chainId)
+    function findDeliveryIndex(IWormholeRelayer.MultichainSend memory container, uint16 chainId)
         internal
         pure
         returns (uint16 deliveryRequestIndex)
@@ -316,7 +317,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     By the time this function completes, we must be certain that the specified funds are sufficient to cover
     delivery for each one of the deliveryRequests with at least 1 gas on the target chains.
     */
-    function sufficientFundsHelper(MultichainSend memory deliveryRequests, uint256 funds)
+    function sufficientFundsHelper(IWormholeRelayer.MultichainSend memory deliveryRequests, uint256 funds)
         internal
         view
         returns (uint256 totalFees, bool isSufficient, uint8 reason)
@@ -325,7 +326,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         IRelayProvider provider = IRelayProvider(deliveryRequests.relayProviderAddress);
 
         for (uint256 i = 0; i < deliveryRequests.requests.length; i++) {
-            Send memory request = deliveryRequests.requests[i];
+            IWormholeRelayer.Send memory request = deliveryRequests.requests[i];
 
             (uint256 requestFee, uint256 maximumRefund, uint256 receiverValueTarget, bool isSufficient, uint8 reason) =
             verifyFunding(
@@ -566,7 +567,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return defaultRelayProvider();
     }
 
-    function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
+    function redeliverSingle(IDelivery.TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
         //cache wormhole
         IWormhole wormhole = wormhole();
 
@@ -670,7 +671,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         deliveryInstruction.executionParameters = redeliveryInstruction.executionParameters;
     }
 
-    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) public payable {
+    function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams) public payable {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
 
@@ -906,7 +907,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function convertToEncodedRedeliveryByTxHashInstruction(
-        ResendByTx memory request,
+        IWormholeRelayer.ResendByTx memory request,
         uint256 receiverValueTarget,
         uint256 maximumRefund,
         uint32 gasLimit,
@@ -928,7 +929,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
     }
 
-    function convertToEncodedDeliveryInstructions(MultichainSend memory container, bool isFunded)
+    function convertToEncodedDeliveryInstructions(IWormholeRelayer.MultichainSend memory container, bool isFunded)
         internal
         view
         returns (bytes memory encoded)
@@ -948,7 +949,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
     }
 
-    function appendDeliveryInstruction(bytes memory encoded, Send memory request, IRelayProvider provider)
+    function appendDeliveryInstruction(bytes memory encoded, IWormholeRelayer.Send memory request, IRelayProvider provider)
         internal
         view
         returns (bytes memory newEncoded)

@@ -10,6 +10,7 @@ import {RelayProviderProxy} from "../contracts/relayProvider/RelayProviderProxy.
 import {RelayProviderMessages} from "../contracts/relayProvider/RelayProviderMessages.sol";
 import {RelayProviderStructs} from "../contracts/relayProvider/RelayProviderStructs.sol";
 import {IWormholeRelayer} from "../contracts/interfaces/IWormholeRelayer.sol";
+import {IDelivery} from "../contracts/interfaces/IDelivery.sol";
 import {CoreRelayer} from "../contracts/coreRelayer/CoreRelayer.sol";
 import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
 import {CoreRelayerSetup} from "../contracts/coreRelayer/CoreRelayerSetup.sol";
@@ -774,8 +775,8 @@ contract TestCoreRelayer is Test {
         IWormhole.VM parsed;
         uint256 budget;
         IWormholeRelayer.ResendByTx redeliveryRequest;
-        CoreRelayer.TargetDeliveryParametersSingle originalDelivery;
-        CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle package;
+        IDelivery.TargetDeliveryParametersSingle originalDelivery;
+        IDelivery.TargetRedeliveryByTxHashParamsSingle package;
         CoreRelayer.RedeliveryByTxHashInstruction instruction;
     }
 
@@ -871,7 +872,7 @@ contract TestCoreRelayer is Test {
         invalidateVM(fakeVM, setup.target.wormholeSimulator);
         stack.originalDelivery.encodedVMs[2] = fakeVM;
 
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             stack.redeliveryVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -889,7 +890,7 @@ contract TestCoreRelayer is Test {
 
         stack.originalDelivery.encodedVMs[2] = stack.originalDelivery.encodedVMs[0];
 
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             stack.redeliveryVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -899,7 +900,7 @@ contract TestCoreRelayer is Test {
 
         stack.originalDelivery.encodedVMs[2] = correctVM;
 
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             stack.redeliveryVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -907,7 +908,7 @@ contract TestCoreRelayer is Test {
         fakeVM = abi.encodePacked(correctVM);
         invalidateVM(fakeVM, setup.target.wormholeSimulator);
 
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             fakeVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -918,7 +919,7 @@ contract TestCoreRelayer is Test {
         fakeVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
             stack.entries[0], setup.sourceChainId, address(setup.source.integration)
         );
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             fakeVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -940,7 +941,7 @@ contract TestCoreRelayer is Test {
         fakeVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
             stack.entries[0], setup.sourceChainId, address(setup.source.coreRelayer)
         );
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             fakeVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -948,7 +949,7 @@ contract TestCoreRelayer is Test {
         vm.expectRevert(abi.encodeWithSignature("MismatchingRelayProvidersInRedelivery()"));
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             stack.redeliveryVM, stack.originalDelivery.encodedVMs, payable(msg.sender)
         );
 
@@ -1009,7 +1010,7 @@ contract TestCoreRelayer is Test {
         fakeVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
             stack.entries[0], setup.sourceChainId, address(setup.source.coreRelayer)
         );
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle(
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             fakeVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
@@ -1028,7 +1029,7 @@ contract TestCoreRelayer is Test {
         vm.prank(setup.target.relayer);
         map[differentChainId].coreRelayerFull.redeliverSingle{value: txValue}(stack.package);
 
-        stack.package = CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle({
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle({
             redeliveryVM: correctVM,
             sourceEncodedVMs: stack.originalDelivery.encodedVMs,
             relayerRefundAddress: payable(setup.target.relayer)
@@ -1063,7 +1064,7 @@ contract TestCoreRelayer is Test {
         bytes[] encodedVMs;
         IWormhole.VM parsed;
         uint256 budget;
-        CoreRelayer.TargetDeliveryParametersSingle package;
+        IDelivery.TargetDeliveryParametersSingle package;
         CoreRelayer.DeliveryInstruction instruction;
     }
 
@@ -1111,7 +1112,7 @@ contract TestCoreRelayer is Test {
             stack.encodedVMs[1] = stack.actualVM2;
             stack.encodedVMs[2] = stack.deliveryVM;
 
-            stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+            stack.package = IDelivery.TargetDeliveryParametersSingle({
                 encodedVMs: stack.encodedVMs,
                 deliveryIndex: 2,
                 multisendIndex: 0,
@@ -1178,7 +1179,7 @@ contract TestCoreRelayer is Test {
         stack.encodedVMs[1] = stack.actualVM2;
         stack.encodedVMs[2] = fakeVM;
 
-        stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+        stack.package = IDelivery.TargetDeliveryParametersSingle({
             encodedVMs: stack.encodedVMs,
             deliveryIndex: 2,
             multisendIndex: 0,
@@ -1198,7 +1199,7 @@ contract TestCoreRelayer is Test {
 
         stack.encodedVMs[2] = stack.encodedVMs[0];
 
-        stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+        stack.package = IDelivery.TargetDeliveryParametersSingle({
             encodedVMs: stack.encodedVMs,
             deliveryIndex: 2,
             multisendIndex: 0,
@@ -1211,7 +1212,7 @@ contract TestCoreRelayer is Test {
 
         stack.encodedVMs[2] = stack.deliveryVM;
 
-        stack.package = CoreRelayerStructs.TargetDeliveryParametersSingle({
+        stack.package = IDelivery.TargetDeliveryParametersSingle({
             encodedVMs: stack.encodedVMs,
             deliveryIndex: 2,
             multisendIndex: 0,
@@ -1318,7 +1319,7 @@ contract TestCoreRelayer is Test {
 
     mapping(uint256 => bool) nonceCompleted;
 
-    mapping(bytes32 => CoreRelayer.TargetDeliveryParametersSingle) pastDeliveries;
+    mapping(bytes32 => IDelivery.TargetDeliveryParametersSingle) pastDeliveries;
 
     function genericRelayer(uint16 chainId, uint8 num) internal {
         Vm.Log[] memory entries = truncateRecordedLogs(chainId, num);
@@ -1407,7 +1408,7 @@ contract TestCoreRelayer is Test {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
                 uint16 targetChain = container.instructions[k].targetChain;
-                CoreRelayer.TargetDeliveryParametersSingle memory package = CoreRelayerStructs
+                IDelivery.TargetDeliveryParametersSingle memory package = IDelivery
                     .TargetDeliveryParametersSingle({
                     encodedVMs: encodedVMsToBeDelivered,
                     deliveryIndex: counter,
@@ -1422,12 +1423,12 @@ contract TestCoreRelayer is Test {
         } else if (payloadId == 2) {
             CoreRelayer.RedeliveryByTxHashInstruction memory instruction =
                 contracts.coreRelayerFull.getRedeliveryByTxHashInstruction(parsedInstruction.payload);
-            CoreRelayer.TargetDeliveryParametersSingle memory originalDelivery =
+            IDelivery.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
             uint256 budget = instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
                 + map[targetChain].wormhole.messageFee();
-            CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingle memory package = CoreRelayerStructs
+            IDelivery.TargetRedeliveryByTxHashParamsSingle memory package = IDelivery
                 .TargetRedeliveryByTxHashParamsSingle({
                 redeliveryVM: encodedDeliveryInstructionContainer,
                 sourceEncodedVMs: originalDelivery.encodedVMs,
