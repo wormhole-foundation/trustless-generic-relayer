@@ -47,7 +47,7 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
     }
 
     function clearForwardingRequest() internal {
-        delete _state.forwardingRequest; //TODO is this the best way to accomplish this?
+        delete _state.forwardingRequest; 
     }
 
     function setContractLock(bool status) internal {

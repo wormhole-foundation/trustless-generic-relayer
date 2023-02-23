@@ -17,7 +17,7 @@ abstract contract CoreRelayerStructs {
         bytes32 refundAddress;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
-        ExecutionParameters executionParameters; //Has the gas limit to execute with
+        ExecutionParameters executionParameters;
     }
 
     struct ExecutionParameters {
