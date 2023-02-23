@@ -35,40 +35,39 @@ type DeliveryInfo = {
   sourceVaaSequence: BigNumber | null
 }
 
-export async function getDeliveryInfoBySourceTx(
+type InfoRequest = {
   environment: Network,
   sourceChainId: ChainId,
-  sourceChainProvider: ethers.providers.Provider,
-  sourceTransaction: string,
+  sourceReceipt: ethers.ContractReceipt,
   targetChain: ChainId,
-  targetChainProvider: ethers.providers.Provider,
+  targetChainProvider?: ethers.providers.Provider,
   sourceNonce?: number,
-//  guardianRpcHosts?: string[],
   coreRelayerWhMessageIndex?: number
-): Promise<DeliveryInfo[]> {
-  const receipt = await sourceChainProvider.getTransactionReceipt(sourceTransaction)
-  if(!receipt) throw Error("Transaction has not been mined")
-  const bridgeAddress = CONTRACTS[environment][CHAIN_ID_TO_NAME[sourceChainId]].core
-  const coreRelayerAddress = getCoreRelayerAddressNative(sourceChainId, environment)
+}
+
+export async function getDeliveryInfoBySourceTxReceipt(infoRequest: InfoRequest): Promise<DeliveryInfo[]> {
+  if(!infoRequest.sourceReceipt) throw Error("Transaction has not been mined")
+  const bridgeAddress = CONTRACTS[infoRequest.environment][CHAIN_ID_TO_NAME[infoRequest.sourceChainId]].core
+  const coreRelayerAddress = getCoreRelayerAddressNative(infoRequest.sourceChainId, infoRequest.environment)
   if (!bridgeAddress || !coreRelayerAddress) {
     throw Error("Invalid chain ID or network")
   }
 
   const deliveryLog = findLog(
-    receipt,
+    infoRequest.sourceReceipt,
     bridgeAddress,
     tryNativeToHexString(coreRelayerAddress, "ethereum"),
-    coreRelayerWhMessageIndex ? coreRelayerWhMessageIndex : 0,
-    sourceNonce?.toString()
+    infoRequest.coreRelayerWhMessageIndex ? infoRequest.coreRelayerWhMessageIndex : 0,
+    infoRequest.sourceNonce?.toString()
   )
 
   /* Potentially use 'guardianRPCHosts' to get status of VAA; code in comments at end [1] */
 
   const deliveryEvents = await pullEventsBySourceSequence(
-    environment,
-    targetChain,
-    targetChainProvider,
-    sourceChainId,
+    infoRequest.environment,
+    infoRequest.targetChain,
+    infoRequest.targetChainProvider,
+    infoRequest.sourceChainId,
     BigNumber.from(deliveryLog.sequence)
   )
   if (deliveryEvents.length == 0) {
@@ -76,7 +75,7 @@ export async function getDeliveryInfoBySourceTx(
       status: "Pending Delivery",
       deliveryTxHash: null,
       vaaHash: null,
-      sourceChain: sourceChainId,
+      sourceChain: infoRequest.sourceChainId,
       sourceVaaSequence: BigNumber.from(deliveryLog.sequence),
     })
   }
