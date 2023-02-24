@@ -4,7 +4,6 @@
 pragma solidity ^0.8.0;
 
 abstract contract CoreRelayerStructs {
-    
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bool sufficientlyFunded;

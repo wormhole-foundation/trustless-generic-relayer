@@ -20,7 +20,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         IWormholeRelayer.ResendByTx memory request,
         uint256 receiverValueTarget,
         uint256 maximumRefund,
-        uint16 targetChain, 
+        uint16 targetChain,
         uint256 newMaxTransactionFee,
         IRelayProvider provider
     ) internal view returns (bytes memory encoded) {
@@ -60,11 +60,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    function appendDeliveryInstruction(bytes memory encoded, IWormholeRelayer.Send memory request, IRelayProvider provider)
-        internal
-        view
-        returns (bytes memory newEncoded)
-    {
+    function appendDeliveryInstruction(
+        bytes memory encoded,
+        IWormholeRelayer.Send memory request,
+        IRelayProvider provider
+    ) internal view returns (bytes memory newEncoded) {
         newEncoded = abi.encodePacked(
             encoded,
             request.targetChain,
@@ -78,7 +78,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         );
     }
 
-     /**
+    /**
      * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the gas limit of the delivery transaction
      * should be.
      */
@@ -185,7 +185,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-     //This should invert quoteApplicationBudgetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
+    //This should invert quoteApplicationBudgetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
     //quoteReceiverValue.
     function convertApplicationBudgetAmount(uint256 sourceAmount, uint16 targetChain, IRelayProvider provider)
         internal
@@ -309,7 +309,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         });
     }
 
-    function encodeMultichainSend(IWormholeRelayer.MultichainSend memory container) internal pure returns (bytes memory encoded) {
+    function encodeMultichainSend(IWormholeRelayer.MultichainSend memory container)
+        internal
+        pure
+        returns (bytes memory encoded)
+    {
         encoded = abi.encodePacked(
             uint8(1), //version payload number
             address(container.relayProviderAddress),
@@ -333,7 +337,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    function decodeMultichainSend(bytes memory encoded) internal pure returns (IWormholeRelayer.MultichainSend memory) {
+    function decodeMultichainSend(bytes memory encoded)
+        internal
+        pure
+        returns (IWormholeRelayer.MultichainSend memory)
+    {
         uint256 index = 0;
 
         uint8 payloadId = encoded.toUint8(index);

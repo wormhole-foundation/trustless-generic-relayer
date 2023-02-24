@@ -1408,8 +1408,7 @@ contract TestCoreRelayer is Test {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
                 uint16 targetChain = container.instructions[k].targetChain;
-                IDelivery.TargetDeliveryParametersSingle memory package = IDelivery
-                    .TargetDeliveryParametersSingle({
+                IDelivery.TargetDeliveryParametersSingle memory package = IDelivery.TargetDeliveryParametersSingle({
                     encodedVMs: encodedVMsToBeDelivered,
                     deliveryIndex: counter,
                     multisendIndex: k,

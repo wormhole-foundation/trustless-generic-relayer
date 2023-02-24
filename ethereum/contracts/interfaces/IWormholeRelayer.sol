@@ -361,6 +361,6 @@ interface IWormholeRelayer {
     error NonceIsZero(); // Nonce cannot be 0
     error NoDeliveryInProgress(); // Forwards can only be requested within execution of 'receiveWormholeMessages', or when a delivery is in progress
     error MultipleForwardsRequested(); // Only one forward can be requested in a transaction
-    error ForwardRequestFromWrongAddress(); // A forward was requested from an address that is not the 'targetAddress' of the original delivery 
+    error ForwardRequestFromWrongAddress(); // A forward was requested from an address that is not the 'targetAddress' of the original delivery
     error RelayProviderDoesNotSupportTargetChain(); // Your relay provider does not support the target chain you specified
 }

@@ -41,18 +41,11 @@ contract CoreRelayer is CoreRelayerGovernance {
         return multichainForward(multichainSendContainer(request, relayProvider), nonce);
     }
 
-    function multichainSendContainer(IWormholeRelayer.Send memory request, address relayProvider) internal pure returns (IWormholeRelayer.MultichainSend memory container) {
-        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
-        requests[0] = request;
-        container = IWormholeRelayer.MultichainSend({relayProviderAddress: relayProvider, requests: requests});
-    }
-
     function resend(IWormholeRelayer.ResendByTx memory request, uint32 nonce, address relayProvider)
         public
         payable
         returns (uint64 sequence)
     {
-        
         (uint256 requestFee, uint256 maximumRefund, uint256 receiverValueTarget, bool isSufficient, uint8 reason) =
         verifyFunding(
             VerifyFundingCalculation({
@@ -108,12 +101,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 wormholeMessageFee
     ) internal returns (uint64 sequence) {
         bytes memory instruction = convertToEncodedRedeliveryByTxHashInstruction(
-            request,
-            receiverValueTarget,
-            maximumRefund,
-            request.targetChain, 
-            request.newMaxTransactionFee,
-            provider
+            request, receiverValueTarget, maximumRefund, request.targetChain, request.newMaxTransactionFee, provider
         );
 
         sequence = wormhole.publishMessage{value: wormholeMessageFee}(nonce, instruction, consistencyLevel);
@@ -202,7 +190,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         internal
         returns (uint64, bool)
     {
-        IWormholeRelayer.MultichainSend memory container = decodeMultichainSend(forwardingRequest.deliveryRequestsContainer);
+        IWormholeRelayer.MultichainSend memory container =
+            decodeMultichainSend(forwardingRequest.deliveryRequestsContainer);
 
         //Add any additional funds which were passed in to the refund amount
         refundAmount = refundAmount + forwardingRequest.msgValue;
@@ -332,6 +321,16 @@ contract CoreRelayer is CoreRelayerGovernance {
             isSufficient = true;
             reason = 0;
         }
+    }
+
+    function multichainSendContainer(IWormholeRelayer.Send memory request, address relayProvider)
+        internal
+        pure
+        returns (IWormholeRelayer.MultichainSend memory container)
+    {
+        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
+        requests[0] = request;
+        container = IWormholeRelayer.MultichainSend({relayProviderAddress: relayProvider, requests: requests});
     }
 
     function _executeDelivery(
@@ -684,8 +683,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
     }
 
-    
-
     //If the integrator pays at least nativeQuote, they should receive at least targetAmount as their application budget
     function quoteReceiverValue(uint16 targetChain, uint256 targetAmount, IRelayProvider provider)
         public
@@ -697,8 +694,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             targetChain, targetAmount, chainId(), uint256(0) + denominator + buffer, denominator, true, provider
         );
     }
-
-   
 
     function pay(address payable receiver, uint256 amount) internal returns (bool success) {
         if (amount > 0) {
