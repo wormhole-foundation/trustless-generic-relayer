@@ -3,7 +3,6 @@
 
 pragma solidity ^0.8.0;
 
-import "../libraries/external/BytesLib.sol";
 import "../interfaces/IWormholeRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
 import "../interfaces/IDelivery.sol";
@@ -11,7 +10,6 @@ import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayer is CoreRelayerGovernance {
-    using BytesLib for bytes;
 
     enum DeliveryStatus {
         SUCCESS,
