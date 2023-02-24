@@ -172,10 +172,9 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (msg.sender != lockedTargetAddress()) {
             revert IWormholeRelayer.ForwardRequestFromWrongAddress();
         }
-        bytes memory encodedMultichainSend = encodeMultichainSend(deliveryRequests);
         setForwardingRequest(
             ForwardingRequest({
-                deliveryRequestsContainer: encodedMultichainSend,
+                container: deliveryRequests,
                 nonce: nonce,
                 msgValue: msg.value,
                 sender: msg.sender,
@@ -189,7 +188,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         returns (uint64, bool)
     {
         IWormholeRelayer.MultichainSend memory container =
-            decodeMultichainSend(forwardingRequest.deliveryRequestsContainer);
+            forwardingRequest.container;
 
         //Add any additional funds which were passed in to the refund amount
         refundAmount = refundAmount + forwardingRequest.msgValue;

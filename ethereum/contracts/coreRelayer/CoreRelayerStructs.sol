@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
+import "../interfaces/IWormholeRelayer.sol";
 
 abstract contract CoreRelayerStructs {
+
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bool sufficientlyFunded;
@@ -39,7 +41,7 @@ abstract contract CoreRelayerStructs {
     }
 
     struct ForwardingRequest {
-        bytes deliveryRequestsContainer;
+        IWormholeRelayer.MultichainSend container;
         uint32 nonce;
         address sender;
         uint256 msgValue;
