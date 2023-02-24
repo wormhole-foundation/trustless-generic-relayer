@@ -10,7 +10,6 @@ import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayer is CoreRelayerGovernance {
-
     enum DeliveryStatus {
         SUCCESS,
         RECEIVER_FAILURE,
@@ -187,8 +186,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         internal
         returns (uint64, bool)
     {
-        IWormholeRelayer.MultichainSend memory container =
-            forwardingRequest.container;
+        IWormholeRelayer.MultichainSend memory container = forwardingRequest.container;
 
         //Add any additional funds which were passed in to the refund amount
         refundAmount = refundAmount + forwardingRequest.msgValue;

@@ -308,5 +308,4 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instructions: instructionArray
         });
     }
-    
 }
