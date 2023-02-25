@@ -147,7 +147,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function emitForward(uint256 refundAmount, ForwardInstruction memory forwardInstruction)
         internal
-        returns (uint64, bool)
+        returns (bool)
     {
         DeliveryInstructionsContainer memory container = forwardInstruction.container;
 
@@ -189,7 +189,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //clear forwarding request from cache
         clearForwardInstruction();
 
-        return (sequence, funded);
+        return funded;
     }
 
     function multichainSendContainer(IWormholeRelayer.Send memory request, address relayProvider)
@@ -250,30 +250,20 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         ForwardInstruction memory forwardingRequest = getForwardInstruction();
         DeliveryStatus status;
+        bool forwardSucceeded = false;
         if (forwardingRequest.isValid) {
-            (, success) = emitForward(weiToRefund, forwardingRequest);
-            if (success) {
-                status = DeliveryStatus.FORWARD_REQUEST_SUCCESS;
-            } else {
-                bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
+            forwardSucceeded = emitForward(weiToRefund, forwardingRequest);
+            status = forwardSucceeded ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
+        } else {
+            status = success ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
+        }
+
+        if(!forwardSucceeded) {
+            bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
                 if (!sent) {
                     // if refunding fails, pay out full refund to relayer
                     weiToRefund = 0;
                 }
-                status = DeliveryStatus.FORWARD_REQUEST_FAILURE;
-            }
-        } else {
-            bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
-            if (!sent) {
-                // if refunding fails, pay out full refund to relayer
-                weiToRefund = 0;
-            }
-
-            if (success) {
-                status = DeliveryStatus.SUCCESS;
-            } else {
-                status = DeliveryStatus.RECEIVER_FAILURE;
-            }
         }
 
         emit Delivery({
