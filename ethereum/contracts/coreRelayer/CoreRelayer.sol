@@ -249,29 +249,18 @@ contract CoreRelayer is CoreRelayerGovernance {
         setContractLock(false);
 
         ForwardInstruction memory forwardingRequest = getForwardInstruction();
+        DeliveryStatus status;
         if (forwardingRequest.isValid) {
             (, success) = emitForward(weiToRefund, forwardingRequest);
             if (success) {
-                emit Delivery({
-                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain: sourceChain,
-                    sequence: sourceSequence,
-                    deliveryVaaHash: deliveryVaaHash,
-                    status: DeliveryStatus.FORWARD_REQUEST_SUCCESS
-                });
+                status = DeliveryStatus.FORWARD_REQUEST_SUCCESS;
             } else {
                 bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
                 if (!sent) {
                     // if refunding fails, pay out full refund to relayer
                     weiToRefund = 0;
                 }
-                emit Delivery({
-                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain: sourceChain,
-                    sequence: sourceSequence,
-                    deliveryVaaHash: deliveryVaaHash,
-                    status: DeliveryStatus.FORWARD_REQUEST_FAILURE
-                });
+                status = DeliveryStatus.FORWARD_REQUEST_FAILURE;
             }
         } else {
             bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
@@ -281,23 +270,19 @@ contract CoreRelayer is CoreRelayerGovernance {
             }
 
             if (success) {
-                emit Delivery({
-                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain: sourceChain,
-                    sequence: sourceSequence,
-                    deliveryVaaHash: deliveryVaaHash,
-                    status: DeliveryStatus.SUCCESS
-                });
+                status = DeliveryStatus.SUCCESS;
             } else {
-                emit Delivery({
-                    recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
-                    sourceChain: sourceChain,
-                    sequence: sourceSequence,
-                    deliveryVaaHash: deliveryVaaHash,
-                    status: DeliveryStatus.RECEIVER_FAILURE
-                });
+                status = DeliveryStatus.RECEIVER_FAILURE;
             }
         }
+
+        emit Delivery({
+            recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+            sourceChain: sourceChain,
+            sequence: sourceSequence,
+            deliveryVaaHash: deliveryVaaHash,
+            status: status
+        });
 
         uint256 receiverValuePaid = (success ? internalInstruction.receiverValueTarget : 0);
         uint256 wormholeFeePaid = forwardingRequest.isValid ? wormhole.messageFee() : 0;
