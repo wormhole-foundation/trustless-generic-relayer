@@ -145,10 +145,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
     }
 
-    function emitForward(uint256 refundAmount, ForwardInstruction memory forwardInstruction)
-        internal
-        returns (bool)
-    {
+    function emitForward(uint256 refundAmount, ForwardInstruction memory forwardInstruction) internal returns (bool) {
         DeliveryInstructionsContainer memory container = forwardInstruction.container;
 
         //Add any additional funds which were passed in to the refund amount
@@ -258,12 +255,12 @@ contract CoreRelayer is CoreRelayerGovernance {
             status = success ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
         }
 
-        if(!forwardSucceeded) {
+        if (!forwardSucceeded) {
             bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
-                if (!sent) {
-                    // if refunding fails, pay out full refund to relayer
-                    weiToRefund = 0;
-                }
+            if (!sent) {
+                // if refunding fails, pay out full refund to relayer
+                weiToRefund = 0;
+            }
         }
 
         emit Delivery({
