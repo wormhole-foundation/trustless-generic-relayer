@@ -1292,8 +1292,10 @@ contract TestCoreRelayer is Test {
             relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
+        uint256 wormholeFee = setup.source.wormhole.messageFee();
+
         vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough(uint8)", 0));
-        setup.source.coreRelayer.send{value: stack.deliveryOverhead - 1 + setup.source.wormhole.messageFee()}(
+        setup.source.coreRelayer.send{value: stack.deliveryOverhead - 1 + wormholeFee}(
             stack.badSend, 1, address(setup.source.relayProvider)
         );
 
