@@ -14,67 +14,155 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     error InvalidPayloadId(uint8 payloadId);
     error InvalidDeliveryInstructionsPayload(uint256 length);
-    error InvalidSendsPayload(uint256 length);
 
-    function convertToEncodedRedeliveryByTxHashInstruction(
-        IWormholeRelayer.ResendByTx memory request,
-        uint256 receiverValueTarget,
-        uint256 maximumRefund,
-        uint16 targetChain,
-        uint256 newMaxTransactionFee,
-        IRelayProvider provider
-    ) internal view returns (bytes memory encoded) {
-        encoded = abi.encodePacked(
-            uint8(2), //version payload number
-            uint16(request.sourceChain),
-            bytes32(request.sourceTxHash),
-            uint32(request.sourceNonce),
-            uint16(request.targetChain),
-            uint8(request.deliveryIndex),
-            uint8(request.multisendIndex),
-            maximumRefund,
-            receiverValueTarget,
-            uint8(1), //version for ExecutionParameters
-            calculateTargetGasRedeliveryAmount(targetChain, newMaxTransactionFee, provider),
-            provider.getDeliveryAddress(request.targetChain)
-        );
-    }
-
-    function convertToEncodedDeliveryInstructions(IWormholeRelayer.MultichainSend memory container, bool isFunded)
+    function getTotalFeeMultichainSend(IWormholeRelayer.MultichainSend memory sendContainer)
         internal
         view
-        returns (bytes memory encoded)
+        returns (uint256 totalFee)
     {
-        encoded = abi.encodePacked(
-            uint8(1), //version payload number
-            uint8(isFunded ? 1 : 0), // sufficiently funded
-            uint8(container.requests.length) //number of requests in the array
-        );
-
-        // TODO: this probably results in a quadratic algorithm. Further optimization can be done here.
-        // Append all the messages to the array.
-        for (uint256 i = 0; i < container.requests.length; i++) {
-            encoded = appendDeliveryInstruction(
-                encoded, container.requests[i], IRelayProvider(container.relayProviderAddress)
-            );
+        totalFee = wormhole().messageFee();
+        for (uint256 i = 0; i < sendContainer.requests.length; i++) {
+            totalFee += sendContainer.requests[i].maxTransactionFee + sendContainer.requests[i].receiverValue;
         }
     }
 
-    function appendDeliveryInstruction(
-        bytes memory encoded,
-        IWormholeRelayer.Send memory request,
-        IRelayProvider provider
-    ) internal view returns (bytes memory newEncoded) {
-        newEncoded = abi.encodePacked(
-            encoded,
-            request.targetChain,
-            request.targetAddress,
-            request.refundAddress,
-            calculateTargetDeliveryMaximumRefund(request.targetChain, request.maxTransactionFee, provider),
-            convertApplicationBudgetAmount(request.receiverValue, request.targetChain, provider),
-            uint8(1), //version for ExecutionParameters
-            calculateTargetGasDeliveryAmount(request.targetChain, request.maxTransactionFee, provider),
-            provider.getDeliveryAddress(request.targetChain)
+    function convertMultichainSendToDeliveryInstructionContainer(IWormholeRelayer.MultichainSend memory sendContainer)
+        internal
+        view
+        returns (DeliveryInstructionsContainer memory instructionsContainer)
+    {
+        instructionsContainer.payloadId = 1;
+        IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
+        instructionsContainer.instructions = new DeliveryInstruction[](sendContainer.requests.length);
+        for (uint256 i = 0; i < sendContainer.requests.length; i++) {
+            instructionsContainer.instructions[i] =
+                convertSendToDeliveryInstruction(sendContainer.requests[i], relayProvider);
+        }
+    }
+
+    function convertSendToDeliveryInstruction(IWormholeRelayer.Send memory send, IRelayProvider relayProvider)
+        internal
+        view
+        returns (DeliveryInstruction memory instruction)
+    {
+        instruction.targetChain = send.targetChain;
+        instruction.targetAddress = send.targetAddress;
+        instruction.refundAddress = send.refundAddress;
+        instruction.maximumRefundTarget =
+            calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
+        instruction.receiverValueTarget =
+            convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
+        instruction.executionParameters = ExecutionParameters({
+            version: 1,
+            gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider),
+            providerDeliveryAddress: relayProvider.getDeliveryAddress(send.targetChain)
+        });
+    }
+
+    function checkInstructions(DeliveryInstructionsContainer memory container, IRelayProvider relayProvider)
+        internal
+        view
+    {
+        for (uint8 i = 0; i < container.instructions.length; i++) {
+            if (container.instructions[i].executionParameters.gasLimit == 0) {
+                revert IWormholeRelayer.MaxTransactionFeeNotEnough(i);
+            }
+            if (
+                container.instructions[i].maximumRefundTarget + container.instructions[i].receiverValueTarget
+                    + wormhole().messageFee() > relayProvider.quoteMaximumBudget(container.instructions[i].targetChain)
+            ) {
+                revert IWormholeRelayer.FundsTooMuch(i);
+            }
+        }
+    }
+
+    function checkRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction, IRelayProvider relayProvider)
+        internal
+        view
+    {
+        if (instruction.executionParameters.gasLimit == 0) {
+            revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
+        }
+        if (
+            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormhole().messageFee()
+                > relayProvider.quoteMaximumBudget(instruction.targetChain)
+        ) {
+            revert IWormholeRelayer.FundsTooMuch(0);
+        }
+    }
+
+    function convertResendToRedeliveryInstruction(IWormholeRelayer.ResendByTx memory send, IRelayProvider relayProvider)
+        internal
+        view
+        returns (RedeliveryByTxHashInstruction memory instruction)
+    {
+        instruction.payloadId = 2;
+        instruction.sourceChain = send.sourceChain;
+        instruction.sourceTxHash = send.sourceTxHash;
+        instruction.sourceNonce = send.sourceNonce;
+        instruction.targetChain = send.targetChain;
+        instruction.deliveryIndex = send.deliveryIndex;
+        instruction.multisendIndex = send.multisendIndex;
+        instruction.newMaximumRefundTarget =
+            calculateTargetRedeliveryMaximumRefund(send.targetChain, send.newMaxTransactionFee, relayProvider);
+        instruction.newReceiverValueTarget =
+            convertReceiverValueAmount(send.newReceiverValue, send.targetChain, relayProvider);
+        instruction.executionParameters = ExecutionParameters({
+            version: 1,
+            gasLimit: calculateTargetGasRedeliveryAmount(send.targetChain, send.newMaxTransactionFee, relayProvider),
+            providerDeliveryAddress: relayProvider.getDeliveryAddress(send.targetChain)
+        });
+    }
+
+    function encodeRedeliveryByTxHashInstruction(RedeliveryByTxHashInstruction memory instruction)
+        internal
+        pure
+        returns (bytes memory encoded)
+    {
+        encoded = abi.encodePacked(
+            instruction.payloadId,
+            instruction.sourceChain,
+            instruction.sourceTxHash,
+            instruction.sourceNonce,
+            instruction.targetChain,
+            instruction.deliveryIndex,
+            instruction.multisendIndex,
+            instruction.newMaximumRefundTarget,
+            instruction.newReceiverValueTarget,
+            instruction.executionParameters.version,
+            instruction.executionParameters.gasLimit,
+            instruction.executionParameters.providerDeliveryAddress
+        );
+    }
+
+    function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
+        internal
+        pure
+        returns (bytes memory encoded)
+    {
+        encoded = abi.encodePacked(
+            container.payloadId, uint8(container.sufficientlyFunded ? 1 : 0), uint8(container.instructions.length)
+        );
+
+        for (uint256 i = 0; i < container.instructions.length; i++) {
+            encoded = abi.encodePacked(encoded, encodeDeliveryInstruction(container.instructions[i]));
+        }
+    }
+
+    function encodeDeliveryInstruction(DeliveryInstruction memory instruction)
+        internal
+        pure
+        returns (bytes memory encoded)
+    {
+        encoded = abi.encodePacked(
+            instruction.targetChain,
+            instruction.targetAddress,
+            instruction.refundAddress,
+            instruction.maximumRefundTarget,
+            instruction.receiverValueTarget,
+            instruction.executionParameters.version,
+            instruction.executionParameters.gasLimit,
+            instruction.executionParameters.providerDeliveryAddress
         );
     }
 
@@ -187,7 +275,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     //This should invert quoteApplicationBudgetAmount, I.E when a user pays the sourceAmount, they receive at least the value of targetAmount they requested from
     //quoteReceiverValue.
-    function convertApplicationBudgetAmount(uint256 sourceAmount, uint16 targetChain, IRelayProvider provider)
+    function convertReceiverValueAmount(uint256 sourceAmount, uint16 targetChain, IRelayProvider provider)
         internal
         view
         returns (uint256 targetAmount)

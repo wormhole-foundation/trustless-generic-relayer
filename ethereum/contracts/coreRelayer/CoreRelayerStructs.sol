@@ -40,11 +40,13 @@ abstract contract CoreRelayerStructs {
         ExecutionParameters executionParameters;
     }
 
-    struct ForwardingRequest {
-        IWormholeRelayer.MultichainSend container;
+    struct ForwardInstruction {
+        DeliveryInstructionsContainer container;
         uint32 nonce;
         address sender;
         uint256 msgValue;
+        uint256 totalFee;
+        address relayProvider;
         bool isValid;
     }
 }

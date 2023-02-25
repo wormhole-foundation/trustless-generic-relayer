@@ -42,12 +42,12 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.registeredCoreRelayerContract[chainId] = relayerAddress;
     }
 
-    function setForwardingRequest(CoreRelayerStructs.ForwardingRequest memory request) internal {
-        _state.forwardingRequest = request;
+    function setForwardInstruction(CoreRelayerStructs.ForwardInstruction memory request) internal {
+        _state.forwardInstruction = request;
     }
 
-    function clearForwardingRequest() internal {
-        delete _state.forwardingRequest;
+    function clearForwardInstruction() internal {
+        delete _state.forwardInstruction;
     }
 
     function setContractLock(bool status) internal {

@@ -993,7 +993,6 @@ contract TestCoreRelayer is Test {
             newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
         setup.source.relayProvider.updatePrice(differentChainId, gasParams.targetGasPrice, feeParams.targetNativePrice);
-        setup.source.relayProvider.updatePrice(differentChainId, gasParams.sourceGasPrice, feeParams.sourceNativePrice);
         setup.source.relayProvider.updateDeliveryAddress(
             differentChainId, bytes32(uint256(uint160(address(setup.target.relayer))))
         );
@@ -1015,7 +1014,8 @@ contract TestCoreRelayer is Test {
         );
 
         redeliveryVmHash = relayerWormhole.parseVM(fakeVM).hash;
-        uint256 txValue = stack.payment + map[differentChainId].wormhole.messageFee();
+        uint256 txValue = stack.payment * (feeParams.sourceNativePrice / feeParams.targetNativePrice + 1)
+            + map[differentChainId].wormhole.messageFee();
         vm.deal(setup.target.relayer, txValue);
 
         vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
@@ -1292,8 +1292,8 @@ contract TestCoreRelayer is Test {
             relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
-        vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough()"));
-        setup.source.coreRelayer.send{value: stack.deliveryOverhead - 1}(
+        vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough(uint8)", 0));
+        setup.source.coreRelayer.send{value: stack.deliveryOverhead - 1 + setup.source.wormhole.messageFee()}(
             stack.badSend, 1, address(setup.source.relayProvider)
         );
 
@@ -1303,7 +1303,7 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, uint256(gasParams.targetGasLimit - 1) * gasParams.targetGasPrice
         );
 
-        vm.expectRevert(abi.encodeWithSignature("FundsTooMuch()"));
+        vm.expectRevert(abi.encodeWithSignature("FundsTooMuch(uint8)", 0));
         setup.source.coreRelayer.send{value: stack.payment}(
             stack.deliveryRequest, 1, address(setup.source.relayProvider)
         );

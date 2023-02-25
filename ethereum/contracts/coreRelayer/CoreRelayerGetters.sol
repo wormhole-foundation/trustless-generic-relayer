@@ -53,8 +53,8 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IRelayProvider(_state.defaultRelayProvider);
     }
 
-    function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
-        return _state.forwardingRequest;
+    function getForwardInstruction() internal view returns (CoreRelayerStructs.ForwardInstruction memory) {
+        return _state.forwardInstruction;
     }
 
     function isContractLocked() internal view returns (bool) {
