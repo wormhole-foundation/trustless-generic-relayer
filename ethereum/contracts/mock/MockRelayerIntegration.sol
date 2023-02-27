@@ -174,7 +174,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
                 relayProviderAddress: relayer.getDefaultRelayProvider()
             });
 
-            relayer.multichainForward(container, sendRequests[0].targetChain, parsed.nonce);
+            relayer.multichainForward(container, parsed.nonce);
         }
     }
 

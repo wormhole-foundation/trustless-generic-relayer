@@ -9,6 +9,7 @@ contract CoreRelayerStorage {
     struct Provider {
         uint16 chainId;
         address payable wormhole;
+        uint256 wormholeMessageFee;
         uint16 governanceChainId;
         bytes32 governanceContract;
     }
@@ -26,7 +27,7 @@ contract CoreRelayerStorage {
         // address of the default relay provider on this chain
         address defaultRelayProvider;
         // Request which will be forwarded from the current delivery.
-        CoreRelayerStructs.ForwardingRequest forwardingRequest;
+        CoreRelayerStructs.ForwardInstruction forwardInstruction;
         // mapping of initialized implementations
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains
