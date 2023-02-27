@@ -604,7 +604,7 @@ contract TestCoreRelayer is Test {
         vm.deal(address(this), payment + newMaxTransactionFeeFee);
 
         setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
-            redeliveryRequest, 1, address(setup.source.relayProvider)
+            redeliveryRequest, address(setup.source.relayProvider)
         );
 
         genericRelayer(setup.sourceChainId, 1);
@@ -663,7 +663,7 @@ contract TestCoreRelayer is Test {
         vm.deal(address(this), payment + newMaxTransactionFeeFee);
 
         setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
-            redeliveryRequest, 1, address(setup.source.relayProvider)
+            redeliveryRequest, address(setup.source.relayProvider)
         );
 
         genericRelayer(setup.sourceChainId, 1);
@@ -689,7 +689,7 @@ contract TestCoreRelayer is Test {
         vm.deal(address(this), payment + newMaxTransactionFeeFee - 1);
 
         setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee - 1}(
-            redeliveryRequest, 1, address(setup.source.relayProvider)
+            redeliveryRequest, address(setup.source.relayProvider)
         );
 
         genericRelayer(setup.sourceChainId, 1);
@@ -855,11 +855,11 @@ contract TestCoreRelayer is Test {
         vm.deal(address(this), stack.payment);
         vm.expectRevert(abi.encodeWithSignature("MsgValueTooLow()"));
         setup.source.coreRelayer.resend{value: stack.payment - 1}(
-            stack.redeliveryRequest, 1, address(setup.source.relayProvider)
+            stack.redeliveryRequest, address(setup.source.relayProvider)
         );
 
         setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, 1, address(setup.source.relayProvider)
+            stack.redeliveryRequest, address(setup.source.relayProvider)
         );
 
         stack.entries = vm.getRecordedLogs();
@@ -934,7 +934,7 @@ contract TestCoreRelayer is Test {
         vm.deal(address(this), stack.payment);
         vm.getRecordedLogs();
         setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, 1, address(setup.source.relayProvider)
+            stack.redeliveryRequest, address(setup.source.relayProvider)
         );
         stack.entries = vm.getRecordedLogs();
         setup.source.relayProvider.updateDeliveryAddress(
@@ -1002,7 +1002,7 @@ contract TestCoreRelayer is Test {
         vm.deal(address(this), stack.payment);
         vm.getRecordedLogs();
         setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, 1, address(setup.source.relayProvider)
+            stack.redeliveryRequest, address(setup.source.relayProvider)
         );
         stack.entries = vm.getRecordedLogs();
         setup.source.relayProvider.updateDeliveryAddress(

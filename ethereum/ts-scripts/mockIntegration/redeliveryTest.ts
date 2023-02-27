@@ -49,7 +49,6 @@ async function run(
         newReceiverValue: BigNumber.from(0),
         newRelayParameters: new Uint8Array(),
       },
-      nonce,
       relayProvider,
       { value: relayQuote, gasLimit: 1000000 }
     )

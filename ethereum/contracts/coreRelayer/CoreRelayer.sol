@@ -26,19 +26,36 @@ contract CoreRelayer is CoreRelayerGovernance {
         DeliveryStatus status
     );
 
+    function send(
+        uint16 targetChain,
+        bytes32 targetAddress,
+        bytes32 refundAddress,
+        uint256 maxTransactionFee,
+        uint256 receiverValue,
+        uint32 nonce
+    ) external payable returns (uint64 sequence) {
+        sequence = send(
+            IWormholeRelayer.Send(
+                targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()
+            ),
+            nonce,
+            getDefaultRelayProvider()
+        );
+    }
+
     function send(IWormholeRelayer.Send memory request, uint32 nonce, address relayProvider)
         public
         payable
         returns (uint64 sequence)
     {
-        return multichainSend(multichainSendContainer(request, relayProvider), nonce);
+        sequence = multichainSend(multichainSendContainer(request, relayProvider), nonce);
     }
 
     function forward(IWormholeRelayer.Send memory request, uint32 nonce, address relayProvider) public payable {
-        return multichainForward(multichainSendContainer(request, relayProvider), nonce);
+        multichainForward(multichainSendContainer(request, relayProvider), nonce);
     }
 
-    function resend(IWormholeRelayer.ResendByTx memory request, uint32 nonce, address relayProvider)
+    function resend(IWormholeRelayer.ResendByTx memory request, address relayProvider)
         public
         payable
         returns (uint64 sequence)
@@ -54,7 +71,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         checkRedeliveryInstruction(instruction, provider);
 
         sequence = wormhole().publishMessage{value: wormholeMessageFee()}(
-            nonce, encodeRedeliveryInstruction(instruction), provider.getConsistencyLevel()
+            0, encodeRedeliveryInstruction(instruction), provider.getConsistencyLevel()
         );
 
         //Send the delivery fees to the specified address of the provider.
@@ -283,7 +300,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
-    function getDefaultRelayProvider() public view returns (IRelayProvider) {
+    function getDefaultRelayProvider() public view returns (address) {
         return defaultRelayProvider();
     }
 
