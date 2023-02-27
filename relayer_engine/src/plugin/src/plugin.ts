@@ -24,7 +24,7 @@ import {
   IWormhole__factory,
   RelayProvider__factory,
   LogMessagePublishedEvent,
-  CoreRelayerStructs,
+  IDelivery,
   DeliveryInstructionsContainer,
   parseDeliveryInstructionsContainer,
   parseRedeliveryByTxHashInstruction,
@@ -545,7 +545,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
             wallet
           )
 
-          const input: CoreRelayerStructs.TargetDeliveryParametersSingleStruct = {
+          const input: IDelivery.TargetDeliveryParametersSingleStruct = {
             encodedVMs: payload.vaas,
             deliveryIndex: payload.deliveryVaaIndex,
             multisendIndex: i,
@@ -597,7 +597,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
 
         const { newReceiverValueTarget, newMaximumRefundTarget } = redelivery.ix
         const budget = newReceiverValueTarget.add(newMaximumRefundTarget).add(100)
-        const input: CoreRelayerStructs.TargetRedeliveryByTxHashParamsSingleStruct = {
+        const input: IDelivery.TargetRedeliveryByTxHashParamsSingleStruct = {
           sourceEncodedVMs: payload.vaas,
           redeliveryVM: redelivery.vaa.bytes,
           relayerRefundAddress: wallet.address,
