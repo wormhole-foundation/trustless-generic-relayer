@@ -269,6 +269,55 @@ interface IWormholeRelayer {
      *  The relay provider will listen for these messages, and then execute the redelivery as described
      */
     function resend(ResendByTx memory request, address relayProvider) external payable returns (uint64 sequence);
+<<<<<<< HEAD
+=======
+
+    /**
+     * @notice This 'MultichainSend' struct represents a collection of send requests 'requests' and a specified relay provider 'relayProviderAddress'
+     *  This struct is used to request sending the same array of transactions to many different destination contracts (on many different chains),
+     *  With each request in the 'requests' array denoting parameters for one specific destination
+     *
+     *  @custom:member relayProviderAddress The address of the relay provider's contract on this source chain. This relay provider will perform delivery of all of these Send requests.
+     *  Use getDefaultRelayProvider() here to use the default relay provider.
+     *  @custom:member requests The array of send requests, each specifying a targetAddress on a targetChain, along with information about the desired maxTransactionFee, receiverValue, refundAddress, and relayParameters
+     */
+    struct MultichainSend {
+        address relayProviderAddress;
+        Send[] requests;
+    }
+
+    /**
+     * @notice The multichainSend function delivers all wormhole messages in the current transaction of nonce 'nonce' to many destinations,
+     * with each destination specified in a Send struct, describing the desired targetAddress, targetChain, maxTransactionFee, receiverValue, refundAddress, and relayParameters
+     *
+     * @param requests The MultichainSend struct, containing the array of Send requests, as well as the desired relayProviderAddress
+     * @param nonce The messages to be relayed are all of the emitted wormhole messages in the current transaction that have nonce 'nonce'
+     *
+     *  This function must be called with a payment of at least (one wormhole message fee) + Sum_(i=0 -> requests.requests.length - 1) [requests.requests[i].maxTransactionFee + requests.requests[i].receiverValue].
+     *
+     *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for the default wormhole relay provider.
+     *  The relay provider will listen for these messages, and then execute the delivery as described
+     */
+    function multichainSend(MultichainSend memory requests, uint32 nonce) external payable returns (uint64 sequence);
+
+    /**
+     * @notice The multichainForward function can only be called in a IWormholeReceiver within the 'receiveWormholeMessages' function
+     * It's purpose is to use any leftover fee from the 'maxTransactionFee' of the current delivery to fund another delivery, specifically a multichain delivery to many destinations
+     * See the description of 'forward' for further explanation of what a forward is.
+     * multichainForward provides the same functionality of forward, while additionally allowing the same array of wormhole messages to be sent to many destinations
+     *
+     * Let LEFTOVER_VALUE = (leftover funds from the current delivery that would have been refunded) + (any extra msg.value passed into forward)
+     * and let NEEDED_VALUE = (one wormhole message fee) + Sum_(i=0 -> requests.requests.length - 1) [requests.requests[i].maxTransactionFee + requests.requests[i].receiverValue].
+     * The multichainForward will succeed if LEFTOVER_VALUE >= NEEDED_VALUE
+     *
+     * note: If LEFTOVER_VALUE > NEEDED_VALUE, then the maxTransactionFee of the first request in the array of sends will be incremented by 'LEFTOVER_VALUE - NEEDED_VALUE'
+     *
+     *  @param requests The MultichainSend struct, containing the array of Send requests, as well as the desired relayProviderAddress
+     *  @param nonce The messages to be relayed are all of the emitted wormhole messages in the current transaction that have nonce 'nonce'
+     *
+     */
+    function multichainForward(MultichainSend memory requests, uint32 nonce) external payable;
+>>>>>>> origin/main
 
     /**
      * @notice quoteGas tells you how much maxTransactionFee (denominated in current (source) chain currency) must be in order to fund a call to
