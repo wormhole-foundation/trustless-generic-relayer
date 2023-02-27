@@ -300,7 +300,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
-    function getDefaultRelayProvider() public view returns (IRelayProvider) {
+    function getDefaultRelayProvider() public view returns (address) {
         return defaultRelayProvider();
     }
 

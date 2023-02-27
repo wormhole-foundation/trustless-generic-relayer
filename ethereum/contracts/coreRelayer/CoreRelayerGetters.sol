@@ -53,8 +53,8 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.registeredCoreRelayerContract[chain];
     }
 
-    function defaultRelayProvider() internal view returns (IRelayProvider) {
-        return IRelayProvider(_state.defaultRelayProvider);
+    function defaultRelayProvider() internal view returns (address) {
+        return _state.defaultRelayProvider;
     }
 
     function getForwardInstruction() internal view returns (CoreRelayerStructs.ForwardInstruction memory) {
