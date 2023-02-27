@@ -272,7 +272,6 @@ contract CoreRelayer is CoreRelayerGovernance {
             status: status
         });
 
-        uint256 receiverValuePaid = (callToTargetContractSucceeded ? internalInstruction.receiverValueTarget : 0);
         uint256 extraRelayerFunds = (
             msg.value - internalInstruction.receiverValueTarget - internalInstruction.maximumRefundTarget
                 - wormholeMessageFee()
