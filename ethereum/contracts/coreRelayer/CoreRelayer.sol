@@ -35,7 +35,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint32 nonce
     ) external payable returns (uint64 sequence) {
         sequence = send(
-            Send(targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()),
+            IWormholeRelayer.Send(targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()),
             nonce,
             getDefaultRelayProvider()
         );
