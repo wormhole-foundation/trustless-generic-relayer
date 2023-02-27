@@ -420,6 +420,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         return new bytes(0);
     }
 
+    // Helper to put one Send struct into a MultichainSend struct
     function multichainSendContainer(IWormholeRelayer.Send memory request, address relayProvider)
         internal
         pure
