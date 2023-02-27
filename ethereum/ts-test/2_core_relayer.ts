@@ -4,14 +4,14 @@ import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk"
 import { ChainInfo, RELAYER_DEPLOYER_PRIVATE_KEY } from "./helpers/consts"
 import { generateRandomString } from "./helpers/utils"
 import {
-  CoreRelayer__factory,
+  WormholeRelayer__factory,
   IWormhole__factory,
   MockRelayerIntegration__factory,
 } from "../../sdk/src"
 import {
   init,
   loadChains,
-  loadCoreRelayers,
+  loadWormholeRelayers,
   loadMockIntegrations,
 } from "../ts-scripts/helpers/env"
 import { MockRelayerIntegration, IWormholeRelayer } from "../../sdk/src"
@@ -19,7 +19,7 @@ const ETHEREUM_ROOT = `${__dirname}/..`
 
 init()
 const chains = loadChains()
-const coreRelayers = loadCoreRelayers()
+const coreRelayers = loadWormholeRelayers()
 const mockIntegrations = loadMockIntegrations()
 
 describe("Core Relayer Integration Test - Two Chains", () => {
@@ -34,29 +34,29 @@ describe("Core Relayer Integration Test - Two Chains", () => {
   const walletSource = new ethers.Wallet(RELAYER_DEPLOYER_PRIVATE_KEY, providerSource)
   const walletTarget = new ethers.Wallet(RELAYER_DEPLOYER_PRIVATE_KEY, providerTarget)
 
-  const sourceCoreRelayerAddress = coreRelayers.find(
+  const sourceWormholeRelayerAddress = coreRelayers.find(
     (p) => p.chainId == sourceChain.chainId
   )?.address as string
   const sourceMockIntegrationAddress = mockIntegrations.find(
     (p) => p.chainId == sourceChain.chainId
   )?.address as string
-  const targetCoreRelayerAddress = coreRelayers.find(
+  const targetWormholeRelayerAddress = coreRelayers.find(
     (p) => p.chainId == targetChain.chainId
   )?.address as string
   const targetMockIntegrationAddress = mockIntegrations.find(
     (p) => p.chainId == targetChain.chainId
   )?.address as string
 
-  const sourceCoreRelayer = CoreRelayer__factory.connect(
-    sourceCoreRelayerAddress,
+  const sourceWormholeRelayer = WormholeRelayer__factory.connect(
+    sourceWormholeRelayerAddress,
     walletSource
   )
   const sourceMockIntegration = MockRelayerIntegration__factory.connect(
     sourceMockIntegrationAddress,
     walletSource
   )
-  const targetCoreRelayer = CoreRelayer__factory.connect(
-    targetCoreRelayerAddress,
+  const targetWormholeRelayer = WormholeRelayer__factory.connect(
+    targetWormholeRelayerAddress,
     walletTarget
   )
   const targetMockIntegration = MockRelayerIntegration__factory.connect(
@@ -69,10 +69,10 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload}`)
-    const value = await sourceCoreRelayer.quoteGas(
+    const value = await sourceWormholeRelayer.quoteGas(
       targetChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value}`)
     const tx = await sourceMockIntegration.sendMessage(
@@ -106,15 +106,15 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value = await sourceCoreRelayer.quoteGas(
+    const value = await sourceWormholeRelayer.quoteGas(
       targetChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
-    const extraForwardingValue = await targetCoreRelayer.quoteGas(
+    const extraForwardingValue = await targetWormholeRelayer.quoteGas(
       sourceChain.chainId,
       500000,
-      await targetCoreRelayer.getDefaultRelayProvider()
+      await targetWormholeRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value.add(extraForwardingValue)}`)
 
@@ -161,15 +161,15 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value1 = await sourceCoreRelayer.quoteGas(
+    const value1 = await sourceWormholeRelayer.quoteGas(
       sourceChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
-    const value2 = await sourceCoreRelayer.quoteGas(
+    const value2 = await sourceWormholeRelayer.quoteGas(
       targetChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value1.add(value2)}`)
 
@@ -218,20 +218,20 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value1 = await sourceCoreRelayer.quoteGas(
+    const value1 = await sourceWormholeRelayer.quoteGas(
       sourceChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
-    const value2 = await targetCoreRelayer.quoteGas(
+    const value2 = await targetWormholeRelayer.quoteGas(
       sourceChain.chainId,
       500000,
-      await targetCoreRelayer.getDefaultRelayProvider()
+      await targetWormholeRelayer.getDefaultRelayProvider()
     )
-    const value3 = await targetCoreRelayer.quoteGas(
+    const value3 = await targetWormholeRelayer.quoteGas(
       targetChain.chainId,
       500000,
-      await targetCoreRelayer.getDefaultRelayProvider()
+      await targetWormholeRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value1.add(value2).add(value3)}`)
 
@@ -280,15 +280,15 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload}`)
-    const valueNotEnough = await sourceCoreRelayer.quoteGas(
+    const valueNotEnough = await sourceWormholeRelayer.quoteGas(
       targetChain.chainId,
       10000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
-    const value = await sourceCoreRelayer.quoteGas(
+    const value = await sourceWormholeRelayer.quoteGas(
       targetChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee (not enough): ${valueNotEnough}`)
     const tx = await sourceMockIntegration.sendMessage(
@@ -323,9 +323,9 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       multisendIndex: 0,
       newMaxTransactionFee: value, 
       newReceiverValue: 0,
-      newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
+      newRelayParameters: sourceWormholeRelayer.getDefaultRelayParams()
     };
-    await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
+    await sourceWormholeRelayer.resend(request, 1, sourceWormholeRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
     console.log("Message resent");
 
     await new Promise((resolve) => {
@@ -350,15 +350,15 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
     console.log(`Sent message: ${arbitraryPayload1}`)
-    const value = await sourceCoreRelayer.quoteGas(
+    const value = await sourceWormholeRelayer.quoteGas(
       targetChain.chainId,
       500000,
-      await sourceCoreRelayer.getDefaultRelayProvider()
+      await sourceWormholeRelayer.getDefaultRelayProvider()
     )
-    const extraForwardingValue = await targetCoreRelayer.quoteGas(
+    const extraForwardingValue = await targetWormholeRelayer.quoteGas(
       sourceChain.chainId,
       10000,
-      await targetCoreRelayer.getDefaultRelayProvider()
+      await targetWormholeRelayer.getDefaultRelayProvider()
     )
     console.log(`Quoted gas delivery fee: ${value.add(extraForwardingValue)}`)
 
@@ -411,9 +411,9 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       multisendIndex: 0,
       newMaxTransactionFee: value, 
       newReceiverValue: 0,
-      newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
+      newRelayParameters: sourceWormholeRelayer.getDefaultRelayParams()
     };
-    await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
+    await sourceWormholeRelayer.resend(request, 1, sourceWormholeRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
     console.log("Message resent");*/
 
     /*

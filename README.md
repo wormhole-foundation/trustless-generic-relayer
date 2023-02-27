@@ -29,7 +29,7 @@ Fundamentally, the relayer service should require no additional trust assumption
 
 Generic relayers consist of three components:
 
-1. `CoreRelayer` contract lives on all chains that integrators interact with to request for a generic relayer to deliver a cross-chain message.
+1. `WormholeRelayer` contract lives on all chains that integrators interact with to request for a generic relayer to deliver a cross-chain message.
 2. `GasOracle` contract lives on all chains that provides an estimate to the gas costs associated with a particular cross-chain message. This is a critical function to ensure that users/applications are appropriately covering the costs that relayers face when submitting a transaction on the destination chain.
 3. Off-chain Relayer that listens for VAAs that it is assigned to, redeems the VAA from the Guardian Network, and submits the VAA on the destination chain.
 

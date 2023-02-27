@@ -26,13 +26,13 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     event RewardAddressUpdated(address indexed newAddress);
     event DeliveryAddressUpdated(uint16 indexed targetChainId, bytes32 indexed newAddress);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
-    event CoreRelayerUpdated(address coreRelayer);
+    event WormholeRelayerUpdated(address coreRelayer);
     event ApprovedSenderUpdated(address sender, bool approved);
     event AssetConversionBufferUpdated(uint16 targetChain, uint16 buffer, uint16 bufferDenominator);
 
-    function updateCoreRelayer(address payable newAddress) public onlyOwner {
-        setCoreRelayer(newAddress);
-        emit CoreRelayerUpdated(newAddress);
+    function updateWormholeRelayer(address payable newAddress) public onlyOwner {
+        setWormholeRelayer(newAddress);
+        emit WormholeRelayerUpdated(newAddress);
     }
 
     function updateApprovedSender(address sender, bool approved) public onlyOwner {

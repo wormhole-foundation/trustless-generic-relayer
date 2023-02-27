@@ -7,8 +7,8 @@ import { getSignatureSetData } from "@certusone/wormhole-sdk/lib/cjs/solana/worm
 import { LogMessagePublishedEvent } from "../../../sdk/src"
 import {
   ChainInfo,
-  getCoreRelayer,
-  getCoreRelayerAddress,
+  getWormholeRelayer,
+  getWormholeRelayerAddress,
   getMockIntegration,
   getMockIntegrationAddress,
   getRelayProvider,
@@ -29,7 +29,7 @@ async function run(
   nonce: number,
   sourceTxHash: string
 ) {
-  const coreRelayer = getCoreRelayer(sourceChain)
+  const coreRelayer = getWormholeRelayer(sourceChain)
   const relayProvider = await coreRelayer.getDefaultRelayProvider()
 
   const relayQuote = await (

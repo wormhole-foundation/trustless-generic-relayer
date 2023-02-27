@@ -10,10 +10,10 @@ import {RelayProvider} from "contracts/relayProvider/RelayProvider.sol";
 import {RelayProviderSetup} from "contracts/relayProvider/RelayProviderSetup.sol";
 import {RelayProviderImplementation} from "contracts/relayProvider/RelayProviderImplementation.sol";
 import {RelayProviderProxy} from "contracts/relayProvider/RelayProviderProxy.sol";
-import {CoreRelayer} from "contracts/coreRelayer/CoreRelayer.sol";
-import {CoreRelayerSetup} from "contracts/coreRelayer/CoreRelayerSetup.sol";
-import {CoreRelayerImplementation} from "contracts/coreRelayer/CoreRelayerImplementation.sol";
-import {CoreRelayerProxy} from "contracts/coreRelayer/CoreRelayerProxy.sol";
+import {WormholeRelayer} from "contracts/coreRelayer/WormholeRelayer.sol";
+import {WormholeRelayerSetup} from "contracts/coreRelayer/WormholeRelayerSetup.sol";
+import {WormholeRelayerImplementation} from "contracts/coreRelayer/WormholeRelayerImplementation.sol";
+import {WormholeRelayerProxy} from "contracts/coreRelayer/WormholeRelayerProxy.sol";
 import {MockRelayerIntegration} from "contracts/mock/MockRelayerIntegration.sol";
 
 import "forge-std/console.sol";
@@ -28,7 +28,7 @@ import "forge-std/console.sol";
 // Call setup
 // Set Reward Address, set delivery address, set delivergasoverhead, set price table, set maximum budget
 
-//Step 2: Deploy CoreRelayer
+//Step 2: Deploy WormholeRelayer
 // Deploy Contracts
 // Call setup
 // later: register all core relayers with eachother
@@ -46,11 +46,11 @@ contract ContractScript is Script {
     RelayProviderImplementation relayProviderImplementation;
     RelayProviderProxy relayProviderProxy;
 
-    // CoreRelayer
-    CoreRelayerSetup coreRelayerSetup;
-    CoreRelayerImplementation coreRelayerImplementation;
-    CoreRelayerProxy coreRelayerProxy;
-    CoreRelayer coreRelayer;
+    // WormholeRelayer
+    WormholeRelayerSetup coreRelayerSetup;
+    WormholeRelayerImplementation coreRelayerImplementation;
+    WormholeRelayerProxy coreRelayerProxy;
+    WormholeRelayer coreRelayer;
 
     // MockRelayerIntegration
     MockRelayerIntegration mockRelayerIntegration;
@@ -86,15 +86,15 @@ contract ContractScript is Script {
         }
     }
 
-    function deployCoreRelayer() public {
+    function deployWormholeRelayer() public {
         // first Setup
-        coreRelayerSetup = new CoreRelayerSetup();
+        coreRelayerSetup = new WormholeRelayerSetup();
 
         // next Implementation
-        coreRelayerImplementation = new CoreRelayerImplementation();
+        coreRelayerImplementation = new WormholeRelayerImplementation();
 
         // setup Proxy using Implementation
-        coreRelayerProxy = new CoreRelayerProxy(
+        coreRelayerProxy = new WormholeRelayerProxy(
             address(coreRelayerSetup),
             abi.encodeWithSelector(
                 bytes4(keccak256("setup(address,uint16,address,address)")),
@@ -110,13 +110,13 @@ contract ContractScript is Script {
             migrations.setCompleted(69);
         }
 
-        coreRelayer = CoreRelayer(address(coreRelayerProxy));
+        coreRelayer = WormholeRelayer(address(coreRelayerProxy));
     }
 
     function configureRelayProvider() public {
         address currentAddress = address(this);
         RelayProvider provider = RelayProvider(address(relayProviderProxy));
-        CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
+        WormholeRelayer core_relayer = WormholeRelayer(address(coreRelayerProxy));
 
         //Set Reward Address,
         provider.updateRewardAddress(currentAddress);
@@ -150,11 +150,11 @@ contract ContractScript is Script {
         }
     }
 
-    function configureCoreRelayer() public {
+    function configureWormholeRelayer() public {
         //Only thing to do here is register all the chains together
         // contract already registers itself in the setup
-        // CoreRelayer core_relayer = CoreRelayer(address(coreRelayerProxy));
-        // core_relayer.registerCoreRelayerContract(chainId, core_relayer.toWormholeFormat(address(core_relayer)));
+        // WormholeRelayer core_relayer = WormholeRelayer(address(coreRelayerProxy));
+        // core_relayer.registerWormholeRelayerContract(chainId, core_relayer.toWormholeFormat(address(core_relayer)));
     }
 
     // function deployMockRelayerIntegration() public {
@@ -191,10 +191,10 @@ contract ContractScript is Script {
         vm.startBroadcast();
 
         deployRelayProvider();
-        deployCoreRelayer();
+        deployWormholeRelayer();
 
         configureRelayProvider();
-        configureCoreRelayer();
+        configureWormholeRelayer();
 
         vm.roll(block.number + 1);
 

@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IWormholeRelayer.sol";
 
-abstract contract CoreRelayerStructs {
+abstract contract WormholeRelayerStructs {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bool sufficientlyFunded;

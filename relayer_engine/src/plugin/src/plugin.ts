@@ -499,7 +499,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     this.logger.debug(vaas)
     const deliveryVaaIdx = vaas.findIndex((vaa) => vaa.emitter === emitterAddress)
     if (deliveryVaaIdx === -1) {
-      throw new PluginError("CoreRelayerVaa not found in fetched vaas", {
+      throw new PluginError("WormholeRelayerVaa not found in fetched vaas", {
         vaas,
       })
     }

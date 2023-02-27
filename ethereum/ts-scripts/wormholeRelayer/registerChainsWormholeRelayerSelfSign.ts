@@ -3,14 +3,14 @@ import {
   init,
   loadChains,
   ChainInfo,
-  getCoreRelayer,
+  getWormholeRelayer,
   getRelayProviderAddress,
-  getCoreRelayerAddress,
+  getWormholeRelayerAddress,
 } from "../helpers/env"
 import { wait } from "../helpers/utils"
 import { createRegisterChainVAA, createDefaultRelayProviderVAA } from "../helpers/vaa"
 
-const processName = "registerChainsCoreRelayer"
+const processName = "registerChainsWormholeRelayer"
 init()
 const chains = loadChains()
 
@@ -18,20 +18,20 @@ async function run() {
   console.log("Start! " + processName)
 
   for (let i = 0; i < chains.length; i++) {
-    await registerChainsCoreRelayer(chains[i])
+    await registerChainsWormholeRelayer(chains[i])
   }
 }
 
-async function registerChainsCoreRelayer(chain: ChainInfo) {
-  console.log("registerChainsCoreRelayer " + chain.chainId)
+async function registerChainsWormholeRelayer(chain: ChainInfo) {
+  console.log("registerChainsWormholeRelayer " + chain.chainId)
 
-  const coreRelayer = getCoreRelayer(chain)
+  const coreRelayer = getWormholeRelayer(chain)
   await coreRelayer
     .setDefaultRelayProvider(createDefaultRelayProviderVAA(chain))
     .then(wait)
   for (let i = 0; i < chains.length; i++) {
     await coreRelayer
-      .registerCoreRelayerContract(createRegisterChainVAA(chains[i]))
+      .registerWormholeRelayerContract(createRegisterChainVAA(chains[i]))
       .then(wait);
   }
 

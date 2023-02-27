@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "fs"
 import {
-  getCoreRelayer,
+  getWormholeRelayer,
   getMockIntegration,
   getRelayProvider,
   init,
@@ -33,7 +33,7 @@ async function main() {
     })
     update(contracts.coreRelayers, {
       chainId: chain.chainId,
-      address: getCoreRelayer(chain).address,
+      address: getWormholeRelayer(chain).address,
     })
     update(contracts.mockIntegrations, {
       chainId: chain.chainId,

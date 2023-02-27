@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
 
-library CoreRelayerLibrary {
+library WormholeRelayerLibrary {
     using BytesLib for bytes;
 
     error WrongModule(bytes32 module);

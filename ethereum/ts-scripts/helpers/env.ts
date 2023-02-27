@@ -2,10 +2,10 @@ import { ChainId } from "@certusone/wormhole-sdk"
 import { ethers, Signer } from "ethers"
 import fs from "fs"
 import {
-  CoreRelayer,
+  WormholeRelayer,
   RelayProvider,
   RelayProvider__factory,
-  CoreRelayer__factory,
+  WormholeRelayer__factory,
   MockRelayerIntegration,
   MockRelayerIntegration__factory,
 } from "../../../sdk/src"
@@ -115,7 +115,7 @@ export function loadRelayProviders(): Deployment[] {
   }
 }
 
-export function loadCoreRelayers(): Deployment[] {
+export function loadWormholeRelayers(): Deployment[] {
   const contractsFile = fs.readFileSync(`./ts-scripts/config/${env}/contracts.json`)
   if (!contractsFile) {
     throw Error("Failed to find contracts file for this process!")
@@ -123,7 +123,7 @@ export function loadCoreRelayers(): Deployment[] {
   const contracts = JSON.parse(contractsFile.toString())
   if (contracts.useLastRun || lastRunOverride) {
     const lastRunFile = fs.readFileSync(
-      `./ts-scripts/output/${env}/deployCoreRelayer/lastrun.json`
+      `./ts-scripts/output/${env}/deployWormholeRelayer/lastrun.json`
     )
     if (!lastRunFile) {
       throw Error("Failed to find last run file for the Core Relayer process!")
@@ -217,24 +217,24 @@ export function getRelayProvider(
   return contract
 }
 
-export function getCoreRelayerAddress(chain: ChainInfo): string {
-  const thisChainsRelayer = loadCoreRelayers().find(
+export function getWormholeRelayerAddress(chain: ChainInfo): string {
+  const thisChainsRelayer = loadWormholeRelayers().find(
     (x: any) => x.chainId == chain.chainId
   )?.address
   if (!thisChainsRelayer) {
     throw new Error(
-      "Failed to find a CoreRelayer contract address on chain " + chain.chainId
+      "Failed to find a WormholeRelayer contract address on chain " + chain.chainId
     )
   }
   return thisChainsRelayer
 }
 
-export function getCoreRelayer(
+export function getWormholeRelayer(
   chain: ChainInfo,
   provider?: ethers.providers.StaticJsonRpcProvider
-): CoreRelayer {
-  const thisChainsRelayer = getCoreRelayerAddress(chain)
-  const contract = CoreRelayer__factory.connect(
+): WormholeRelayer {
+  const thisChainsRelayer = getWormholeRelayerAddress(chain)
+  const contract = WormholeRelayer__factory.connect(
     thisChainsRelayer,
     provider || getSigner(chain)
   )
