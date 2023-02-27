@@ -8,7 +8,6 @@ import "./CoreRelayerDelivery.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayer is CoreRelayerDelivery {
-
     /**
      * @notice This 'send' function emits a wormhole message that alerts the default wormhole relay provider to
      * call the receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData) endpoint of the contract on chain 'targetChain' and address 'targetAddress'
@@ -201,7 +200,7 @@ contract CoreRelayer is CoreRelayerDelivery {
 
         // For each 'Send' request,
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
-        // and calculate how much value the relay provider will pass into 'request.targetAddress' 
+        // and calculate how much value the relay provider will pass into 'request.targetAddress'
         DeliveryInstructionsContainer memory instructionsContainer =
             convertMultichainSendToDeliveryInstructionsContainer(sendContainer);
 
@@ -219,7 +218,7 @@ contract CoreRelayer is CoreRelayerDelivery {
             nonce, encodeDeliveryInstructionsContainer(instructionsContainer), relayProvider.getConsistencyLevel()
         );
 
-        // Pay the relay provider 
+        // Pay the relay provider
         pay(relayProvider.getRewardAddress(), totalFee - wormholeMessageFee());
     }
 
@@ -253,18 +252,18 @@ contract CoreRelayer is CoreRelayerDelivery {
             revert IWormholeRelayer.ForwardRequestFromWrongAddress();
         }
 
-        uint256 totalFee = getTotalFeeMultichainSend(deliveryRequests);
+        uint256 totalFee = getTotalFeeMultichainSend(sendContainer);
 
         // For each 'Send' request,
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
-        // and calculate how much value the relay provider will pass into 'request.targetAddress' 
+        // and calculate how much value the relay provider will pass into 'request.targetAddress'
         DeliveryInstructionsContainer memory container =
-            convertMultichainSendToDeliveryInstructionsContainer(deliveryRequests);
+            convertMultichainSendToDeliveryInstructionsContainer(sendContainer);
 
         // For each 'Send' request,
         // Check that the total amount of value the relay provider needs to use for this send is <= the relayProvider's maximum budget for 'targetChain'
         // and check that the calculated gas is greater than 0
-        checkInstructions(container, IRelayProvider(deliveryRequests.relayProviderAddress));
+        checkInstructions(container, IRelayProvider(sendContainer.relayProviderAddress));
 
         // Save information about the forward in state, so it can be processed after the execution of 'receiveWormholeMessages',
         // because we will then know how much of the 'maxTransactionFee' of the current delivery is still available for use in this forward
@@ -275,13 +274,13 @@ contract CoreRelayer is CoreRelayerDelivery {
                 msgValue: msg.value,
                 totalFee: totalFee,
                 sender: msg.sender,
-                relayProvider: deliveryRequests.relayProviderAddress,
+                relayProvider: sendContainer.relayProviderAddress,
                 isValid: true
             })
         );
     }
 
-        /**
+    /**
      * @notice This 'resend' function emits a wormhole message requesting to resend an array of messages that have been previously requested to be sent
      *  Specifically, if a user in transaction 'txHash' on chain 'sourceChain' emits many wormhole messages of nonce 'sourceNonce' and then
      *  makes a call to 'send' requesting these messages to be sent to 'targetAddress' on 'targetChain',
@@ -305,9 +304,9 @@ contract CoreRelayer is CoreRelayerDelivery {
         }
 
         IRelayProvider provider = IRelayProvider(relayProvider);
-        
+
         // Calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
-        // and calculate how much value the relay provider will pass into 'request.targetAddress' 
+        // and calculate how much value the relay provider will pass into 'request.targetAddress'
         RedeliveryByTxHashInstruction memory instruction = convertResendToRedeliveryInstruction(request, provider);
 
         // Check that the total amount of value the relay provider needs to use for this redelivery is <= the relayProvider's maximum budget for 'targetChain'
@@ -320,7 +319,7 @@ contract CoreRelayer is CoreRelayerDelivery {
             0, encodeRedeliveryInstruction(instruction), provider.getConsistencyLevel()
         );
 
-        // Pay the relay provider 
+        // Pay the relay provider
         pay(provider.getRewardAddress(), msg.value - wormholeMessageFee());
     }
 
@@ -343,10 +342,11 @@ contract CoreRelayer is CoreRelayerDelivery {
         view
         returns (uint256 maxTransactionFee)
     {
-        IRelayProvider provider = IRelayProvider(relayProvider);   
+        IRelayProvider provider = IRelayProvider(relayProvider);
 
         // maxTransactionFee is a linear function of the amount of gas desired
-        maxTransactionFee = provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
+        maxTransactionFee =
+            provider.quoteDeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
     }
 
     /**
@@ -368,8 +368,8 @@ contract CoreRelayer is CoreRelayerDelivery {
         view
         returns (uint256 maxTransactionFee)
     {
-        IRelayProvider provider = IRelayProvider(relayProvider);  
-        
+        IRelayProvider provider = IRelayProvider(relayProvider);
+
         // maxTransactionFee is a linear function of the amount of gas desired
         maxTransactionFee =
             provider.quoteRedeliveryOverhead(targetChain) + (gasLimit * provider.quoteGasPrice(targetChain));
@@ -394,13 +394,13 @@ contract CoreRelayer is CoreRelayerDelivery {
         view
         returns (uint256 receiverValue)
     {
-        IRelayProvider provider = IRelayProvider(relayProvider);  
-        
+        IRelayProvider provider = IRelayProvider(relayProvider);
+
         // Converts 'targetAmount' from target chain currency to source chain currency (using relayProvider's prices)
         // and applies a multiplier of '1 + (buffer / denominator)'
         (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
         receiverValue = assetConversionHelper(
-            targetChain, targetAmount, chainId(), uint256(0) + denominator + buffer, denominator, true, relayProvider
+            targetChain, targetAmount, chainId(), uint256(0) + denominator + buffer, denominator, true, provider
         );
     }
 

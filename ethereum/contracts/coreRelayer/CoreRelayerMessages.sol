@@ -34,7 +34,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /**
-     * @notice This function converts a MultichainSend struct into a DeliveryInstructionsContainer struct that 
+     * @notice This function converts a MultichainSend struct into a DeliveryInstructionsContainer struct that
      * describes to the relayer exactly how to relay for each of the Send requests.
      * Specifically, each Send is converted to a DeliveryInstruction, which is a struct that contains six fields:
      * 1) targetChain, 2) targetAddress, 3) refundAddress (all which are part of the Send struct),
@@ -42,10 +42,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * 5) receiverValueTarget: The amount that will be passed into 'receiveWormholeMessages' as value, in target chain currency
      * 6) executionParameters: a struct with information about execution, specifically:
      *    executionParameters.gasLimit: The maximum amount of gas 'receiveWormholeMessages' is allowed to use
-     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this Send request 
+     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this Send request
      * The latter 3 fields are calculated using the relayProvider's getters
      * @param sendContainer A MultichainSend struct describing all of the Send requests
-     * @return instructionsContainer A DeliveryInstructionsContainer struct 
+     * @return instructionsContainer A DeliveryInstructionsContainer struct
      */
     function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer)
         internal
@@ -63,7 +63,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /**
-     * @notice This function converts a Send struct into a DeliveryInstruction struct that 
+     * @notice This function converts a Send struct into a DeliveryInstruction struct that
      * describes to the relayer exactly how to relay for the Send.
      * Specifically, the DeliveryInstruction struct that contains six fields:
      * 1) targetChain, 2) targetAddress, 3) refundAddress (all which are part of the Send struct),
@@ -71,7 +71,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * 5) receiverValueTarget: The amount that will be passed into 'receiveWormholeMessages' as value, in target chain currency
      * 6) executionParameters: a struct with information about execution, specifically:
      *    executionParameters.gasLimit: The maximum amount of gas 'receiveWormholeMessages' is allowed to use
-     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this Send request 
+     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this Send request
      * The latter 3 fields are calculated using the relayProvider's getters
      * @param send A Send struct
      * @param relayProvider The relay provider chosen for this Send
@@ -115,7 +115,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
                 revert IWormholeRelayer.MaxTransactionFeeNotEnough(i);
             }
             if (
-                instruction.maximumRefundTarget + instruction.receiverValueTarget 
+                instruction.maximumRefundTarget + instruction.receiverValueTarget
                     > relayProvider.quoteMaximumBudget(instruction.targetChain)
             ) {
                 revert IWormholeRelayer.FundsTooMuch(i);
@@ -128,7 +128,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * - the total amount of target chain currency needed for execution of this instruction is within the maximum budget,
      *   i.e. (maximumRefundTarget + receiverValueTarget) <= (the relayProvider's maximum budget for the target chain)
      * - the gasLimit is greater than 0
-     * @param instruction A RedeliveryByTxHashInstruction 
+     * @param instruction A RedeliveryByTxHashInstruction
      * @param relayProvider The relayProvider whos maximum budget we are checking against
      */
     function checkRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction, IRelayProvider relayProvider)
@@ -147,7 +147,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /**
-     * @notice This function converts a ResendByTx struct into a RedeliveryByTxHashInstruction struct that 
+     * @notice This function converts a ResendByTx struct into a RedeliveryByTxHashInstruction struct that
      * describes to the relayer exactly how to relay for the ResendByTx.
      * Specifically, the RedeliveryByTxHashInstruction struct that contains nine fields:
      * 1) sourceChain, 2) sourceTxHash, 3) sourceNonce, 4) targetChain, 5) deliveryIndex, 6) multisendIndex (all which are part of the ResendByTxHash struct),
@@ -155,17 +155,16 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * 8) newReceiverValueTarget: The new amount that will be passed into 'receiveWormholeMessages' as value, in target chain currency
      * 9) executionParameters: a struct with information about execution, specifically:
      *    executionParameters.gasLimit: The maximum amount of gas 'receiveWormholeMessages' is allowed to use
-     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this ResendByTx request 
+     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this ResendByTx request
      * The latter 3 fields are calculated using the relayProvider's getters
      * @param resend A ResendByTx struct
      * @param relayProvider The relay provider chosen for this ResendByTx
      * @return instruction A DeliveryInstruction
      */
-    function convertResendToRedeliveryInstruction(IWormholeRelayer.ResendByTx memory resend, IRelayProvider relayProvider)
-        internal
-        view
-        returns (RedeliveryByTxHashInstruction memory instruction)
-    {
+    function convertResendToRedeliveryInstruction(
+        IWormholeRelayer.ResendByTx memory resend,
+        IRelayProvider relayProvider
+    ) internal view returns (RedeliveryByTxHashInstruction memory instruction) {
         instruction.payloadId = 2;
         instruction.sourceChain = resend.sourceChain;
         instruction.sourceTxHash = resend.sourceTxHash;
@@ -242,11 +241,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     /**
      * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the gas limit of the delivery transaction
      * should be
-     * 
+     *
      * It does this by calculating (maxTransactionFee - deliveryOverhead)/gasPrice
      * where 'deliveryOverhead' is the relayProvider's base fee for delivering to targetChain (in units of source chain currency)
      * and 'gasPrice' is the relayProvider's fee per unit of target chain gas (in units of source chain currency)
-     * 
+     *
      * @param targetChain target chain
      * @param maxTransactionFee uint256
      * @param provider IRelayProvider
@@ -265,12 +264,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     /**
      * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the maximum refund of the delivery transaction
      * should be, in terms of target chain currency
-     * 
+     *
      * The maximum refund is the amount that would be refunded to refundAddress if the call to 'receiveWormholeMessages' takes 0 gas
-     * 
+     *
      * It does this by calculating (maxTransactionFee - deliveryOverhead) and converting (using the relay provider's prices) to target chain currency
      * (where 'deliveryOverhead' is the relayProvider's base fee for delivering to targetChain [in units of source chain currency])
-     * 
+     *
      * @param targetChain target chain
      * @param maxTransactionFee uint256
      * @param provider IRelayProvider
@@ -289,11 +288,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     /**
      * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the gas limit of the redelivery transaction
      * should be
-     * 
+     *
      * It does this by calculating (maxTransactionFee - redeliveryOverhead)/gasPrice
      * where 'redeliveryOverhead' is the relayProvider's base fee for redelivering to targetChain (in units of source chain currency)
      * and 'gasPrice' is the relayProvider's fee per unit of target chain gas (in units of source chain currency)
-     * 
+     *
      * @param targetChain target chain
      * @param maxTransactionFee uint256
      * @param provider IRelayProvider
@@ -312,12 +311,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     /**
      * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the maximum refund of the redelivery transaction
      * should be, in terms of target chain currency
-     * 
+     *
      * The maximum refund is the amount that would be refunded to refundAddress if the call to 'receiveWormholeMessages' takes 0 gas
-     * 
+     *
      * It does this by calculating (maxTransactionFee - redeliveryOverhead) and converting (using the relay provider's prices) to target chain currency
      * (where 'redeliveryOverhead' is the relayProvider's base fee for redelivering to targetChain [in units of source chain currency])
-     * 
+     *
      * @param targetChain target chain
      * @param maxTransactionFee uint256
      * @param provider IRelayProvider
@@ -336,9 +335,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     /**
      * Performs the calculation (maxTransactionFee - overhead)/(price of 1 unit of target chain gas, in source chain currency)
      * and bounds the result between 0 and 2^32-1, inclusive
-     * 
+     *
      * @param targetChain uint16
-     * @param maxTransactionFee uint256 
+     * @param maxTransactionFee uint256
      * @param overhead uint256
      * @param provider IRelayProvider
      */
@@ -362,9 +361,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     /**
      * Converts (maxTransactionFee - overhead) from source to target chain currency, using the provider's prices
-     * 
+     *
      * @param targetChain uint16
-     * @param maxTransactionFee uint256 
+     * @param maxTransactionFee uint256
      * @param overhead uint256
      * @param provider IRelayProvider
      */
@@ -383,12 +382,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /**
-     * Converts 'sourceAmount' of source chain currency to units of target chain currency 
+     * Converts 'sourceAmount' of source chain currency to units of target chain currency
      * using the prices of 'provider'
      * and also multiplying by a specified fraction 'multiplier/multiplierDenominator',
      * rounding up or down specified by 'roundUp', and without performing intermediate rounding,
      * i.e. the result should be as if float arithmetic was done and the rounding performed at the end
-     * 
+     *
      * @param sourceChain source chain
      * @param sourceAmount amount of source chain currency to be converted
      * @param targetChain target chain
@@ -396,7 +395,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param multiplierDenominator denominator of a fraction to multiply by
      * @param roundUp whether or not to round up
      * @param provider relay provider
-     * @return targetAmount amount of target chain currency 
+     * @return targetAmount amount of target chain currency
      */
     function assetConversionHelper(
         uint16 sourceChain,
@@ -428,10 +427,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     /**
      * If the user specifies (for 'receiverValue) 'sourceAmount' of source chain currency, with relay provider 'provider',
      * then this function calculates how much the relayer will pass into receiveWormholeMessages on the target chain (in target chain currency)
-     * 
+     *
      * The calculation simply converts this amount to target chain currency, but also applies a multiplier of 'denominator/(denominator + buffer)'
      * where these values are also specified by the relay provider 'provider'
-     * 
+     *
      * @param sourceAmount amount of source chain currency
      * @param targetChain target chain
      * @param provider relay provider

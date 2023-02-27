@@ -196,7 +196,10 @@ interface IWormholeRelayer {
      *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for the default wormhole relay provider.
      *  The relay provider will listen for these messages, and then execute the delivery as described
      */
-    function multichainSend(MultichainSend memory sendContainer, uint32 nonce) external payable returns (uint64 sequence);
+    function multichainSend(MultichainSend memory sendContainer, uint32 nonce)
+        external
+        payable
+        returns (uint64 sequence);
 
     /**
      * @notice The multichainForward function can only be called in a IWormholeReceiver within the 'receiveWormholeMessages' function
@@ -216,7 +219,7 @@ interface IWormholeRelayer {
      */
     function multichainForward(MultichainSend memory requests, uint32 nonce) external payable;
 
-     /**
+    /**
      * @notice This 'ResendByTx' struct represents a request to resend an array of messages that have been previously requested to be sent
      *  Specifically, if a user in transaction 'txHash' on chain 'sourceChain' emits many wormhole messages of nonce 'sourceNonce' and then
      *  makes a call to 'send' requesting these messages to be sent to 'targetAddress' on 'targetChain',
@@ -266,7 +269,6 @@ interface IWormholeRelayer {
      *  The relay provider will listen for these messages, and then execute the redelivery as described
      */
     function resend(ResendByTx memory request, address relayProvider) external payable returns (uint64 sequence);
-
 
     /**
      * @notice quoteGas tells you how much maxTransactionFee (denominated in current (source) chain currency) must be in order to fund a call to
