@@ -877,7 +877,7 @@ contract TestCoreRelayer is Test {
         );
 
         stack.parsed = relayerWormhole.parseVM(stack.redeliveryVM);
-        stack.instruction = setup.target.coreRelayerFull.decodeRedeliveryByTxHashInstruction(stack.parsed.payload);
+        stack.instruction = setup.target.coreRelayerFull.decodeRedeliveryInstruction(stack.parsed.payload);
 
         stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newReceiverValueTarget
             + setup.target.wormhole.messageFee();
@@ -1398,7 +1398,7 @@ contract TestCoreRelayer is Test {
     function genericRelay(
         Contracts memory contracts,
         uint8 counter,
-        bytes memory encodedDeliveryInstructionContainer,
+        bytes memory encodedDeliveryInstructionsContainer,
         bytes[] memory encodedVMsToBeDelivered,
         IWormhole.VM memory parsedInstruction
     ) internal {
@@ -1423,7 +1423,7 @@ contract TestCoreRelayer is Test {
             }
         } else if (payloadId == 2) {
             CoreRelayer.RedeliveryByTxHashInstruction memory instruction =
-                contracts.coreRelayerFull.decodeRedeliveryByTxHashInstruction(parsedInstruction.payload);
+                contracts.coreRelayerFull.decodeRedeliveryInstruction(parsedInstruction.payload);
             IDelivery.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
             uint16 targetChain = instruction.targetChain;
@@ -1431,7 +1431,7 @@ contract TestCoreRelayer is Test {
                 + map[targetChain].wormhole.messageFee();
             IDelivery.TargetRedeliveryByTxHashParamsSingle memory package = IDelivery
                 .TargetRedeliveryByTxHashParamsSingle({
-                redeliveryVM: encodedDeliveryInstructionContainer,
+                redeliveryVM: encodedDeliveryInstructionsContainer,
                 sourceEncodedVMs: originalDelivery.encodedVMs,
                 relayerRefundAddress: payable(map[targetChain].relayer)
             });

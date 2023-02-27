@@ -26,7 +26,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    function convertMultichainSendToDeliveryInstructionContainer(IWormholeRelayer.MultichainSend memory sendContainer)
+    function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer)
         internal
         view
         returns (DeliveryInstructionsContainer memory instructionsContainer)
@@ -114,7 +114,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         });
     }
 
-    function encodeRedeliveryByTxHashInstruction(RedeliveryByTxHashInstruction memory instruction)
+    function encodeRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction)
         internal
         pure
         returns (bytes memory encoded)
@@ -287,7 +287,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         );
     }
 
-    function decodeRedeliveryByTxHashInstruction(bytes memory encoded)
+    function decodeRedeliveryInstruction(bytes memory encoded)
         public
         pure
         returns (RedeliveryByTxHashInstruction memory instruction)

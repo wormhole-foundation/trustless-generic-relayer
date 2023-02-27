@@ -56,7 +56,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 wormholeMessageFee = wormhole.messageFee();
 
         sequence = wormhole.publishMessage{value: wormholeMessageFee}(
-            nonce, encodeRedeliveryByTxHashInstruction(instruction), provider.getConsistencyLevel()
+            nonce, encodeRedeliveryInstruction(instruction), provider.getConsistencyLevel()
         );
 
         //Send the delivery fees to the specified address of the provider.
@@ -87,7 +87,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
         IRelayProvider relayProvider = IRelayProvider(deliveryRequests.relayProviderAddress);
         DeliveryInstructionsContainer memory container =
-            convertMultichainSendToDeliveryInstructionContainer(deliveryRequests);
+            convertMultichainSendToDeliveryInstructionsContainer(deliveryRequests);
         checkInstructions(container, IRelayProvider(deliveryRequests.relayProviderAddress));
         container.sufficientlyFunded = true;
 
@@ -129,7 +129,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         uint256 totalFee = getTotalFeeMultichainSend(deliveryRequests);
         DeliveryInstructionsContainer memory container =
-            convertMultichainSendToDeliveryInstructionContainer(deliveryRequests);
+            convertMultichainSendToDeliveryInstructionsContainer(deliveryRequests);
         checkInstructions(container, IRelayProvider(deliveryRequests.relayProviderAddress));
 
         setForwardInstruction(
@@ -208,7 +208,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint16 sourceChain,
         uint64 sourceSequence
     ) internal {
-        //REVISE Decide whether we want to remove the DeliveryInstructionContainer from encodedVMs.
+        //REVISE Decide whether we want to remove the DeliveryInstructionsContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
         if (isContractLocked()) {
@@ -302,7 +302,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         RedeliveryByTxHashInstruction memory redeliveryInstruction =
-            decodeRedeliveryByTxHashInstruction(redeliveryVM.payload);
+            decodeRedeliveryInstruction(redeliveryVM.payload);
 
         //validate the original delivery VM
         IWormhole.VM memory originalDeliveryVM;
