@@ -11,13 +11,13 @@ import {RelayProviderMessages} from "../contracts/relayProvider/RelayProviderMes
 import {RelayProviderStructs} from "../contracts/relayProvider/RelayProviderStructs.sol";
 import {IWormholeRelayer} from "../contracts/interfaces/IWormholeRelayer.sol";
 import {IDelivery} from "../contracts/interfaces/IDelivery.sol";
-import {CoreRelayer} from "../contracts/coreRelayer/CoreRelayer.sol";
-import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
-import {CoreRelayerSetup} from "../contracts/coreRelayer/CoreRelayerSetup.sol";
-import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImplementation.sol";
-import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
-import {CoreRelayerMessages} from "../contracts/coreRelayer/CoreRelayerMessages.sol";
-import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
+import {WormholeRelayer} from "../contracts/coreRelayer/WormholeRelayer.sol";
+import {WormholeRelayerStructs} from "../contracts/coreRelayer/WormholeRelayerStructs.sol";
+import {WormholeRelayerSetup} from "../contracts/coreRelayer/WormholeRelayerSetup.sol";
+import {WormholeRelayerImplementation} from "../contracts/coreRelayer/WormholeRelayerImplementation.sol";
+import {WormholeRelayerProxy} from "../contracts/coreRelayer/WormholeRelayerProxy.sol";
+import {WormholeRelayerMessages} from "../contracts/coreRelayer/WormholeRelayerMessages.sol";
+import {WormholeRelayerStructs} from "../contracts/coreRelayer/WormholeRelayerStructs.sol";
 import {MockWormhole} from "../contracts/mock/MockWormhole.sol";
 import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
 import {WormholeSimulator, FakeWormholeSimulator} from "./WormholeSimulator.sol";
@@ -29,7 +29,7 @@ import "../contracts/libraries/external/BytesLib.sol";
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-contract TestCoreRelayer is Test {
+contract TestWormholeRelayer is Test {
     using BytesLib for bytes;
 
     uint16 MAX_UINT16_VALUE = 65535;
@@ -103,16 +103,16 @@ contract TestCoreRelayer is Test {
         relayProvider = RelayProvider(address(myRelayProvider));
     }
 
-    function setUpCoreRelayer(uint16 chainId, IWormhole wormhole, address defaultRelayProvider)
+    function setUpWormholeRelayer(uint16 chainId, IWormhole wormhole, address defaultRelayProvider)
         internal
         returns (IWormholeRelayer coreRelayer)
     {
-        CoreRelayerSetup coreRelayerSetup = new CoreRelayerSetup();
-        CoreRelayerImplementation coreRelayerImplementation = new CoreRelayerImplementation();
-        CoreRelayerProxy myCoreRelayer = new CoreRelayerProxy(
+        WormholeRelayerSetup coreRelayerSetup = new WormholeRelayerSetup();
+        WormholeRelayerImplementation coreRelayerImplementation = new WormholeRelayerImplementation();
+        WormholeRelayerProxy myWormholeRelayer = new WormholeRelayerProxy(
             address(coreRelayerSetup),
             abi.encodeCall(
-                CoreRelayerSetup.setup,
+                WormholeRelayerSetup.setup,
                 (
                     address(coreRelayerImplementation),
                     chainId,
@@ -124,7 +124,7 @@ contract TestCoreRelayer is Test {
                 )
             )
         );
-        coreRelayer = IWormholeRelayer(address(myCoreRelayer));
+        coreRelayer = IWormholeRelayer(address(myWormholeRelayer));
     }
 
     struct StandardSetupTwoChains {
@@ -218,7 +218,7 @@ contract TestCoreRelayer is Test {
         WormholeSimulator wormholeSimulator;
         RelayProvider relayProvider;
         IWormholeRelayer coreRelayer;
-        CoreRelayer coreRelayerFull;
+        WormholeRelayer coreRelayerFull;
         MockRelayerIntegration integration;
         address relayer;
         address payable rewardAddress;
@@ -233,8 +233,8 @@ contract TestCoreRelayer is Test {
             Contracts memory mapEntry;
             (mapEntry.wormhole, mapEntry.wormholeSimulator) = setUpWormhole(i);
             mapEntry.relayProvider = setUpRelayProvider(i);
-            mapEntry.coreRelayer = setUpCoreRelayer(i, mapEntry.wormhole, address(mapEntry.relayProvider));
-            mapEntry.coreRelayerFull = CoreRelayer(address(mapEntry.coreRelayer));
+            mapEntry.coreRelayer = setUpWormholeRelayer(i, mapEntry.wormhole, address(mapEntry.relayProvider));
+            mapEntry.coreRelayerFull = WormholeRelayer(address(mapEntry.coreRelayer));
             mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
             mapEntry.relayer = address(uint160(uint256(keccak256(abi.encodePacked(bytes("relayer"), i)))));
             mapEntry.refundAddress =
@@ -250,7 +250,7 @@ contract TestCoreRelayer is Test {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
-                registerCoreRelayerContract(
+                registerWormholeRelayerContract(
                     map[i].coreRelayerFull, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
                 );
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
@@ -259,8 +259,8 @@ contract TestCoreRelayer is Test {
         }
     }
 
-    function registerCoreRelayerContract(
-        CoreRelayer governance,
+    function registerWormholeRelayerContract(
+        WormholeRelayer governance,
         uint16 currentChainId,
         uint16 chainId,
         bytes32 coreRelayerContractAddress
@@ -283,7 +283,7 @@ contract TestCoreRelayer is Test {
         });
 
         bytes memory signed = relayerWormholeSimulator.encodeAndSignMessage(preSignedMessage);
-        governance.registerCoreRelayerContract(signed);
+        governance.registerWormholeRelayerContract(signed);
     }
 
     function within(uint256 a, uint256 b, uint256 c) internal view returns (bool) {
@@ -462,7 +462,7 @@ contract TestCoreRelayer is Test {
         // 3. The delivery of the message triggers a refund to the malicious integration contract.
         // 4. During the refund, the integration contract activates the forwarding mechanism.
         //   This is allowed due to the integration contract also being the target of the delivery.
-        // 5. The forward request is left as is in the `CoreRelayer` state.
+        // 5. The forward request is left as is in the `WormholeRelayer` state.
         // 6. The next message (i.e. the victim's message) delivery on `target` chain, from any relayer, using any `RelayProvider` and any integration contract,
         //   will see the forward request placed by the malicious integration contract and act on it.
         // Caveat: the delivery of the victim's message must not invoke the forwarding mechanism for the attack test to be meaningful.
@@ -780,7 +780,7 @@ contract TestCoreRelayer is Test {
         IWormholeRelayer.ResendByTx redeliveryRequest;
         IDelivery.TargetDeliveryParametersSingle originalDelivery;
         IDelivery.TargetRedeliveryByTxHashParamsSingle package;
-        CoreRelayer.RedeliveryByTxHashInstruction instruction;
+        WormholeRelayer.RedeliveryByTxHashInstruction instruction;
     }
 
     function invalidateVM(bytes memory message, WormholeSimulator simulator) internal {
@@ -1068,7 +1068,7 @@ contract TestCoreRelayer is Test {
         IWormhole.VM parsed;
         uint256 budget;
         IDelivery.TargetDeliveryParametersSingle package;
-        CoreRelayer.DeliveryInstruction instruction;
+        WormholeRelayer.DeliveryInstruction instruction;
     }
 
     function testRevertDeliveryErrors(
@@ -1407,7 +1407,7 @@ contract TestCoreRelayer is Test {
     ) internal {
         uint8 payloadId = parsedInstruction.payload.toUint8(0);
         if (payloadId == 1) {
-            CoreRelayer.DeliveryInstructionsContainer memory container =
+            WormholeRelayer.DeliveryInstructionsContainer memory container =
                 contracts.coreRelayerFull.decodeDeliveryInstructionsContainer(parsedInstruction.payload);
             for (uint8 k = 0; k < container.instructions.length; k++) {
                 uint256 budget =
@@ -1425,7 +1425,7 @@ contract TestCoreRelayer is Test {
                 pastDeliveries[keccak256(abi.encodePacked(parsedInstruction.hash, k))] = package;
             }
         } else if (payloadId == 2) {
-            CoreRelayer.RedeliveryByTxHashInstruction memory instruction =
+            WormholeRelayer.RedeliveryByTxHashInstruction memory instruction =
                 contracts.coreRelayerFull.decodeRedeliveryInstruction(parsedInstruction.payload);
             IDelivery.TargetDeliveryParametersSingle memory originalDelivery =
                 pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];

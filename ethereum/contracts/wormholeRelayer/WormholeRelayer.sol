@@ -6,10 +6,10 @@ pragma solidity ^0.8.0;
 import "../interfaces/IWormholeRelayer.sol";
 import "../interfaces/IWormholeReceiver.sol";
 import "../interfaces/IDelivery.sol";
-import "./CoreRelayerGovernance.sol";
-import "./CoreRelayerStructs.sol";
+import "./WormholeRelayerGovernance.sol";
+import "./WormholeRelayerStructs.sol";
 
-contract CoreRelayer is CoreRelayerGovernance {
+contract WormholeRelayer is WormholeRelayerGovernance {
     enum DeliveryStatus {
         SUCCESS,
         RECEIVER_FAILURE,
@@ -280,7 +280,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
-        return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
+        return registeredWormholeRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
     function getDefaultRelayProvider() public view returns (IRelayProvider) {

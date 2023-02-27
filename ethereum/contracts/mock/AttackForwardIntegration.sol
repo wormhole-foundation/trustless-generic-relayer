@@ -22,10 +22,10 @@ contract AttackForwardIntegration is IWormholeReceiver {
     // This just needs to be enough to pay for the call to the destination address.
     uint32 SAFE_DELIVERY_GAS_CAPTURE = 30000;
 
-    constructor(IWormhole initWormhole, IWormholeRelayer initCoreRelayer, uint16 chainId, address initAttackerReward) {
+    constructor(IWormhole initWormhole, IWormholeRelayer initWormholeRelayer, uint16 chainId, address initAttackerReward) {
         attackerReward = initAttackerReward;
         wormhole = initWormhole;
-        core_relayer = initCoreRelayer;
+        core_relayer = initWormholeRelayer;
         targetChainId = chainId;
     }
 

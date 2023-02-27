@@ -3,9 +3,9 @@
 
 pragma solidity ^0.8.0;
 
-import "./CoreRelayerStructs.sol";
+import "./WormholeRelayerStructs.sol";
 
-contract CoreRelayerStorage {
+contract WormholeRelayerStorage {
     struct Provider {
         uint16 chainId;
         address payable wormhole;
@@ -27,16 +27,16 @@ contract CoreRelayerStorage {
         // address of the default relay provider on this chain
         address defaultRelayProvider;
         // Request which will be forwarded from the current delivery.
-        CoreRelayerStructs.ForwardInstruction forwardInstruction;
+        WormholeRelayerStructs.ForwardInstruction forwardInstruction;
         // mapping of initialized implementations
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains
-        mapping(uint16 => bytes32) registeredCoreRelayerContract;
+        mapping(uint16 => bytes32) registeredWormholeRelayerContract;
         // storage gap to reduce risk of storage collisions
         uint256[50] ______gap;
     }
 }
 
-contract CoreRelayerState {
-    CoreRelayerStorage.State _state;
+contract WormholeRelayerState {
+    WormholeRelayerStorage.State _state;
 }

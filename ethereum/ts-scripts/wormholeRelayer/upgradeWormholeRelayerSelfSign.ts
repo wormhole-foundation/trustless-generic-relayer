@@ -1,24 +1,24 @@
 import { tryNativeToHexString } from "@certusone/wormhole-sdk"
 import {
-  deployCoreRelayerImplementation,
-  deployCoreRelayerLibrary,
+  deployWormholeRelayerImplementation,
+  deployWormholeRelayerLibrary,
 } from "../helpers/deployments"
 import {
   init,
   loadChains,
   ChainInfo,
-  getCoreRelayer,
+  getWormholeRelayer,
   getRelayProviderAddress,
-  getCoreRelayerAddress,
+  getWormholeRelayerAddress,
   writeOutputFiles,
 } from "../helpers/env"
 import {
   createRegisterChainVAA,
   createDefaultRelayProviderVAA,
-  createCoreRelayerUpgradeVAA,
+  createWormholeRelayerUpgradeVAA,
 } from "../helpers/vaa"
 
-const processName = "upgradeCoreRelayerSelfSign"
+const processName = "upgradeWormholeRelayerSelfSign"
 init()
 const chains = loadChains()
 
@@ -30,12 +30,12 @@ async function run() {
   }
 
   for (let i = 0; i < chains.length; i++) {
-    const coreRelayerLibrary = await deployCoreRelayerLibrary(chains[i])
-    const coreRelayerImplementation = await deployCoreRelayerImplementation(
+    const coreRelayerLibrary = await deployWormholeRelayerLibrary(chains[i])
+    const coreRelayerImplementation = await deployWormholeRelayerImplementation(
       chains[i],
       coreRelayerLibrary.address
     )
-    await upgradeCoreRelayer(chains[i], coreRelayerImplementation.address)
+    await upgradeWormholeRelayer(chains[i], coreRelayerImplementation.address)
 
     output.coreRelayerImplementations.push(coreRelayerImplementation)
     output.coreRelayerLibraries.push(coreRelayerLibrary)
@@ -44,13 +44,13 @@ async function run() {
   writeOutputFiles(output, processName)
 }
 
-async function upgradeCoreRelayer(chain: ChainInfo, newImplementationAddress: string) {
-  console.log("upgradeCoreRelayer " + chain.chainId)
+async function upgradeWormholeRelayer(chain: ChainInfo, newImplementationAddress: string) {
+  console.log("upgradeWormholeRelayer " + chain.chainId)
 
-  const coreRelayer = getCoreRelayer(chain)
+  const coreRelayer = getWormholeRelayer(chain)
 
   await coreRelayer.submitContractUpgrade(
-    createCoreRelayerUpgradeVAA(chain, newImplementationAddress)
+    createWormholeRelayerUpgradeVAA(chain, newImplementationAddress)
   )
 
   console.log("Successfully upgraded the core relayer contract on " + chain.chainId)

@@ -5,7 +5,7 @@ import {
   init,
   loadChains,
   ChainInfo,
-  getCoreRelayerAddress,
+  getWormholeRelayerAddress,
   getRelayProvider,
   getRelayProviderAddress,
   getProvider,

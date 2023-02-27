@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 
 import "../libraries/external/BytesLib.sol";
 
-import "./CoreRelayerGetters.sol";
-import "./CoreRelayerStructs.sol";
+import "./WormholeRelayerGetters.sol";
+import "./WormholeRelayerStructs.sol";
 import "../interfaces/IWormholeRelayer.sol";
 
-contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
+contract WormholeRelayerMessages is WormholeRelayerStructs, WormholeRelayerGetters {
     using BytesLib for bytes;
 
     error InvalidPayloadId(uint8 payloadId);

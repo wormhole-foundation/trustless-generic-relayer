@@ -7,18 +7,18 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 
 import "../libraries/external/BytesLib.sol";
 
-import "./CoreRelayerGetters.sol";
-import "./CoreRelayerSetters.sol";
-import "./CoreRelayerStructs.sol";
-import "./CoreRelayerMessages.sol";
+import "./WormholeRelayerGetters.sol";
+import "./WormholeRelayerSetters.sol";
+import "./WormholeRelayerStructs.sol";
+import "./WormholeRelayerMessages.sol";
 
 import "../interfaces/IWormhole.sol";
-import "./CoreRelayerLibrary.sol";
+import "./WormholeRelayerLibrary.sol";
 
-abstract contract CoreRelayerGovernance is
-    CoreRelayerGetters,
-    CoreRelayerSetters,
-    CoreRelayerMessages,
+abstract contract WormholeRelayerGovernance is
+    WormholeRelayerGetters,
+    WormholeRelayerSetters,
+    WormholeRelayerMessages,
     ERC1967Upgrade
 {
     using BytesLib for bytes;
@@ -31,7 +31,7 @@ abstract contract CoreRelayerGovernance is
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
 
-    // "CoreRelayer" (left padded)
+    // "WormholeRelayer" (left padded)
     bytes32 constant module = 0x000000000000000000000000000000000000000000436f726552656c61796572;
 
     function submitContractUpgrade(bytes memory _vm) public {
@@ -46,7 +46,7 @@ abstract contract CoreRelayerGovernance is
 
         setConsumedGovernanceAction(vm.hash);
 
-        CoreRelayerLibrary.ContractUpgrade memory contractUpgrade = CoreRelayerLibrary.parseUpgrade(vm.payload, module);
+        WormholeRelayerLibrary.ContractUpgrade memory contractUpgrade = WormholeRelayerLibrary.parseUpgrade(vm.payload, module);
         if (contractUpgrade.chain != chainId()) {
             revert WrongChainId(contractUpgrade.chain);
         }
@@ -54,7 +54,7 @@ abstract contract CoreRelayerGovernance is
         upgradeImplementation(contractUpgrade.newContract);
     }
 
-    function registerCoreRelayerContract(bytes memory vaa) public {
+    function registerWormholeRelayerContract(bytes memory vaa) public {
         (IWormhole.VM memory vm, bool valid, string memory reason) = verifyGovernanceVM(vaa);
         if (!valid) {
             revert InvalidGovernanceVM(string(reason));
@@ -62,13 +62,13 @@ abstract contract CoreRelayerGovernance is
 
         setConsumedGovernanceAction(vm.hash);
 
-        CoreRelayerLibrary.RegisterChain memory rc = CoreRelayerLibrary.parseRegisterChain(vm.payload, module);
+        WormholeRelayerLibrary.RegisterChain memory rc = WormholeRelayerLibrary.parseRegisterChain(vm.payload, module);
 
         if ((rc.chain != chainId() || isFork()) && rc.chain != 0) {
             revert InvalidChainId(rc.chain);
         }
 
-        setRegisteredCoreRelayerContract(rc.emitterChain, rc.emitterAddress);
+        setRegisteredWormholeRelayerContract(rc.emitterChain, rc.emitterAddress);
     }
 
     function setDefaultRelayProvider(bytes memory vaa) public {
@@ -79,8 +79,8 @@ abstract contract CoreRelayerGovernance is
 
         setConsumedGovernanceAction(vm.hash);
 
-        CoreRelayerLibrary.UpdateDefaultProvider memory provider =
-            CoreRelayerLibrary.parseUpdateDefaultProvider(vm.payload, module);
+        WormholeRelayerLibrary.UpdateDefaultProvider memory provider =
+            WormholeRelayerLibrary.parseUpdateDefaultProvider(vm.payload, module);
 
         if ((provider.chain != chainId() || isFork()) && provider.chain != 0) {
             revert InvalidChainId(provider.chain);

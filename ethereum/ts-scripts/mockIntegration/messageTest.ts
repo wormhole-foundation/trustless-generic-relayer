@@ -3,8 +3,8 @@ import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-
 import { LogMessagePublishedEvent } from "../../../sdk/src"
 import {
   ChainInfo,
-  getCoreRelayer,
-  getCoreRelayerAddress,
+  getWormholeRelayer,
+  getWormholeRelayerAddress,
   getMockIntegration,
   getMockIntegrationAddress,
   getRelayProviderAddress,
@@ -26,15 +26,15 @@ async function sendMessage(
     `Sending message from chain ${sourceChain.chainId} to ${targetChain.chainId}...`
   )
 
-  const sourceRelayer = getCoreRelayer(sourceChain)
+  const sourceRelayer = getWormholeRelayer(sourceChain)
 
   // todo: remove
-  const registeredChain = await sourceRelayer.registeredCoreRelayerContract(
+  const registeredChain = await sourceRelayer.registeredWormholeRelayerContract(
     sourceChain.chainId
   )
   console.log("The source chain should be registered to itself")
   console.log(registeredChain)
-  console.log(getCoreRelayerAddress(sourceChain))
+  console.log(getWormholeRelayerAddress(sourceChain))
   console.log("")
 
   const defaultRelayerProvider = await sourceRelayer.getDefaultRelayProvider()

@@ -1,10 +1,10 @@
 import {
-  deployCoreRelayerImplementation,
-  deployCoreRelayerLibrary,
+  deployWormholeRelayerImplementation,
+  deployWormholeRelayerLibrary,
 } from "../helpers/deployments"
 import { init, loadChains, writeOutputFiles } from "../helpers/env"
 
-const processName = "deployCoreRelayerImpl"
+const processName = "deployWormholeRelayerImpl"
 init()
 const chains = loadChains()
 
@@ -17,8 +17,8 @@ async function run() {
   }
 
   for (let i = 0; i < chains.length; i++) {
-    const coreRelayerLibrary = await deployCoreRelayerLibrary(chains[i])
-    const coreRelayerImplementation = await deployCoreRelayerImplementation(
+    const coreRelayerLibrary = await deployWormholeRelayerLibrary(chains[i])
+    const coreRelayerImplementation = await deployWormholeRelayerImplementation(
       chains[i],
       coreRelayerLibrary.address
     )

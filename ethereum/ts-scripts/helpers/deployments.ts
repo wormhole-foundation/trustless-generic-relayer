@@ -2,10 +2,10 @@ import { RelayProviderProxy__factory } from "../../../sdk/src/ethers-contracts/f
 import { RelayProviderSetup__factory } from "../../../sdk/src/ethers-contracts/factories/RelayProviderSetup__factory"
 import { RelayProviderImplementation__factory } from "../../../sdk/src/ethers-contracts/factories/RelayProviderImplementation__factory"
 import { MockRelayerIntegration__factory } from "../../../sdk/src"
-import { CoreRelayerProxy__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerProxy__factory"
-import { CoreRelayerSetup__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerSetup__factory"
-import { CoreRelayerImplementation__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerImplementation__factory"
-import { CoreRelayerLibrary__factory } from "../../../sdk/src/ethers-contracts/factories/CoreRelayerLibrary__factory"
+import { WormholeRelayerProxy__factory } from "../../../sdk/src/ethers-contracts/factories/WormholeRelayerProxy__factory"
+import { WormholeRelayerSetup__factory } from "../../../sdk/src/ethers-contracts/factories/WormholeRelayerSetup__factory"
+import { WormholeRelayerImplementation__factory } from "../../../sdk/src/ethers-contracts/factories/WormholeRelayerImplementation__factory"
+import { WormholeRelayerLibrary__factory } from "../../../sdk/src/ethers-contracts/factories/WormholeRelayerLibrary__factory"
 
 import {
   init,
@@ -15,7 +15,7 @@ import {
   ChainInfo,
   Deployment,
   getSigner,
-  getCoreRelayerAddress,
+  getWormholeRelayerAddress,
 } from "./env"
 import { ethers } from "ethers"
 
@@ -82,19 +82,19 @@ export async function deployMockIntegration(chain: ChainInfo): Promise<Deploymen
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy(
     chain.wormholeAddress,
-    getCoreRelayerAddress(chain)
+    getWormholeRelayerAddress(chain)
   )
   const result = await contract.deployed()
   console.log("Successfully deployed contract at " + result.address)
   return { address: result.address, chainId: chain.chainId }
 }
 
-export async function deployCoreRelayerLibrary(chain: ChainInfo): Promise<Deployment> {
-  console.log("deployCoreRelayerLibrary " + chain.chainId)
+export async function deployWormholeRelayerLibrary(chain: ChainInfo): Promise<Deployment> {
+  console.log("deployWormholeRelayerLibrary " + chain.chainId)
 
   let signer = getSigner(chain)
-  const contractInterface = CoreRelayerLibrary__factory.createInterface()
-  const bytecode = CoreRelayerLibrary__factory.bytecode
+  const contractInterface = WormholeRelayerLibrary__factory.createInterface()
+  const bytecode = WormholeRelayerLibrary__factory.bytecode
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy()
   const result = await contract.deployed()
@@ -102,24 +102,24 @@ export async function deployCoreRelayerLibrary(chain: ChainInfo): Promise<Deploy
   return { address: result.address, chainId: chain.chainId }
 }
 
-export async function deployCoreRelayerImplementation(
+export async function deployWormholeRelayerImplementation(
   chain: ChainInfo,
   coreRelayerLibraryAddress: string
 ): Promise<Deployment> {
-  console.log("deployCoreRelayerImplementation " + chain.chainId)
+  console.log("deployWormholeRelayerImplementation " + chain.chainId)
   const signer = getSigner(chain)
-  const contractInterface = CoreRelayerImplementation__factory.createInterface()
-  const bytecode: string = CoreRelayerImplementation__factory.bytecode
+  const contractInterface = WormholeRelayerImplementation__factory.createInterface()
+  const bytecode: string = WormholeRelayerImplementation__factory.bytecode
 
   /*
   Linked libraries in EVM are contained in the bytecode and linked at compile time.
-  However, the linked address of the CoreRelayerLibrary is not known until deployment time,
+  However, the linked address of the WormholeRelayerLibrary is not known until deployment time,
   So, rather that recompiling the contracts with a static link, we modify the bytecode directly 
   once we have the CoreRelayLibraryAddress.
   */
   const bytecodeWithLibraryLink = link(
     bytecode,
-    "CoreRelayerLibrary",
+    "WormholeRelayerLibrary",
     coreRelayerLibraryAddress
   )
 
@@ -134,11 +134,11 @@ export async function deployCoreRelayerImplementation(
   console.log("Successfully deployed contract at " + result.address)
   return { address: result.address, chainId: chain.chainId }
 }
-export async function deployCoreRelayerSetup(chain: ChainInfo): Promise<Deployment> {
-  console.log("deployCoreRelayerSetup " + chain.chainId)
+export async function deployWormholeRelayerSetup(chain: ChainInfo): Promise<Deployment> {
+  console.log("deployWormholeRelayerSetup " + chain.chainId)
   const signer = getSigner(chain)
-  const contractInterface = CoreRelayerSetup__factory.createInterface()
-  const bytecode = CoreRelayerSetup__factory.bytecode
+  const contractInterface = WormholeRelayerSetup__factory.createInterface()
+  const bytecode = WormholeRelayerSetup__factory.bytecode
   //@ts-ignore
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
   const contract = await factory.deploy()
@@ -146,17 +146,17 @@ export async function deployCoreRelayerSetup(chain: ChainInfo): Promise<Deployme
   console.log("Successfully deployed contract at " + result.address)
   return { address: result.address, chainId: chain.chainId }
 }
-export async function deployCoreRelayerProxy(
+export async function deployWormholeRelayerProxy(
   chain: ChainInfo,
   coreRelayerSetupAddress: string,
   coreRelayerImplementationAddress: string,
   wormholeAddress: string,
   relayProviderProxyAddress: string
 ): Promise<Deployment> {
-  console.log("deployCoreRelayerProxy " + chain.chainId)
+  console.log("deployWormholeRelayerProxy " + chain.chainId)
   const signer = getSigner(chain)
-  const contractInterface = CoreRelayerProxy__factory.createInterface()
-  const bytecode = CoreRelayerProxy__factory.bytecode
+  const contractInterface = WormholeRelayerProxy__factory.createInterface()
+  const bytecode = WormholeRelayerProxy__factory.bytecode
   //@ts-ignore
   const factory = new ethers.ContractFactory(contractInterface, bytecode, signer)
 

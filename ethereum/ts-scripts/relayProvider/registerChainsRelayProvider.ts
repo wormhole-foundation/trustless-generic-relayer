@@ -4,7 +4,7 @@ import {
   init,
   loadChains,
   ChainInfo,
-  getCoreRelayerAddress,
+  getWormholeRelayerAddress,
   getRelayProvider,
   getRelayProviderAddress,
 } from "../helpers/env"
@@ -26,9 +26,9 @@ async function registerChainsRelayProvider(chain: ChainInfo) {
   console.log("about to perform registrations for chain " + chain.chainId)
 
   const relayProvider = getRelayProvider(chain)
-  const coreRelayerAddress = getCoreRelayerAddress(chain)
+  const coreRelayerAddress = getWormholeRelayerAddress(chain)
 
-  await relayProvider.updateCoreRelayer(coreRelayerAddress).then(wait)
+  await relayProvider.updateWormholeRelayer(coreRelayerAddress).then(wait)
 
   for (let i = 0; i < chains.length; i++) {
     console.log(`Cross registering with chain ${chains[i].chainId}...`)
