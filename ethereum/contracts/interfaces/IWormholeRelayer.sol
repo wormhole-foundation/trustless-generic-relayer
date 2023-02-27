@@ -23,7 +23,7 @@ interface IWormholeRelayer {
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
-     *  If more gas is needed on the target chain than is paid for, there will be a DeliveryFailure.
+     *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
      *  If maxTransactionFee >= quoteGas(targetChain, gasLimit, getDefaultRelayProvider()), then as long as 'targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
      *  @param receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
@@ -52,7 +52,7 @@ interface IWormholeRelayer {
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @custom:member refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
      *  @custom:member maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
-     *  If more gas is needed on the target chain than is paid for, there will be a DeliveryFailure.
+     *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
      *  @custom:member receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
      *  @custom:member relayParameters This should be 'getDefaultRelayParameters()'
@@ -118,7 +118,7 @@ interface IWormholeRelayer {
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
-     *  If more gas is needed on the target chain than is paid for, there will be a DeliveryFailure.
+     *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
      *  If maxTransactionFee >= quoteGas(targetChain, gasLimit, getDefaultRelayProvider()), then as long as 'targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
      *  @param receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
@@ -187,7 +187,7 @@ interface IWormholeRelayer {
      *  @custom:member multisendIndex If the 'send' (or forward) function was used in the original transaction, this should be 0. Otherwise if the multichainSend (or multichainForward) function was used,
      *  then this should be the index of the specific Send request in the requests array that you wish to be redelivered
      *  @custom:member newMaxTransactionFee The new maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
-     *  If more gas is needed on the target chain than is paid for, there will be a DeliveryFailure.
+     *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
      *  This must be greater than or equal to the original maxTransactionFee paid in the original request
      *  @custom:member receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
@@ -213,17 +213,13 @@ interface IWormholeRelayer {
      *  then the user can request a redelivery of these wormhole messages any time in the future through a call to 'resend' using this struct
      *
      *  @param request Information about the resend request, including the source chain and source transaction hash,
-     *  @param nonce This should be 0
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If the targetAddress's receiveWormholeMessage function uses 'gasLimit' units of gas, then we must have newMaxTransactionFee >= quoteGasResend(targetChain, gasLimit, relayProvider)
      *
      *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for your specified relay provider.
      *  The relay provider will listen for these messages, and then execute the redelivery as described
      */
-    function resend(ResendByTx memory request, uint32 nonce, address relayProvider)
-        external
-        payable
-        returns (uint64 sequence);
+    function resend(ResendByTx memory request, address relayProvider) external payable returns (uint64 sequence);
 
     /**
      * @notice This 'MultichainSend' struct represents a collection of send requests 'requests' and a specified relay provider 'relayProviderAddress'
