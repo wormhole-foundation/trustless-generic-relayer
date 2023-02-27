@@ -33,6 +33,10 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IWormhole(_state.provider.wormhole);
     }
 
+    function wormholeMessageFee() public view returns (uint256) {
+        return _state.provider.wormholeMessageFee;
+    }
+
     function chainId() public view returns (uint16) {
         return _state.provider.chainId;
     }
@@ -53,8 +57,8 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IRelayProvider(_state.defaultRelayProvider);
     }
 
-    function getForwardingRequest() internal view returns (CoreRelayerStructs.ForwardingRequest memory) {
-        return _state.forwardingRequest;
+    function getForwardInstruction() internal view returns (CoreRelayerStructs.ForwardInstruction memory) {
+        return _state.forwardInstruction;
     }
 
     function isContractLocked() internal view returns (bool) {
