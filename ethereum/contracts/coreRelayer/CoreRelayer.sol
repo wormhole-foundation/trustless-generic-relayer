@@ -145,7 +145,7 @@ contract CoreRelayer is CoreRelayerGovernance {
 
     function emitForward(uint256 transactionFeeRefundAmount, ForwardInstruction memory forwardInstruction)
         internal
-        returns (bool forwardEmitted)
+        returns (bool forwardIsFunded)
     {
         DeliveryInstructionsContainer memory container = forwardInstruction.container;
 
@@ -153,12 +153,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         transactionFeeRefundAmount = transactionFeeRefundAmount + forwardInstruction.msgValue;
 
         //make sure the refund amount covers the native gas amounts
-        bool funded = (transactionFeeRefundAmount >= forwardInstruction.totalFee);
-        container.sufficientlyFunded = funded;
+        forwardIsFunded = (transactionFeeRefundAmount >= forwardInstruction.totalFee);
+        container.sufficientlyFunded = forwardIsFunded;
 
         IRelayProvider relayProvider = IRelayProvider(forwardInstruction.relayProvider);
 
-        if (funded) {
+        if (forwardIsFunded) {
             // the rollover chain is the chain in the first request
             uint256 amountUnderMaximum = relayProvider.quoteMaximumBudget(container.instructions[0].targetChain)
                 - (
@@ -182,7 +182,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
 
         // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
-        if (funded) {
+        if (forwardIsFunded) {
             pay(relayProvider.getRewardAddress(), transactionFeeRefundAmount);
         }
 
@@ -244,22 +244,17 @@ contract CoreRelayer is CoreRelayerGovernance {
 
         ForwardInstruction memory forwardingRequest = getForwardInstruction();
         DeliveryStatus status;
-        bool forwardEmitted = false;
+        bool forwardIsFunded = false;
         if (forwardingRequest.isValid) {
-            forwardEmitted = emitForward(transactionFeeRefundAmount, forwardingRequest);
-            status = forwardEmitted ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
+            forwardIsFunded = emitForward(transactionFeeRefundAmount, forwardingRequest);
+            status = forwardIsFunded ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
         } else {
             status = callToTargetContractSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
         }
 
         uint256 receiverValueRefundAmount =
             (callToTargetContractSucceeded ? 0 : internalInstruction.receiverValueTarget);
-        uint256 refundToRefundAddress = forwardEmitted
-            ? 0
-            : (
-                transactionFeeRefundAmount + receiverValueRefundAmount
-                    + (forwardingRequest.isValid ? 0 : wormholeMessageFee())
-            );
+        uint256 refundToRefundAddress = receiverValueRefundAmount + (forwardIsFunded ? 0 : transactionFeeRefundAmount);
 
         bool refundPaidToRefundAddress =
             pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), refundToRefundAddress);
@@ -276,7 +271,10 @@ contract CoreRelayer is CoreRelayerGovernance {
             msg.value - internalInstruction.receiverValueTarget - internalInstruction.maximumRefundTarget
                 - wormholeMessageFee()
         );
-        uint256 relayerRefundAmount = extraRelayerFunds + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
+        uint256 relayerRefundAmount = extraRelayerFunds
+            + (internalInstruction.maximumRefundTarget - transactionFeeRefundAmount)
+            + (forwardingRequest.isValid ? 0 : wormholeMessageFee())
+            + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
         // refund the rest to relayer
         pay(relayerRefund, relayerRefundAmount);
     }

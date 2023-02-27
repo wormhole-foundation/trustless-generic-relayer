@@ -405,6 +405,9 @@ contract TestCoreRelayer is Test {
         uint256 relayerProfit = uint256(feeParams.sourceNativePrice)
             * (setup.source.rewardAddress.balance - rewardAddressBalance)
             - feeParams.targetNativePrice * (relayerBalance - setup.target.relayer.balance);
+        console.log(USDcost);
+        console.log(relayerProfit);
+        console.log((USDcost - relayerProfit));
         assertTrue(USDcost == relayerProfit, "We paid the exact amount");
     }
 
@@ -885,7 +888,7 @@ contract TestCoreRelayer is Test {
         vm.deal(setup.target.relayer, stack.budget);
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8, string)", 2, ""));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8,string)", 2, ""));
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[2] = stack.originalDelivery.encodedVMs[0];
@@ -1014,7 +1017,7 @@ contract TestCoreRelayer is Test {
         );
 
         redeliveryVmHash = relayerWormhole.parseVM(fakeVM).hash;
-        uint256 txValue = stack.payment * (feeParams.sourceNativePrice / feeParams.targetNativePrice + 1)
+        uint256 txValue = stack.payment * feeParams.sourceNativePrice / feeParams.targetNativePrice + 1
             + map[differentChainId].wormhole.messageFee();
         vm.deal(setup.target.relayer, txValue);
 
@@ -1194,7 +1197,7 @@ contract TestCoreRelayer is Test {
             + setup.target.wormhole.messageFee();
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8, string)", 2, ""));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8,string)", 2, ""));
         setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
 
         stack.encodedVMs[2] = stack.encodedVMs[0];
