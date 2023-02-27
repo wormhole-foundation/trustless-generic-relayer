@@ -7,4 +7,5 @@ export { IWormhole__factory } from "./ethers-contracts/factories/IWormhole__fact
 export type { RelayProvider } from "./ethers-contracts/RelayProvider"
 export { RelayProvider__factory } from "./ethers-contracts/factories/RelayProvider__factory"
 export type {IDelivery} from "./ethers-contracts/IDelivery"
+export type {IWormholeRelayer} from "./ethers-contracts/IWormholeRelayer"
 export * from './structs'

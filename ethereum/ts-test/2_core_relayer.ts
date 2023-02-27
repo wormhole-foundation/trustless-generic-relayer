@@ -14,7 +14,7 @@ import {
   loadCoreRelayers,
   loadMockIntegrations,
 } from "../ts-scripts/helpers/env"
-import { MockRelayerIntegration, CoreRelayerStructs } from "../../sdk/src"
+import { MockRelayerIntegration, IWormholeRelayer } from "../../sdk/src"
 const ETHEREUM_ROOT = `${__dirname}/..`
 
 init()
@@ -314,7 +314,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(message).to.not.equal(arbitraryPayload)
 
     console.log("Resending the message");
-    const request: CoreRelayerStructs.ResendByTxStruct = {
+    const request: IWormholeRelayer.ResendByTxStruct = {
       sourceChain: sourceChain.chainId,
       sourceTxHash: tx.hash,
       sourceNonce: 1,
@@ -402,7 +402,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     // RESEND THE MESSAGE SOMEHOW!
 
     /*console.log("Resending the message");
-    const request: CoreRelayerStructs.ResendByTxStruct = {
+    const request: IWormholeRelayer.ResendByTxStruct = {
       sourceChain: sourceChain.chainId,
       sourceTxHash: tx.hash,
       sourceNonce: 1,
