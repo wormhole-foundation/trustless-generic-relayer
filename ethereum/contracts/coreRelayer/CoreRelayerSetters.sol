@@ -6,6 +6,7 @@ pragma solidity ^0.8.0;
 import "./CoreRelayerState.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "./CoreRelayerStructs.sol";
+import {IWormhole} from "../interfaces/IWormhole.sol";
 
 contract CoreRelayerSetters is CoreRelayerState, Context {
     error InvalidEvmChainId();
@@ -32,6 +33,10 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
 
     function setWormhole(address wh) internal {
         _state.provider.wormhole = payable(wh);
+    }
+
+    function updateWormholeMessageFee() internal {
+        _state.provider.wormholeMessageFee = IWormhole(_state.provider.wormhole).messageFee();
     }
 
     function setRelayProvider(address defaultRelayProvider) internal {

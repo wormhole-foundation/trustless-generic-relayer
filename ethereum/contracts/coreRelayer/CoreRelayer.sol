@@ -43,8 +43,8 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
-        IWormhole wormhole = wormhole();
-        bool isSufficient = request.newMaxTransactionFee + request.newReceiverValue + wormhole.messageFee() <= msg.value;
+        updateWormholeMessageFee();
+        bool isSufficient = request.newMaxTransactionFee + request.newReceiverValue + wormholeMessageFee() <= msg.value;
         if (!isSufficient) {
             revert IWormholeRelayer.MsgValueTooLow();
         }
@@ -53,14 +53,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         RedeliveryByTxHashInstruction memory instruction = convertResendToRedeliveryInstruction(request, provider);
         checkRedeliveryInstruction(instruction, provider);
 
-        uint256 wormholeMessageFee = wormhole.messageFee();
-
-        sequence = wormhole.publishMessage{value: wormholeMessageFee}(
+        sequence = wormhole().publishMessage{value: wormholeMessageFee()}(
             nonce, encodeRedeliveryInstruction(instruction), provider.getConsistencyLevel()
         );
 
         //Send the delivery fees to the specified address of the provider.
-        pay(provider.getRewardAddress(), msg.value - wormholeMessageFee);
+        pay(provider.getRewardAddress(), msg.value - wormholeMessageFee());
     }
 
     /**
@@ -78,6 +76,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         payable
         returns (uint64 sequence)
     {
+        updateWormholeMessageFee();
         uint256 totalFee = getTotalFeeMultichainSend(deliveryRequests);
         if (totalFee > msg.value) {
             revert IWormholeRelayer.MsgValueTooLow();
@@ -85,6 +84,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (nonce == 0) {
             revert IWormholeRelayer.NonceIsZero();
         }
+
         IRelayProvider relayProvider = IRelayProvider(deliveryRequests.relayProviderAddress);
         DeliveryInstructionsContainer memory container =
             convertMultichainSendToDeliveryInstructionsContainer(deliveryRequests);
@@ -92,14 +92,12 @@ contract CoreRelayer is CoreRelayerGovernance {
         container.sufficientlyFunded = true;
 
         // emit delivery message
-        IWormhole wormhole = wormhole();
-        uint256 wormholeMessageFee = wormhole.messageFee();
-        sequence = wormhole.publishMessage{value: wormholeMessageFee}(
+        sequence = wormhole().publishMessage{value: wormholeMessageFee()}(
             nonce, encodeDeliveryInstructionsContainer(container), relayProvider.getConsistencyLevel()
         );
 
         //pay fee to provider
-        pay(relayProvider.getRewardAddress(), totalFee - wormholeMessageFee);
+        pay(relayProvider.getRewardAddress(), totalFee - wormholeMessageFee());
     }
 
     /**
@@ -145,14 +143,17 @@ contract CoreRelayer is CoreRelayerGovernance {
         );
     }
 
-    function emitForward(uint256 refundAmount, ForwardInstruction memory forwardInstruction) internal returns (bool) {
+    function emitForward(uint256 transactionFeeRefundAmount, ForwardInstruction memory forwardInstruction)
+        internal
+        returns (bool forwardEmitted)
+    {
         DeliveryInstructionsContainer memory container = forwardInstruction.container;
 
         //Add any additional funds which were passed in to the refund amount
-        refundAmount = refundAmount + forwardInstruction.msgValue;
+        transactionFeeRefundAmount = transactionFeeRefundAmount + forwardInstruction.msgValue;
 
         //make sure the refund amount covers the native gas amounts
-        bool funded = (refundAmount >= forwardInstruction.totalFee);
+        bool funded = (transactionFeeRefundAmount >= forwardInstruction.totalFee);
         container.sufficientlyFunded = funded;
 
         IRelayProvider relayProvider = IRelayProvider(forwardInstruction.relayProvider);
@@ -161,32 +162,32 @@ contract CoreRelayer is CoreRelayerGovernance {
             // the rollover chain is the chain in the first request
             uint256 amountUnderMaximum = relayProvider.quoteMaximumBudget(container.instructions[0].targetChain)
                 - (
-                    wormhole().messageFee() + container.instructions[0].maximumRefundTarget
+                    wormholeMessageFee() + container.instructions[0].maximumRefundTarget
                         + container.instructions[0].receiverValueTarget
                 );
             uint256 convertedExtraAmount = calculateTargetDeliveryMaximumRefund(
-                container.instructions[0].targetChain, refundAmount - forwardInstruction.totalFee, relayProvider
+                container.instructions[0].targetChain,
+                transactionFeeRefundAmount - forwardInstruction.totalFee,
+                relayProvider
             );
             container.instructions[0].maximumRefundTarget +=
                 (amountUnderMaximum > convertedExtraAmount) ? convertedExtraAmount : amountUnderMaximum;
         }
 
         //emit forwarding instruction
-        bytes memory encoded = encodeDeliveryInstructionsContainer(container);
-        IWormhole wormhole = wormhole();
-        uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(
-            forwardInstruction.nonce, encoded, relayProvider.getConsistencyLevel()
+        wormhole().publishMessage{value: wormholeMessageFee()}(
+            forwardInstruction.nonce,
+            encodeDeliveryInstructionsContainer(container),
+            relayProvider.getConsistencyLevel()
         );
 
         // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
         if (funded) {
-            pay(relayProvider.getRewardAddress(), refundAmount);
+            pay(relayProvider.getRewardAddress(), transactionFeeRefundAmount);
         }
 
         //clear forwarding request from cache
         clearForwardInstruction();
-
-        return funded;
     }
 
     function multichainSendContainer(IWormholeRelayer.Send memory request, address relayProvider)
@@ -200,7 +201,6 @@ contract CoreRelayer is CoreRelayerGovernance {
     }
 
     function _executeDelivery(
-        IWormhole wormhole,
         DeliveryInstruction memory internalInstruction,
         bytes[] memory encodedVMs,
         bytes32 deliveryVaaHash,
@@ -220,7 +220,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         uint256 preGas = gasleft();
 
         // call the receiveWormholeMessages endpoint on the target contract
-        (bool success,) = fromWormholeFormat(internalInstruction.targetAddress).call{
+        (bool callToTargetContractSucceeded,) = fromWormholeFormat(internalInstruction.targetAddress).call{
             gas: internalInstruction.executionParameters.gasLimit,
             value: internalInstruction.receiverValueTarget
         }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
@@ -236,32 +236,33 @@ contract CoreRelayer is CoreRelayerGovernance {
             : (preGas - postGas);
 
         // refund unused gas budget
-        uint256 weiToRefund = internalInstruction.receiverValueTarget;
-        if (success) {
-            weiToRefund = (internalInstruction.executionParameters.gasLimit - gasUsed)
-                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
-        }
+        uint256 transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
+            * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
 
         // unlock the contract
         setContractLock(false);
 
         ForwardInstruction memory forwardingRequest = getForwardInstruction();
         DeliveryStatus status;
-        bool forwardSucceeded = false;
+        bool forwardEmitted = false;
         if (forwardingRequest.isValid) {
-            forwardSucceeded = emitForward(weiToRefund, forwardingRequest);
-            status = forwardSucceeded ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
+            forwardEmitted = emitForward(transactionFeeRefundAmount, forwardingRequest);
+            status = forwardEmitted ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
         } else {
-            status = success ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
+            status = callToTargetContractSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
         }
 
-        if (!forwardSucceeded) {
-            bool sent = pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), weiToRefund);
-            if (!sent) {
-                // if refunding fails, pay out full refund to relayer
-                weiToRefund = 0;
-            }
-        }
+        uint256 receiverValueRefundAmount =
+            (callToTargetContractSucceeded ? 0 : internalInstruction.receiverValueTarget);
+        uint256 refundToRefundAddress = forwardEmitted
+            ? 0
+            : (
+                transactionFeeRefundAmount + receiverValueRefundAmount
+                    + (forwardingRequest.isValid ? 0 : wormholeMessageFee())
+            );
+
+        bool refundPaidToRefundAddress =
+            pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), refundToRefundAddress);
 
         emit Delivery({
             recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
@@ -271,9 +272,12 @@ contract CoreRelayer is CoreRelayerGovernance {
             status: status
         });
 
-        uint256 receiverValuePaid = (success ? internalInstruction.receiverValueTarget : 0);
-        uint256 wormholeFeePaid = forwardingRequest.isValid ? wormhole.messageFee() : 0;
-        uint256 relayerRefundAmount = msg.value - weiToRefund - receiverValuePaid - wormholeFeePaid;
+        uint256 receiverValuePaid = (callToTargetContractSucceeded ? internalInstruction.receiverValueTarget : 0);
+        uint256 extraRelayerFunds = (
+            msg.value - internalInstruction.receiverValueTarget - internalInstruction.maximumRefundTarget
+                - wormholeMessageFee()
+        );
+        uint256 relayerRefundAmount = extraRelayerFunds + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
         // refund the rest to relayer
         pay(relayerRefund, relayerRefundAmount);
     }
@@ -289,6 +293,7 @@ contract CoreRelayer is CoreRelayerGovernance {
     function redeliverSingle(IDelivery.TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
         //cache wormhole
         IWormhole wormhole = wormhole();
+        updateWormholeMessageFee();
 
         //validate the redelivery VM
         (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) =
@@ -301,15 +306,14 @@ contract CoreRelayer is CoreRelayerGovernance {
             revert IDelivery.InvalidEmitterInRedeliveryVM();
         }
 
-        RedeliveryByTxHashInstruction memory redeliveryInstruction =
-            decodeRedeliveryInstruction(redeliveryVM.payload);
+        RedeliveryByTxHashInstruction memory redeliveryInstruction = decodeRedeliveryInstruction(redeliveryVM.payload);
 
         //validate the original delivery VM
         IWormhole.VM memory originalDeliveryVM;
         (originalDeliveryVM, valid, reason) =
             wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[redeliveryInstruction.deliveryIndex]);
         if (!valid) {
-            revert IDelivery.InvalidVaa(redeliveryInstruction.deliveryIndex);
+            revert IDelivery.InvalidVaa(redeliveryInstruction.deliveryIndex, reason);
         }
         if (!verifyRelayerVM(originalDeliveryVM)) {
             // Original Delivery VM has a invalid emitter
@@ -336,7 +340,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         _executeDelivery(
-            wormhole,
             instruction,
             targetParams.sourceEncodedVMs,
             originalDeliveryVM.hash,
@@ -362,7 +365,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         if (
             msg.value
                 < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newReceiverValueTarget
-                    + wormhole().messageFee()
+                    + wormholeMessageFee()
         ) {
             revert IDelivery.InsufficientRelayerFunds();
         }
@@ -393,12 +396,13 @@ contract CoreRelayer is CoreRelayerGovernance {
     function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams) public payable {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
+        updateWormholeMessageFee();
 
         // validate the deliveryIndex
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
         if (!valid) {
-            revert IDelivery.InvalidVaa(targetParams.deliveryIndex);
+            revert IDelivery.InvalidVaa(targetParams.deliveryIndex, reason);
         }
         if (!verifyRelayerVM(deliveryVM)) {
             revert IDelivery.InvalidEmitter();
@@ -421,7 +425,7 @@ contract CoreRelayer is CoreRelayerGovernance {
         //make sure relayer passed in sufficient funds
         if (
             msg.value
-                < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormhole.messageFee()
+                < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormholeMessageFee()
         ) {
             revert IDelivery.InsufficientRelayerFunds();
         }
@@ -432,7 +436,6 @@ contract CoreRelayer is CoreRelayerGovernance {
         }
 
         _executeDelivery(
-            wormhole,
             deliveryInstruction,
             targetParams.encodedVMs,
             deliveryVM.hash,

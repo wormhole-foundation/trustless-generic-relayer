@@ -885,7 +885,7 @@ contract TestCoreRelayer is Test {
         vm.deal(setup.target.relayer, stack.budget);
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 2));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8, string)", 2, ""));
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.originalDelivery.encodedVMs[2] = stack.originalDelivery.encodedVMs[0];
@@ -1194,7 +1194,7 @@ contract TestCoreRelayer is Test {
             + setup.target.wormhole.messageFee();
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8)", 2));
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaa(uint8, string)", 2, ""));
         setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
 
         stack.encodedVMs[2] = stack.encodedVMs[0];

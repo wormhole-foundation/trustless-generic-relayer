@@ -9,6 +9,7 @@ contract CoreRelayerStorage {
     struct Provider {
         uint16 chainId;
         address payable wormhole;
+        uint256 wormholeMessageFee;
         uint16 governanceChainId;
         bytes32 governanceContract;
     }

@@ -20,7 +20,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         view
         returns (uint256 totalFee)
     {
-        totalFee = wormhole().messageFee();
+        totalFee = wormholeMessageFee();
         for (uint256 i = 0; i < sendContainer.requests.length; i++) {
             totalFee += sendContainer.requests[i].maxTransactionFee + sendContainer.requests[i].receiverValue;
         }
@@ -64,12 +64,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         view
     {
         for (uint8 i = 0; i < container.instructions.length; i++) {
-            if (container.instructions[i].executionParameters.gasLimit == 0) {
+            DeliveryInstruction memory instruction = container.instructions[i];
+            if (instruction.executionParameters.gasLimit == 0) {
                 revert IWormholeRelayer.MaxTransactionFeeNotEnough(i);
             }
             if (
-                container.instructions[i].maximumRefundTarget + container.instructions[i].receiverValueTarget
-                    + wormhole().messageFee() > relayProvider.quoteMaximumBudget(container.instructions[i].targetChain)
+                instruction.maximumRefundTarget + instruction.receiverValueTarget + wormholeMessageFee()
+                    > relayProvider.quoteMaximumBudget(instruction.targetChain)
             ) {
                 revert IWormholeRelayer.FundsTooMuch(i);
             }
@@ -84,7 +85,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
         }
         if (
-            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormhole().messageFee()
+            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeMessageFee()
                 > relayProvider.quoteMaximumBudget(instruction.targetChain)
         ) {
             revert IWormholeRelayer.FundsTooMuch(0);

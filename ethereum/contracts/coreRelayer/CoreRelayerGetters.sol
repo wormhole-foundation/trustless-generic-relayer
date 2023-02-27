@@ -33,6 +33,10 @@ contract CoreRelayerGetters is CoreRelayerState {
         return IWormhole(_state.provider.wormhole);
     }
 
+    function wormholeMessageFee() public view returns (uint256) {
+        return _state.provider.wormholeMessageFee;
+    }
+
     function chainId() public view returns (uint16) {
         return _state.provider.chainId;
     }
