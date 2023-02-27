@@ -21,8 +21,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         returns (uint256 totalFee)
     {
         totalFee = wormholeMessageFee();
-        for (uint256 i = 0; i < sendContainer.requests.length; i++) {
-            totalFee += sendContainer.requests[i].maxTransactionFee + sendContainer.requests[i].receiverValue;
+        uint256 length = sendContainer.requests.length;
+        for (uint256 i = 0; i < length; i++) {
+            IWormholeRelayer.Send memory request = sendContainer.requests[i];
+            totalFee += request.maxTransactionFee + request.receiverValue;
         }
     }
 
@@ -33,8 +35,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     {
         instructionsContainer.payloadId = 1;
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
-        instructionsContainer.instructions = new DeliveryInstruction[](sendContainer.requests.length);
-        for (uint256 i = 0; i < sendContainer.requests.length; i++) {
+        uint256 length = sendContainer.requests.length;
+        instructionsContainer.instructions = new DeliveryInstruction[](length);
+        for (uint256 i = 0; i < length; i++) {
             instructionsContainer.instructions[i] =
                 convertSendToDeliveryInstruction(sendContainer.requests[i], relayProvider);
         }
@@ -63,7 +66,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         internal
         view
     {
-        for (uint8 i = 0; i < container.instructions.length; i++) {
+        uint256 length = container.instructions.length;
+        for (uint8 i = 0; i < length; i++) {
             DeliveryInstruction memory instruction = container.instructions[i];
             if (instruction.executionParameters.gasLimit == 0) {
                 revert IWormholeRelayer.MaxTransactionFeeNotEnough(i);
