@@ -35,8 +35,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         return quoteAssetConversion(targetChain, gasPrice(targetChain), chainId());
     }
 
-    //Returns the price of chainId's native currency in USD * 10^6
-    //TODO decide on USD decimals
+    //Returns the price of chainId's native currency in USD 10^-6 units
     function quoteAssetPrice(uint16 chainId) public view override returns (uint256) {
         return nativeCurrencyPrice(chainId);
     }
