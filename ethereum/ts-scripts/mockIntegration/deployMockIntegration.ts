@@ -3,6 +3,7 @@ import { deployMockIntegration } from "../helpers/deployments"
 import { BigNumber } from "ethers"
 import { tryNativeToHexString } from "@certusone/wormhole-sdk"
 import { MockRelayerIntegration__factory } from "../../../sdk/src"
+import { wait } from "../helpers/utils"
 
 const processName = "deployMockIntegration"
 init()
@@ -23,10 +24,18 @@ async function run() {
   writeOutputFiles(output, processName)
 
   for (let i = 0; i < chains.length; i++) {
-    const mockIntegration = getMockIntegration(chains[i]);
+    console.log(`Registering emitters for chainId ${chains[i].chainId}`)
+    const mockIntegration = getMockIntegration(chains[i])
     for (let j = 0; j < chains.length; j++) {
-      const secondMockIntegration = output.mockIntegrations[j];
-      await mockIntegration.registerEmitter(secondMockIntegration.chainId, "0x"+tryNativeToHexString(secondMockIntegration.address, "ethereum"), {gasLimit: 500000}).then((tx) => tx.wait);
+      console.log(`Registering emitter ${chains[j].chainId}`)
+      const secondMockIntegration = output.mockIntegrations[j]
+      await mockIntegration
+        .registerEmitter(
+          secondMockIntegration.chainId,
+          "0x" + tryNativeToHexString(secondMockIntegration.address, "ethereum"),
+          { gasLimit: 500000 }
+        )
+        .then(wait)
     }
   }
 }
