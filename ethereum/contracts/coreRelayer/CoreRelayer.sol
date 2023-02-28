@@ -196,6 +196,9 @@ contract CoreRelayer is CoreRelayerDelivery {
         if (nonce == 0) {
             revert IWormholeRelayer.NonceIsZero();
         }
+        if(sendContainer.requests.length == 0) {
+            revert IWormholeRelayer.MultichainSendEmpty();
+        }
 
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
 
@@ -252,6 +255,9 @@ contract CoreRelayer is CoreRelayerDelivery {
         if (msg.sender != lockedTargetAddress()) {
             revert IWormholeRelayer.ForwardRequestFromWrongAddress();
         }
+        if(sendContainer.requests.length == 0) {
+            revert IWormholeRelayer.MultichainSendEmpty();
+        }
 
         uint256 wormholeMessageFee = wormhole().messageFee();
         uint256 totalFee = getTotalFeeMultichainSend(sendContainer, wormholeMessageFee);
@@ -291,6 +297,7 @@ contract CoreRelayer is CoreRelayerDelivery {
      *  @param request Information about the resend request, including the source chain and source transaction hash,
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If the targetAddress's receiveWormholeMessage function uses 'gasLimit' units of gas, then we must have newMaxTransactionFee >= quoteGasResend(targetChain, gasLimit, relayProvider)
+     *  This must be the same relayProvider that was designated to relay these messages previously
      *
      *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for your specified relay provider.
      *  The relay provider will listen for these messages, and then execute the redelivery as described
@@ -314,7 +321,7 @@ contract CoreRelayer is CoreRelayerDelivery {
 
         // Check that the total amount of value the relay provider needs to use for this redelivery is <= the relayProvider's maximum budget for 'targetChain'
         // and check that the calculated gas is greater than 0
-        checkRedeliveryInstruction(instruction, provider, wormholeMessageFee);
+        checkRedeliveryInstruction(instruction, provider);
 
         // Publish a wormhole message indicating to the relay provider (who is watching wormhole messages from this contract)
         // to re-relay the messages from transaction 'request.txHash' with the calculated amount of gas and receiverValue

@@ -264,6 +264,7 @@ interface IWormholeRelayer {
      *  @param request Information about the resend request, including the source chain and source transaction hash,
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If the targetAddress's receiveWormholeMessage function uses 'gasLimit' units of gas, then we must have newMaxTransactionFee >= quoteGasResend(targetChain, gasLimit, relayProvider)
+     *  This must be the same relayProvider that was designated to relay these messages previously
      *
      *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for your specified relay provider.
      *  The relay provider will listen for these messages, and then execute the redelivery as described
@@ -362,4 +363,5 @@ interface IWormholeRelayer {
     error MultipleForwardsRequested(); // Only one forward can be requested in a transaction
     error ForwardRequestFromWrongAddress(); // A forward was requested from an address that is not the 'targetAddress' of the original delivery
     error RelayProviderDoesNotSupportTargetChain(); // Your relay provider does not support the target chain you specified
+    error MultichainSendEmpty(); // Your delivery request container has size 0
 }

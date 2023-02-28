@@ -133,14 +133,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      */
     function checkRedeliveryInstruction(
         RedeliveryByTxHashInstruction memory instruction,
-        IRelayProvider relayProvider,
-        uint256 wormholeMessageFee
+        IRelayProvider relayProvider
     ) internal view {
         if (instruction.executionParameters.gasLimit == 0) {
             revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
         }
         if (
-            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeMessageFee
+            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
                 > relayProvider.quoteMaximumBudget(instruction.targetChain)
         ) {
             revert IWormholeRelayer.FundsTooMuch(0);
