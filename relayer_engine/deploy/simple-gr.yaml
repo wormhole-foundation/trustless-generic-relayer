@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name:  simple-gr
-  namespace: default
+  namespace: generic-relayer
   labels:
     app:  simple-gr
 spec:
@@ -12,23 +12,24 @@ spec:
   replicas: 1
   template:
     metadata:
+      namespace: generic-relayer
       labels:
         app:  simple-gr
     spec:
       restartPolicy: Always
       containers:
       - name:  simple-gr
-        image:  ghcr.io/wormhole-foundation/trustless-generic-relayer:pr-76
+        image:  ghcr.io/wormhole-foundation/trustless-generic-relayer:main
         imagePullPolicy: Always
         # uncomment to explore filesystem during crash loop
         # command: [ "/bin/sh", "-c", "--" ]
         # args: [ "while true; do sleep 30; done;" ]
         resources:
           requests:
-            cpu: 1000m
+#            cpu: 500m
             memory: 600Mi
           limits:
-            cpu: 1000m
+            cpu: 800m
             memory: 2000Mi
         volumeMounts:
         - name: relayer-contracts
