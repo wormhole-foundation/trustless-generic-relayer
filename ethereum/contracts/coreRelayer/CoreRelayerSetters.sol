@@ -35,10 +35,6 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.provider.wormhole = payable(wh);
     }
 
-    function updateWormholeMessageFee() internal {
-        _state.provider.wormholeMessageFee = IWormhole(_state.provider.wormhole).messageFee();
-    }
-
     function setRelayProvider(address defaultRelayProvider) internal {
         _state.defaultRelayProvider = defaultRelayProvider;
     }
