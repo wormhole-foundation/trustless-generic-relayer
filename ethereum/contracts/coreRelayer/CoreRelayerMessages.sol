@@ -20,12 +20,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param sendContainer A MultichainSend struct describing all of the Send requests
      * @return totalFee
      */
-    function getTotalFeeMultichainSend(IWormholeRelayer.MultichainSend memory sendContainer)
+    function getTotalFeeMultichainSend(IWormholeRelayer.MultichainSend memory sendContainer, uint256 wormholeMessageFee)
         internal
         view
         returns (uint256 totalFee)
     {
-        totalFee = wormholeMessageFee();
+        totalFee = wormholeMessageFee;
         uint256 length = sendContainer.requests.length;
         for (uint256 i = 0; i < length; i++) {
             IWormholeRelayer.Send memory request = sendContainer.requests[i];
@@ -131,15 +131,16 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param instruction A RedeliveryByTxHashInstruction
      * @param relayProvider The relayProvider whos maximum budget we are checking against
      */
-    function checkRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction, IRelayProvider relayProvider)
-        internal
-        view
-    {
+    function checkRedeliveryInstruction(
+        RedeliveryByTxHashInstruction memory instruction,
+        IRelayProvider relayProvider,
+        uint256 wormholeMessageFee
+    ) internal view {
         if (instruction.executionParameters.gasLimit == 0) {
             revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
         }
         if (
-            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeMessageFee()
+            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeMessageFee
                 > relayProvider.quoteMaximumBudget(instruction.targetChain)
         ) {
             revert IWormholeRelayer.FundsTooMuch(0);

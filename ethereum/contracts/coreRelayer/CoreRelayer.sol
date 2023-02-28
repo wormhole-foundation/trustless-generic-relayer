@@ -187,8 +187,9 @@ contract CoreRelayer is CoreRelayerDelivery {
         payable
         returns (uint64 sequence)
     {
-        updateWormholeMessageFee();
-        uint256 totalFee = getTotalFeeMultichainSend(sendContainer);
+        IWormhole wormhole = wormhole();
+        uint256 wormholeMessageFee = wormhole.messageFee();
+        uint256 totalFee = getTotalFeeMultichainSend(sendContainer, wormholeMessageFee);
         if (totalFee > msg.value) {
             revert IWormholeRelayer.MsgValueTooLow();
         }
@@ -214,12 +215,12 @@ contract CoreRelayer is CoreRelayerDelivery {
 
         // Publish a wormhole message indicating to the relay provider (who is watching wormhole messages from this contract)
         // to relay the messages from this transaction (of nonce 'nonce') to the specified chains, each with the calculated amount of gas and receiverValue
-        sequence = wormhole().publishMessage{value: wormholeMessageFee()}(
+        sequence = wormhole.publishMessage{value: wormholeMessageFee}(
             nonce, encodeDeliveryInstructionsContainer(instructionsContainer), relayProvider.getConsistencyLevel()
         );
 
         // Pay the relay provider
-        pay(relayProvider.getRewardAddress(), totalFee - wormholeMessageFee());
+        pay(relayProvider.getRewardAddress(), totalFee - wormholeMessageFee);
     }
 
     /**
@@ -252,7 +253,8 @@ contract CoreRelayer is CoreRelayerDelivery {
             revert IWormholeRelayer.ForwardRequestFromWrongAddress();
         }
 
-        uint256 totalFee = getTotalFeeMultichainSend(sendContainer);
+        uint256 wormholeMessageFee = wormhole().messageFee();
+        uint256 totalFee = getTotalFeeMultichainSend(sendContainer, wormholeMessageFee);
 
         // For each 'Send' request,
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
@@ -298,8 +300,9 @@ contract CoreRelayer is CoreRelayerDelivery {
         payable
         returns (uint64 sequence)
     {
-        updateWormholeMessageFee();
-        if (request.newMaxTransactionFee + request.newReceiverValue + wormholeMessageFee() > msg.value) {
+        IWormhole wormhole = wormhole();
+        uint256 wormholeMessageFee = wormhole.messageFee();
+        if (request.newMaxTransactionFee + request.newReceiverValue + wormholeMessageFee > msg.value) {
             revert IWormholeRelayer.MsgValueTooLow();
         }
 
@@ -311,16 +314,16 @@ contract CoreRelayer is CoreRelayerDelivery {
 
         // Check that the total amount of value the relay provider needs to use for this redelivery is <= the relayProvider's maximum budget for 'targetChain'
         // and check that the calculated gas is greater than 0
-        checkRedeliveryInstruction(instruction, provider);
+        checkRedeliveryInstruction(instruction, provider, wormholeMessageFee);
 
         // Publish a wormhole message indicating to the relay provider (who is watching wormhole messages from this contract)
         // to re-relay the messages from transaction 'request.txHash' with the calculated amount of gas and receiverValue
-        sequence = wormhole().publishMessage{value: wormholeMessageFee()}(
+        sequence = wormhole.publishMessage{value: wormholeMessageFee}(
             0, encodeRedeliveryInstruction(instruction), provider.getConsistencyLevel()
         );
 
         // Pay the relay provider
-        pay(provider.getRewardAddress(), msg.value - wormholeMessageFee());
+        pay(provider.getRewardAddress(), msg.value - wormholeMessageFee);
     }
 
     /**

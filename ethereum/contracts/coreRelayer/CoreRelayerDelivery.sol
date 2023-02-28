@@ -40,11 +40,13 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         IRelayProvider relayProvider = IRelayProvider(forwardInstruction.relayProvider);
 
+        IWormhole wormhole = wormhole();
+        uint256 wormholeMessageFee = wormhole.messageFee();
         if (forwardIsFunded) {
             // the rollover chain is the chain in the first request
             uint256 amountUnderMaximum = relayProvider.quoteMaximumBudget(container.instructions[0].targetChain)
                 - (
-                    wormholeMessageFee() + container.instructions[0].maximumRefundTarget
+                    wormholeMessageFee + container.instructions[0].maximumRefundTarget
                         + container.instructions[0].receiverValueTarget
                 );
             uint256 convertedExtraAmount = calculateTargetDeliveryMaximumRefund(
@@ -57,7 +59,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
 
         //emit forwarding instruction
-        wormhole().publishMessage{value: wormholeMessageFee()}(
+        wormhole.publishMessage{value: wormholeMessageFee}(
             forwardInstruction.nonce,
             encodeDeliveryInstructionsContainer(container),
             relayProvider.getConsistencyLevel()
@@ -139,14 +141,14 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             status: status
         });
 
+        uint256 wormholeMessageFee = wormhole().messageFee();
         uint256 extraRelayerFunds = (
             msg.value - internalInstruction.receiverValueTarget - internalInstruction.maximumRefundTarget
-                - wormholeMessageFee()
+                - wormholeMessageFee
         );
         uint256 relayerRefundAmount = extraRelayerFunds
             + (internalInstruction.maximumRefundTarget - transactionFeeRefundAmount)
-            + (forwardingRequest.isValid ? 0 : wormholeMessageFee())
-            + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
+            + (forwardingRequest.isValid ? 0 : wormholeMessageFee) + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
         // refund the rest to relayer
         pay(relayerRefund, relayerRefundAmount);
     }
@@ -158,7 +160,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
     function redeliverSingle(IDelivery.TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
         //cache wormhole
         IWormhole wormhole = wormhole();
-        updateWormholeMessageFee();
 
         //validate the redelivery VM
         (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) =
@@ -226,11 +227,12 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.MismatchingRelayProvidersInRedelivery();
         }
 
+        uint256 wormholeMessageFee = wormhole().messageFee();
         // relayer must have covered the necessary funds
         if (
             msg.value
                 < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newReceiverValueTarget
-                    + wormholeMessageFee()
+                    + wormholeMessageFee
         ) {
             revert IDelivery.InsufficientRelayerFunds();
         }
@@ -261,7 +263,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
     function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams) public payable {
         // cache wormhole instance
         IWormhole wormhole = wormhole();
-        updateWormholeMessageFee();
 
         // validate the deliveryIndex
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) =
@@ -287,10 +288,11 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.UnexpectedRelayer();
         }
 
+        uint256 wormholeMessageFee = wormhole.messageFee();
         //make sure relayer passed in sufficient funds
         if (
             msg.value
-                < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormholeMessageFee()
+                < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormholeMessageFee
         ) {
             revert IDelivery.InsufficientRelayerFunds();
         }
