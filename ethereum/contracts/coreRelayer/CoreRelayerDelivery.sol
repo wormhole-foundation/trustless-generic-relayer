@@ -260,11 +260,23 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         deliveryInstruction.executionParameters = redeliveryInstruction.executionParameters;
     }
 
+    /**
+     * @notice The relay provider calls 'deliverSingle' to relay messages as described by one delivery instruction
+     * 
+     * The instruction specifies the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
+     * receiverValue (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
+     * 
+     * The relay provider must pass in the signed wormhole messages from the source chain of the same nonce
+     * (the wormhole message with the delivery instructions (the delivery VAA) must be one of these messages)
+     * as well as identify which of these messages is the delivery VAA and which of the many instructions in the multichainSend container is meant to be executed 
+     * 
+     * @param targetParams struct containing the signed wormhole messages and encoded delivery instruction container (and other information)
+     */
     function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams) public payable {
-        // cache wormhole instance
+
         IWormhole wormhole = wormhole();
 
-        // validate the deliveryIndex
+        // Verify the signature and emitter of the wormhole message containing the delivery instructions container
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
         if (!valid) {
@@ -275,21 +287,25 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
-        //ensure this is a funded delivery, not a failed forward.
+
+        // Check that the delivery instructions container was fully funded
         if (!container.sufficientlyFunded) {
             revert IDelivery.SendNotSufficientlyFunded();
         }
 
-        // parse the deliveryVM payload into the DeliveryInstructions struct
+        // Obtain the specific instruction that is intended to be executed in this function
+        // specifying the the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
+        // receiverValue (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
         DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
 
-        //make sure the specified relayer is the relayer delivering this message
+        // make sure that msg.sender is the permissioned address allowed to execute this instruction
         if (fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
             revert IDelivery.UnexpectedRelayer();
         }
 
         uint256 wormholeMessageFee = wormhole.messageFee();
-        //make sure relayer passed in sufficient funds
+
+        // make sure relayer passed in (as msg.value) sufficient funds
         if (
             msg.value
                 < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormholeMessageFee
@@ -297,7 +313,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.InsufficientRelayerFunds();
         }
 
-        //make sure this delivery is intended for this chain
+        // make sure 'targetChain' is the current chain
         if (chainId() != deliveryInstruction.targetChain) {
             revert IDelivery.TargetChainIsNotThisChain(deliveryInstruction.targetChain);
         }
@@ -312,10 +328,20 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         );
     }
 
+    /**
+     * @notice Helper function that converts an EVM address to wormhole format
+     * @param addr (EVM 20-byte address)
+     * @return whFormat (32-byte address in Wormhole format)
+     */
     function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
         return bytes32(uint256(uint160(addr)));
     }
 
+    /**
+     * @notice Helper function that converts an Wormhole format (32-byte) address to the EVM 'address' 20-byte format
+     * @param whFormatAddress (32-byte address in Wormhole format)
+     * @return addr (EVM 20-byte address)
+     */
     function fromWormholeFormat(bytes32 whFormatAddress) public pure returns (address addr) {
         return address(uint160(uint256(whFormatAddress)));
     }
