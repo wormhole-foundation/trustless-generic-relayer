@@ -26,11 +26,19 @@ interface IDelivery {
      * @notice The relay provider calls 'deliverSingle' to relay messages as described by one delivery instruction
      * 
      * The instruction specifies the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
-     * receiverValue (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
+     * receiver value (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
      * 
-     * The relay provider must pass in the signed wormhole messages from the source chain of the same nonce
+     * The relay provider must pass in the signed wormhole messages (VAAs) from the source chain of the same nonce
      * (the wormhole message with the delivery instructions (the delivery VAA) must be one of these messages)
      * as well as identify which of these messages is the delivery VAA and which of the many instructions in the multichainSend container is meant to be executed 
+     * 
+     * The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met:
+     * - the delivery VAA has a valid signature
+     * - the delivery VAA's emitter is one of these CoreRelayer contracts
+     * - the delivery instruction container in the delivery VAA was fully funded
+     * - the instruction's target chain is this chain
+     * - the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefundTarget + instruction.receiverValueTarget] of this chain's currency as msg.value 
+     * - msg.sender is the permissioned address allowed to execute this instruction
      * 
      * @param targetParams struct containing the signed wormhole messages and encoded delivery instruction container (and other information)
      */
@@ -59,6 +67,18 @@ interface IDelivery {
      * The relay provider must pass in the original signed wormhole messages from the source chain of the same nonce
      * (the wormhole message with the original delivery instructions (the delivery VAA) must be one of these messages)
      * as well as the wormhole message with the new redelivery instruction (the redelivery VAA)
+     * 
+     * The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met:
+     * - the redelivery VAA (targetParams.redeliveryVM) has a valid signature
+     * - the redelivery VAA's emitter is one of these CoreRelayer contracts
+     * - the original delivery VAA has a valid signature
+     * - the original delivery VAA's emitter is one of these CoreRelayer contracts
+     * - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
+     * - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
+     * - the redelivery instruction's target chain = the original instruction's target chain = this chain
+     * - for the redelivery instruction, the relay provider passed in at least [(one wormhole message fee) + instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget] of this chain's currency as msg.value 
+     * - msg.sender is the permissioned address allowed to execute this redelivery instruction
+     * - msg.sender is the permissioned address allowed to execute the old instruction 
      * 
      * @param targetParams struct containing the signed wormhole messages and encoded redelivery instruction (and other information)
      */

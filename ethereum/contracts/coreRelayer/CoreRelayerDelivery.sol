@@ -157,56 +157,108 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         return registeredCoreRelayerContract(vm.emitterChainId) == vm.emitterAddress;
     }
 
+    /**
+     * @notice The relay provider calls 'redeliverSingle' to relay messages as described by one redelivery instruction
+     * 
+     * The instruction specifies, among other things, the target chain (must be this chain), refund address, new maximum refund (in this chain's currency),
+     * new receiverValue (in this chain's currency), new upper bound on gas
+     * 
+     * The relay provider must pass in the original signed wormhole messages from the source chain of the same nonce
+     * (the wormhole message with the original delivery instructions (the delivery VAA) must be one of these messages)
+     * as well as the wormhole message with the new redelivery instruction (the redelivery VAA)
+     * 
+     * The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met:
+     * - the redelivery VAA (targetParams.redeliveryVM) has a valid signature
+     * - the redelivery VAA's emitter is one of these CoreRelayer contracts
+     * - the original delivery VAA has a valid signature
+     * - the original delivery VAA's emitter is one of these CoreRelayer contracts
+     * - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
+     * - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
+     * - the redelivery instruction's target chain = this chain
+     * - the original instruction's target chain = this chain
+     * - for the redelivery instruction, the relay provider passed in at least [(one wormhole message fee) + instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget] of this chain's currency as msg.value 
+     * - msg.sender is the permissioned address allowed to execute this redelivery instruction
+     * - the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction 
+     * 
+     * @param targetParams struct containing the signed wormhole messages and encoded redelivery instruction (and other information)
+     */
     function redeliverSingle(IDelivery.TargetRedeliveryByTxHashParamsSingle memory targetParams) public payable {
-        //cache wormhole
+
         IWormhole wormhole = wormhole();
 
-        //validate the redelivery VM
         (IWormhole.VM memory redeliveryVM, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(targetParams.redeliveryVM);
+
+        // Check that the redelivery VAA (targetParams.redeliveryVM) has a valid signature
         if (!valid) {
             revert IDelivery.InvalidRedeliveryVM(reason);
         }
+
+        // Check that the redelivery VAA's emitter is one of these CoreRelayer contracts
         if (!verifyRelayerVM(redeliveryVM)) {
-            // Redelivery VM has an invalid emitter
             revert IDelivery.InvalidEmitterInRedeliveryVM();
         }
 
         RedeliveryByTxHashInstruction memory redeliveryInstruction = decodeRedeliveryInstruction(redeliveryVM.payload);
 
-        //validate the original delivery VM
+        // Obtain the original delivery VAA 
         IWormhole.VM memory originalDeliveryVM;
         (originalDeliveryVM, valid, reason) =
             wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[redeliveryInstruction.deliveryIndex]);
+
+        // Check that the original delivery VAA has a valid signature
         if (!valid) {
             revert IDelivery.InvalidVaa(redeliveryInstruction.deliveryIndex, reason);
         }
+
+        // Check that the original delivery VAA's emitter is one of these CoreRelayer contracts
         if (!verifyRelayerVM(originalDeliveryVM)) {
-            // Original Delivery VM has a invalid emitter
             revert IDelivery.InvalidEmitterInOriginalDeliveryVM(redeliveryInstruction.deliveryIndex);
         }
 
-        DeliveryInstruction memory instruction;
-        (instruction, valid) = validateRedeliverySingle(
-            redeliveryInstruction,
-            decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[redeliveryInstruction
-                .multisendIndex]
+        // Obtain the specific old instruction that was originally executed (and is meant to be re-executed with new parameters)
+        // specifying the the target chain (must be this chain), target address, refund address, old maximum refund (in this chain's currency),
+        // old receiverValue (in this chain's currency), old upper bound on gas, and the permissioned address allowed to execute this instruction
+        DeliveryInstruction memory originalInstruction = decodeDeliveryInstructionsContainer(originalDeliveryVM.payload).instructions[redeliveryInstruction
+                .multisendIndex];
+        
+        // Perform the following checks:
+        // - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
+        // - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
+        // - the redelivery instruction's target chain = this chain
+        // - the original instruction's target chain = this chain
+        // - for the redelivery instruction, the relay provider passed in at least [(one wormhole message fee) + instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget] of this chain's currency as msg.value 
+        // - msg.sender is the permissioned address allowed to execute this redelivery instruction
+        // - the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction 
+        valid = checkRedeliveryInstructionTarget(
+            redeliveryInstruction, originalInstruction
         );
 
+        // Emit an 'Invalid Redelivery' event if one of the following five checks failed:
+        // - msg.sender is the permissioned address allowed to execute this redelivery instruction
+        // - the redelivery instruction's target chain = this chain
+        // - the original instruction's target chain = this chain
+        // - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
+        // - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
         if (!valid) {
             emit Delivery({
-                recipientContract: fromWormholeFormat(instruction.targetAddress),
-                sourceChain: redeliveryVM.emitterChainId,
-                sequence: redeliveryVM.sequence,
-                deliveryVaaHash: redeliveryVM.hash,
+                recipientContract: fromWormholeFormat(originalInstruction.targetAddress),
+                sourceChain: originalDeliveryVM.emitterChainId,
+                sequence: originalDeliveryVM.sequence,
+                deliveryVaaHash: originalDeliveryVM.hash,
                 status: DeliveryStatus.INVALID_REDELIVERY
             });
             pay(targetParams.relayerRefundAddress, msg.value);
             return;
         }
 
+        // Replace maximumRefund, receiverValue, and the gasLimit on the original request 
+        originalInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
+        originalInstruction.receiverValueTarget = redeliveryInstruction.newReceiverValueTarget;
+        originalInstruction.executionParameters = redeliveryInstruction.executionParameters;
+
         _executeDelivery(
-            instruction,
+            originalInstruction,
             targetParams.sourceEncodedVMs,
             originalDeliveryVM.hash,
             targetParams.relayerRefundAddress,
@@ -215,20 +267,33 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         );
     }
 
-    function validateRedeliverySingle(
+    /**
+     * Check that:
+     * - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
+     * - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
+     * - the redelivery instruction's target chain = this chain
+     * - the original instruction's target chain = this chain
+     * - for the redelivery instruction, the relay provider passed in at least [(one wormhole message fee) + instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget] of this chain's currency as msg.value 
+     * - msg.sender is the permissioned address allowed to execute this redelivery instruction
+     * - the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction 
+     * @param redeliveryInstruction redelivery instruction
+     * @param originalInstruction old instruction
+     */
+    function checkRedeliveryInstructionTarget(
         RedeliveryByTxHashInstruction memory redeliveryInstruction,
         DeliveryInstruction memory originalInstruction
-    ) internal view returns (DeliveryInstruction memory deliveryInstruction, bool isValid) {
-        // All the same checks as delivery single, with a couple additional
+    ) internal view returns (bool isValid) {
 
-        // The same relay provider must be specified when doing a single VAA redeliver.
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
-        if (providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)) {
+
+        // Check that the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction 
+        if ((providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress))) {
             revert IDelivery.MismatchingRelayProvidersInRedelivery();
         }
 
         uint256 wormholeMessageFee = wormhole().messageFee();
-        // relayer must have covered the necessary funds
+
+        // Check that for the redelivery instruction, the relay provider passed in at least [(one wormhole message fee) + instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget] of this chain's currency as msg.value 
         if (
             msg.value
                 < redeliveryInstruction.newMaximumRefundTarget + redeliveryInstruction.newReceiverValueTarget
@@ -238,37 +303,40 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
 
         uint16 whChainId = chainId();
-        // msg.sender must be the provider
-        // "Relay provider differed from the specified address");
+        
+        // Check that msg.sender is the permissioned address allowed to execute this redelivery instruction
         isValid = msg.sender == providerAddress
-        // redelivery must target this chain
-        // "Redelivery request does not target this chain.");
+        
+        // Check that the redelivery instruction's target chain = this chain
         && whChainId == redeliveryInstruction.targetChain
-        // original delivery must target this chain
-        // "Original delivery request did not target this chain.");
+        
+        // Check that the original instruction's target chain = this chain
         && whChainId == originalInstruction.targetChain
-        // gasLimit & receiverValue must be at least as large as the initial delivery
-        // "New receiver value is smaller than the original"
+        
+        // Check that the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
         && originalInstruction.receiverValueTarget <= redeliveryInstruction.newReceiverValueTarget
-        // "New gasLimit is smaller than the original"
+        
+        // Check that the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
         && originalInstruction.executionParameters.gasLimit <= redeliveryInstruction.executionParameters.gasLimit;
-
-        // Overwrite compute budget and application budget on the original request and proceed.
-        deliveryInstruction = originalInstruction;
-        deliveryInstruction.maximumRefundTarget = redeliveryInstruction.newMaximumRefundTarget;
-        deliveryInstruction.receiverValueTarget = redeliveryInstruction.newReceiverValueTarget;
-        deliveryInstruction.executionParameters = redeliveryInstruction.executionParameters;
     }
 
     /**
      * @notice The relay provider calls 'deliverSingle' to relay messages as described by one delivery instruction
      * 
      * The instruction specifies the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
-     * receiverValue (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
+     * receiver value (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
      * 
-     * The relay provider must pass in the signed wormhole messages from the source chain of the same nonce
+     * The relay provider must pass in the signed wormhole messages (VAAs) from the source chain of the same nonce
      * (the wormhole message with the delivery instructions (the delivery VAA) must be one of these messages)
      * as well as identify which of these messages is the delivery VAA and which of the many instructions in the multichainSend container is meant to be executed 
+     * 
+     * The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met:
+     * - the delivery VAA has a valid signature
+     * - the delivery VAA's emitter is one of these CoreRelayer contracts
+     * - the delivery instruction container in the delivery VAA was fully funded
+     * - the instruction's target chain is this chain
+     * - the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefundTarget + instruction.receiverValueTarget] of this chain's currency as msg.value 
+     * - msg.sender is the permissioned address allowed to execute this instruction
      * 
      * @param targetParams struct containing the signed wormhole messages and encoded delivery instruction container (and other information)
      */
@@ -276,19 +344,23 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         IWormhole wormhole = wormhole();
 
-        // Verify the signature and emitter of the wormhole message containing the delivery instructions container
+        // Obtain the delivery VAA 
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
+
+        // Check that the delivery VAA has a valid signature
         if (!valid) {
             revert IDelivery.InvalidVaa(targetParams.deliveryIndex, reason);
         }
+
+        // Check that the delivery VAA's emitter is one of these CoreRelayer contracts
         if (!verifyRelayerVM(deliveryVM)) {
             revert IDelivery.InvalidEmitter();
         }
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
 
-        // Check that the delivery instructions container was fully funded
+        // Check that the delivery instruction container in the delivery VAA was fully funded
         if (!container.sufficientlyFunded) {
             revert IDelivery.SendNotSufficientlyFunded();
         }
@@ -298,14 +370,14 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         // receiverValue (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
         DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
 
-        // make sure that msg.sender is the permissioned address allowed to execute this instruction
+        // Check that msg.sender is the permissioned address allowed to execute this instruction
         if (fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
             revert IDelivery.UnexpectedRelayer();
         }
 
         uint256 wormholeMessageFee = wormhole.messageFee();
 
-        // make sure relayer passed in (as msg.value) sufficient funds
+        // Check that the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefund + instruction.receiverValue] of this chain's currency as msg.value
         if (
             msg.value
                 < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget + wormholeMessageFee
@@ -313,7 +385,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.InsufficientRelayerFunds();
         }
 
-        // make sure 'targetChain' is the current chain
+        // Check that the instruction's target chain is this chain
         if (chainId() != deliveryInstruction.targetChain) {
             revert IDelivery.TargetChainIsNotThisChain(deliveryInstruction.targetChain);
         }
