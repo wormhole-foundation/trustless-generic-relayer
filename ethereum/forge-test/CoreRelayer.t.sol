@@ -962,8 +962,8 @@ contract TestCoreRelayer is Test {
         emit Delivery({
             recipientContract: address(setup.target.integration),
             sourceChain: setup.sourceChainId,
-            sequence: 1,
-            deliveryVaaHash: redeliveryVmHash,
+            sequence: 0,
+            deliveryVaaHash: stack.deliveryVaaHash,
             status: DeliveryStatus.INVALID_REDELIVERY
         });
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
@@ -977,8 +977,8 @@ contract TestCoreRelayer is Test {
         emit Delivery({
             recipientContract: address(setup.target.integration),
             sourceChain: setup.sourceChainId,
-            sequence: 1,
-            deliveryVaaHash: redeliveryVmHash,
+            sequence: 0,
+            deliveryVaaHash: stack.deliveryVaaHash,
             status: DeliveryStatus.INVALID_REDELIVERY
         });
         vm.prank(setup.target.relayer);
@@ -1025,8 +1025,8 @@ contract TestCoreRelayer is Test {
         emit Delivery({
             recipientContract: address(setup.target.integration),
             sourceChain: setup.sourceChainId,
-            sequence: 3,
-            deliveryVaaHash: redeliveryVmHash,
+            sequence: 0,
+            deliveryVaaHash: stack.deliveryVaaHash,
             status: DeliveryStatus.INVALID_REDELIVERY
         });
         vm.prank(setup.target.relayer);
