@@ -238,9 +238,9 @@ interface IWormholeRelayer {
      *  @custom:member newMaxTransactionFee The new maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
-     *  This must be greater than or equal to the original maxTransactionFee paid in the original request
+     *  This must pay for at least as much gas as was paid for in the original request
      *  @custom:member receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
-     *  This must be greater than or equal to the original receiverValue paid in the original request
+     *  This must pay for at least as much receiver value as was paid for in the original request
      *  @custom:member newRelayParameters This should be 'getDefaultRelayParameters()'
      */
     struct ResendByTx {
