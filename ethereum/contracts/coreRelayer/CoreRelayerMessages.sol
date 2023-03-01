@@ -131,10 +131,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param instruction A RedeliveryByTxHashInstruction
      * @param relayProvider The relayProvider whos maximum budget we are checking against
      */
-    function checkRedeliveryInstruction(
-        RedeliveryByTxHashInstruction memory instruction,
-        IRelayProvider relayProvider
-    ) internal view {
+    function checkRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction, IRelayProvider relayProvider)
+        internal
+        view
+    {
         if (instruction.executionParameters.gasLimit == 0) {
             revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
         }

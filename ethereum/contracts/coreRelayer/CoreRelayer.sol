@@ -196,7 +196,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         if (nonce == 0) {
             revert IWormholeRelayer.NonceIsZero();
         }
-        if(sendContainer.requests.length == 0) {
+        if (sendContainer.requests.length == 0) {
             revert IWormholeRelayer.MultichainSendEmpty();
         }
 
@@ -255,7 +255,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         if (msg.sender != lockedTargetAddress()) {
             revert IWormholeRelayer.ForwardRequestFromWrongAddress();
         }
-        if(sendContainer.requests.length == 0) {
+        if (sendContainer.requests.length == 0) {
             revert IWormholeRelayer.MultichainSendEmpty();
         }
 
