@@ -25,25 +25,38 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         DeliveryStatus status
     );
 
+    /**
+     * - Checks if enough funds were passed into a forward
+     * - Increases the maxTransactionFee of the first forward in the MultichainSend container 
+     *   in order to use all of the funds
+     * - Publishes the DeliveryInstruction, with a 'sufficientlyFunded' flag indicating whether the forward had enough funds
+     * - If the forward was funded, pay the relayer's reward address to deliver the forward
+     * 
+     * @param transactionFeeRefundAmount amount of maxTransactionFee that was unused
+     * @param forwardInstruction A struct containing information about the user's forward/multichainForward request
+     * 
+     * @return forwardIsFunded whether or not the funds for the forward were enough
+     */
     function emitForward(uint256 transactionFeeRefundAmount, ForwardInstruction memory forwardInstruction)
         internal
         returns (bool forwardIsFunded)
     {
         DeliveryInstructionsContainer memory container = forwardInstruction.container;
 
-        //Add any additional funds which were passed in to the refund amount
+        // Add any additional funds which were passed in to the forward as msg.value 
         transactionFeeRefundAmount = transactionFeeRefundAmount + forwardInstruction.msgValue;
 
-        //make sure the refund amount covers the native gas amounts
+        // Checks if enough funds were passed into the forward
         forwardIsFunded = (transactionFeeRefundAmount >= forwardInstruction.totalFee);
-        container.sufficientlyFunded = forwardIsFunded;
+        
 
         IRelayProvider relayProvider = IRelayProvider(forwardInstruction.relayProvider);
-
         IWormhole wormhole = wormhole();
         uint256 wormholeMessageFee = wormhole.messageFee();
+
+        // Increases the maxTransactionFee of the first forward in the MultichainSend container 
+        // in order to use all of the funds
         if (forwardIsFunded) {
-            // the rollover chain is the chain in the first request
             uint256 amountUnderMaximum = relayProvider.quoteMaximumBudget(container.instructions[0].targetChain)
                 - (
                     wormholeMessageFee + container.instructions[0].maximumRefundTarget
@@ -58,7 +71,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
                 (amountUnderMaximum > convertedExtraAmount) ? convertedExtraAmount : amountUnderMaximum;
         }
 
-        //emit forwarding instruction
+        // Publishes the DeliveryInstruction, with a 'sufficientlyFunded' flag indicating whether the forward had enough funds
+        container.sufficientlyFunded = forwardIsFunded;
         wormhole.publishMessage{value: wormholeMessageFee}(
             forwardInstruction.nonce,
             encodeDeliveryInstructionsContainer(container),
@@ -70,10 +84,31 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             pay(relayProvider.getRewardAddress(), transactionFeeRefundAmount);
         }
 
-        //clear forwarding request from cache
+        //clear forwarding request from storage
         clearForwardInstruction();
     }
 
+    /**
+     * Performs the following actions:
+     * - Calls the 'receiveWormholeMessages' endpoint on the contract 'internalInstruction.targetAddress'
+     * (with the gas limit and value specified in internalInstruction, and 'encodedVMs' as the input)
+     * 
+     * - Calculates how much of 'maxTransactionFee' is left
+     * - If the call succeeded and during execution of 'receiveWormholeMessages' there was a forward/multichainForward, then:
+     *      if there is enough 'maxTransactionFee' left to execute the forward, then execute the forward
+     *      else emit the forward instruction but with a flag (sufficientlyFunded = false) indicating that it wasn't paid for
+     * - else: 
+     *      refund any of the 'maxTransactionFee' not used to internalInstruction.refundAddress
+     *      if the call reverted, refund the 'receiverValue' to internalInstruction.refundAddress
+     * - refund anything leftover to the relayer
+     * 
+     * @param internalInstruction instruction to execute
+     * @param encodedVMs list of signed wormhole messages (VAAs)
+     * @param deliveryVaaHash hash of delivery VAA
+     * @param relayerRefund address to send the relayer's refund to
+     * @param sourceChain chain id that the delivery originated from
+     * @param sourceSequence sequence number of the delivery VAA on the source chain
+     */
     function _executeDelivery(
         DeliveryInstruction memory internalInstruction,
         bytes[] memory encodedVMs,
@@ -82,7 +117,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         uint16 sourceChain,
         uint64 sourceSequence
     ) internal {
-        //REVISE Decide whether we want to remove the DeliveryInstructionsContainer from encodedVMs.
 
         // lock the contract to prevent reentrancy
         if (isContractLocked()) {
@@ -90,49 +124,57 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
         setContractLock(true);
         setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
-        // store gas budget pre target invocation to calculate unused gas budget
+
         uint256 preGas = gasleft();
 
-        // call the receiveWormholeMessages endpoint on the target contract
+        // Calls the 'receiveWormholeMessages' endpoint on the contract 'internalInstruction.targetAddress'
+        // (with the gas limit and value specified in internalInstruction, and 'encodedVMs' as the input)
         (bool callToTargetContractSucceeded,) = fromWormholeFormat(internalInstruction.targetAddress).call{
             gas: internalInstruction.executionParameters.gasLimit,
             value: internalInstruction.receiverValueTarget
         }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
 
         uint256 postGas = gasleft();
-        // There's no easy way to measure the exact cost of the CALL instruction.
-        // This is due to the fact that the compiler probably emits DUPN or MSTORE instructions
-        // to setup the arguments for the call just after our measurement.
-        // This means the refund could be off by a few units of gas.
-        // Thus, we ensure the overhead doesn't cause an overflow in our refund formula here.
+
+        // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
         uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
             ? internalInstruction.executionParameters.gasLimit
             : (preGas - postGas);
 
-        // refund unused gas budget
+        // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
         uint256 transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
             * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
 
         // unlock the contract
         setContractLock(false);
 
+        // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
         ForwardInstruction memory forwardingRequest = getForwardInstruction();
         DeliveryStatus status;
+
+        // Represents whether or not (amount user passed into forward as msg.value) + (remaining maxTransactionFee) is enough to fund the forward
         bool forwardIsFunded = false;
+
         if (forwardingRequest.isValid) {
+            // If the user made a forward/multichainForward request, then try to execute it
             forwardIsFunded = emitForward(transactionFeeRefundAmount, forwardingRequest);
             status = forwardIsFunded ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
         } else {
             status = callToTargetContractSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
         }
 
+        // Amount of receiverValue that is refunded to the user (0 if the call to 'receiveWormholeMessages' did not revert, or the full receiverValue otherwise)
         uint256 receiverValueRefundAmount =
             (callToTargetContractSucceeded ? 0 : internalInstruction.receiverValueTarget);
+
+        // Total refund to the user
         uint256 refundToRefundAddress = receiverValueRefundAmount + (forwardIsFunded ? 0 : transactionFeeRefundAmount);
 
+        // Whether or not the refund succeeded
         bool refundPaidToRefundAddress =
             pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), refundToRefundAddress);
 
+        // Emit a status update that can be read by a SDK
         emit Delivery({
             recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
             sourceChain: sourceChain,
@@ -142,14 +184,17 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         });
 
         uint256 wormholeMessageFee = wormhole().messageFee();
+        // Funds that the relayer passed as msg.value over what they needed
         uint256 extraRelayerFunds = (
             msg.value - internalInstruction.receiverValueTarget - internalInstruction.maximumRefundTarget
                 - wormholeMessageFee
         );
+
+        // Refund the relayer (their extra funds) + (the amount that the relayer spent on gas) + (the wormhole message fee if no forward was sent)
+        // + (the users refund if that refund didn't succeed)
         uint256 relayerRefundAmount = extraRelayerFunds
             + (internalInstruction.maximumRefundTarget - transactionFeeRefundAmount)
             + (forwardingRequest.isValid ? 0 : wormholeMessageFee) + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
-        // refund the rest to relayer
         pay(relayerRefund, relayerRefundAmount);
     }
 
