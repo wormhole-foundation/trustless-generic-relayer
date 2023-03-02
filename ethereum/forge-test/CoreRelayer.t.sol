@@ -948,16 +948,7 @@ contract TestCoreRelayer is Test {
             fakeVM, stack.originalDelivery.encodedVMs, payable(setup.target.relayer)
         );
 
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-
-        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
-            stack.redeliveryVM, stack.originalDelivery.encodedVMs, payable(msg.sender)
-        );
-
         vm.deal(address(this), stack.budget);
-        bytes32 redeliveryVmHash = relayerWormhole.parseVM(stack.redeliveryVM).hash;
         vm.expectEmit(true, true, true, true, address(setup.target.coreRelayer));
         emit Delivery({
             recipientContract: address(setup.target.integration),
@@ -968,20 +959,23 @@ contract TestCoreRelayer is Test {
         });
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
+        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
+            stack.redeliveryVM, stack.originalDelivery.encodedVMs, payable(msg.sender)
+        );
+
+        vm.deal(address(this), stack.budget);
+        bytes32 redeliveryVmHash = relayerWormhole.parseVM(stack.redeliveryVM).hash;
+
+        vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
+        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
+
         uint16 differentChainId = 2;
         if (setup.targetChainId == 2) {
             differentChainId = 3;
         }
         vm.deal(setup.target.relayer, stack.budget);
-        vm.expectEmit(true, true, true, true, address(map[differentChainId].coreRelayer));
-        emit Delivery({
-            recipientContract: address(setup.target.integration),
-            sourceChain: setup.sourceChainId,
-            sequence: 0,
-            deliveryVaaHash: stack.deliveryVaaHash,
-            status: DeliveryStatus.INVALID_REDELIVERY
-        });
         vm.prank(setup.target.relayer);
+        vm.expectRevert(abi.encodeWithSignature("TargetChainIsNotThisChain(uint16)", setup.targetChainId));
         map[differentChainId].coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({

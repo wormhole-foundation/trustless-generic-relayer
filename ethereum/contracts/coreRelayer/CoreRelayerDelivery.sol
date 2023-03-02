@@ -348,7 +348,9 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
 
         // Check that the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction
-        isValid = (providerAddress == fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress))
+        isValid = (
+            providerAddress == fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress)
+        )
         // Check that the original instruction's target chain = this chain
         && whChainId == originalInstruction.targetChain
         // Check that the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
