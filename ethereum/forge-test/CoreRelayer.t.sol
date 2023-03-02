@@ -1328,18 +1328,20 @@ contract TestCoreRelayer is Test {
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         );
 
+        uint256 wormholeFee = setup.source.wormhole.messageFee();
+
         vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
-        setup.source.integration.sendMessageWithRefundAddress{
-            value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
-        }(message, 32, address(setup.target.integration), address(setup.target.refundAddress));
+        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
+            message, 32, address(setup.target.integration), address(setup.target.refundAddress)
+        );
 
         setup.source.relayProvider.updateDeliveryAddress(
             setup.targetChainId, setup.source.relayProvider.getDeliveryAddress(32)
         );
         vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
-        setup.source.integration.sendMessageWithRefundAddress{
-            value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
-        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
+        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
+            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
+        );
     }
 
     /**
