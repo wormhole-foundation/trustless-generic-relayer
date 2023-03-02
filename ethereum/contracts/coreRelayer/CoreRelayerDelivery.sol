@@ -274,9 +274,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         // - the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction
         valid = checkRedeliveryInstructionTarget(redeliveryInstruction, originalInstruction);
 
-        // Emit an 'Invalid Redelivery' event if one of the following five checks failed:
-        // - msg.sender is the permissioned address allowed to execute this redelivery instruction
-        // - the redelivery instruction's target chain = this chain
+        // Emit an 'Invalid Redelivery' event if one of the following four checks failed:
+        // - the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction
         // - the original instruction's target chain = this chain
         // - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
         // - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
@@ -325,9 +324,16 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
     ) internal view returns (bool isValid) {
         address providerAddress = fromWormholeFormat(redeliveryInstruction.executionParameters.providerDeliveryAddress);
 
-        // Check that the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction
-        if ((providerAddress != fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress))) {
-            revert IDelivery.MismatchingRelayProvidersInRedelivery();
+        // Check that msg.sender is the permissioned address allowed to execute this redelivery instruction
+        if (providerAddress != msg.sender) {
+            revert IDelivery.UnexpectedRelayer();
+        }
+
+        uint16 whChainId = chainId();
+
+        // Check that the redelivery instruction's target chain = this chain
+        if (whChainId != redeliveryInstruction.targetChain) {
+            revert IDelivery.TargetChainIsNotThisChain(redeliveryInstruction.targetChain);
         }
 
         uint256 wormholeMessageFee = wormhole().messageFee();
@@ -341,12 +347,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.InsufficientRelayerFunds();
         }
 
-        uint16 whChainId = chainId();
-
-        // Check that msg.sender is the permissioned address allowed to execute this redelivery instruction
-        isValid = msg.sender == providerAddress
-        // Check that the redelivery instruction's target chain = this chain
-        && whChainId == redeliveryInstruction.targetChain
+        // Check that the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction
+        isValid = (providerAddress == fromWormholeFormat(originalInstruction.executionParameters.providerDeliveryAddress))
         // Check that the original instruction's target chain = this chain
         && whChainId == originalInstruction.targetChain
         // Check that the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount

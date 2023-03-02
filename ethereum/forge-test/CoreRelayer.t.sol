@@ -949,7 +949,7 @@ contract TestCoreRelayer is Test {
         );
 
         vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("MismatchingRelayProvidersInRedelivery()"));
+        vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
         setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
 
         stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
