@@ -85,6 +85,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.targetChain = send.targetChain;
         instruction.targetAddress = send.targetAddress;
         instruction.refundAddress = send.refundAddress;
+        bytes32 deliveryAddress = relayProvider.getDeliveryAddress(send.targetChain);
+        if (deliveryAddress == bytes32(0x0)) {
+            revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
+        }
         instruction.maximumRefundTarget =
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
         instruction.receiverValueTarget =
@@ -92,7 +96,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.executionParameters = ExecutionParameters({
             version: 1,
             gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider),
-            providerDeliveryAddress: relayProvider.getDeliveryAddress(send.targetChain)
+            providerDeliveryAddress: deliveryAddress
         });
     }
 

@@ -1314,6 +1314,34 @@ contract TestCoreRelayer is Test {
         );
     }
 
+    function testRevertTargetNotSupported(
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams,
+        bytes memory message
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        vm.recordLogs();
+
+        // estimate the cost based on the intialized values
+        uint256 maxTransactionFee = setup.source.coreRelayer.quoteGas(
+            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
+        );
+
+        vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
+        setup.source.integration.sendMessageWithRefundAddress{
+            value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
+        }(message, 32, address(setup.target.integration), address(setup.target.refundAddress));
+
+        setup.source.relayProvider.updateDeliveryAddress(
+            setup.targetChainId, setup.source.relayProvider.getDeliveryAddress(32)
+        );
+        vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
+        setup.source.integration.sendMessageWithRefundAddress{
+            value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
+        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
+    }
+
     /**
      *
      *
