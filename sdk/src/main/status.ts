@@ -38,15 +38,17 @@ type DeliveryInfo = {
 type InfoRequest = {
   environment: Network,
   sourceChainId: ChainId,
-  sourceReceipt: ethers.ContractReceipt,
+  sourceTransaction: string,
+  sourceChainProvider: ethers.providers.Provider,
   targetChain: ChainId,
-  targetChainProvider?: ethers.providers.Provider,
+  targetChainProvider: ethers.providers.Provider,
   sourceNonce?: number,
   coreRelayerWhMessageIndex?: number
 }
 
 export async function getDeliveryInfoBySourceTxReceipt(infoRequest: InfoRequest): Promise<DeliveryInfo[]> {
-  if(!infoRequest.sourceReceipt) throw Error("Transaction has not been mined")
+  const receipt = await infoRequest.sourceChainProvider.getTransactionReceipt(infoRequest.sourceTransaction)
+  if(!receipt) throw Error("Transaction has not been mined")
   const bridgeAddress = CONTRACTS[infoRequest.environment][CHAIN_ID_TO_NAME[infoRequest.sourceChainId]].core
   const coreRelayerAddress = getCoreRelayerAddressNative(infoRequest.sourceChainId, infoRequest.environment)
   if (!bridgeAddress || !coreRelayerAddress) {
@@ -54,7 +56,7 @@ export async function getDeliveryInfoBySourceTxReceipt(infoRequest: InfoRequest)
   }
 
   const deliveryLog = findLog(
-    infoRequest.sourceReceipt,
+    receipt,
     bridgeAddress,
     tryNativeToHexString(coreRelayerAddress, "ethereum"),
     infoRequest.coreRelayerWhMessageIndex ? infoRequest.coreRelayerWhMessageIndex : 0,
