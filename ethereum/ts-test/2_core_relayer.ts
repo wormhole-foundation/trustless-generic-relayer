@@ -221,19 +221,19 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log(`Sent message: ${arbitraryPayload1}`)
     const value1 = await sourceCoreRelayer.quoteGas(
       sourceChain.chainId,
-      500000,
+      1000000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
-    const value2 = await targetCoreRelayer.quoteGas(
+    const value2 = (await targetCoreRelayer.quoteGas(
       sourceChain.chainId,
       500000,
       await targetCoreRelayer.getDefaultRelayProvider()
-    )
-    const value3 = await targetCoreRelayer.quoteGas(
+    ))
+    const value3 = (await targetCoreRelayer.quoteGas(
       targetChain.chainId,
       500000,
       await targetCoreRelayer.getDefaultRelayProvider()
-    )
+    ))
     console.log(`Quoted gas delivery fee: ${value1.add(value2).add(value3)}`)
 
     const furtherInstructions: MockRelayerIntegration.FurtherInstructionsStruct = {
@@ -256,7 +256,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-      }, 4000)
+      }, 8000)
     })
 
     console.log("Checking if first forward was relayed")
@@ -310,7 +310,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
 
     console.log("Checking if message was relayed (it shouldn't have been!)")
     const message = await targetMockIntegration.getMessage()
-    console.log(`Sent message: ${arbitraryPayload}`)
+    console.log(`Sent message: ${arbitraryPayload}`) 
     console.log(`Received message: ${message}`)
     expect(message).to.not.equal(arbitraryPayload)
 
@@ -342,8 +342,6 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(messageNew).to.equal(arbitraryPayload)
 
   })
-<<<<<<< HEAD
-<<<<<<< HEAD
 
   it("Executes a redelivery when delivery succeeds but forward fails", async () => {
     const arbitraryPayload1 = ethers.utils.hexlify(
@@ -376,12 +374,73 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       furtherInstructions,
       [targetChain.chainId],
       [value.add(extraForwardingValue)],
-      { value: value.add(extraForwardingValue), gasLimit: 500000 }
-=======
-  it("Tests the Typescript SDK during a delivery/redelivery", async () => {
-=======
+      { value: value.add(extraForwardingValue), gasLimit: 500000 })
+      
+      console.log("Sent delivery request!")
+      const rx = await tx.wait()
+      console.log("Message confirmed!")
+
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(0)
+        }, 4000)
+      })
+  
+      console.log("Checking if message was relayed")
+      const message1 = await targetMockIntegration.getMessage()
+      console.log(
+        `Sent message: ${arbitraryPayload1} (expecting ${arbitraryPayload2} from forward)`
+      )
+      console.log(`Received message on target: ${message1}`)
+      expect(message1).to.equal(arbitraryPayload1)
+  
+      console.log("Checking if forward message was relayed back (it shouldn't have been!)")
+      const message2 = await sourceMockIntegration.getMessage()
+      console.log(`Sent message: ${arbitraryPayload2}`)
+      console.log(`Received message on source: ${message2}`)
+      expect(message2).to.not.equal(arbitraryPayload2)
+  
+      // RESEND THE MESSAGE SOMEHOW!
+  
+      /*console.log("Resending the message");
+      const request: IWormholeRelayer.ResendByTxStruct = {
+        sourceChain: sourceChain.chainId,
+        sourceTxHash: tx.hash,
+        sourceNonce: 1,
+        targetChain: targetChain.chainId, 
+        deliveryIndex: 2,
+        multisendIndex: 0,
+        newMaxTransactionFee: value, 
+        newReceiverValue: 0,
+        newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
+      };
+      await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
+      console.log("Message resent");*/
+  
+      /*
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(0)
+        }, 4000)
+      })
+      console.log("Checking if message was relayed")
+      const message3 = await targetMockIntegration.getMessage()
+      console.log(
+        `Sent message: ${arbitraryPayload1} (expecting ${arbitraryPayload2} from forward)`
+      )
+      console.log(`Received message on target: ${message3}`)
+      expect(message3).to.equal(arbitraryPayload1)
+      console.log("Checking if forward message was relayed back (it shouldn't have been!)")
+      const message4 = await sourceMockIntegration.getMessage()
+      console.log(`Sent message: ${arbitraryPayload2}`)
+      console.log(`Received message on source: ${message4}`)
+      expect(message4).to.equal(arbitraryPayload2)
+      */
+  
+    })
+
+
   it("Tests the Typescript SDK during a delivery", async () => {
->>>>>>> afc4e63 (Typescript test for statusByTx)
     const arbitraryPayload = ethers.utils.hexlify(
       ethers.utils.toUtf8Bytes(generateRandomString(32))
     )
@@ -397,97 +456,34 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       targetChain.chainId,
       targetMockIntegrationAddress,
       { value, gasLimit: 500000 }
->>>>>>> fd8a3ec (WIP)
     )
+
     console.log("Sent delivery request!")
     const rx = await tx.wait()
     console.log("Message confirmed!")
 
     console.log("Checking status using SDK");
-    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, targetChain.chainId, providerTarget)).pop()?.status
+    let status = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget})).pop()?.status
     expect(status).to.equal("Pending Delivery")
 
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-<<<<<<< HEAD
-<<<<<<< HEAD
-      }, 4000)
-    })
-
-    console.log("Checking if message was relayed")
-    const message1 = await targetMockIntegration.getMessage()
-    console.log(
-      `Sent message: ${arbitraryPayload1} (expecting ${arbitraryPayload2} from forward)`
-    )
-    console.log(`Received message on target: ${message1}`)
-    expect(message1).to.equal(arbitraryPayload1)
-
-    console.log("Checking if forward message was relayed back (it shouldn't have been!)")
-    const message2 = await sourceMockIntegration.getMessage()
-    console.log(`Sent message: ${arbitraryPayload2}`)
-    console.log(`Received message on source: ${message2}`)
-    expect(message2).to.not.equal(arbitraryPayload2)
-
-    // RESEND THE MESSAGE SOMEHOW!
-
-    /*console.log("Resending the message");
-    const request: IWormholeRelayer.ResendByTxStruct = {
-      sourceChain: sourceChain.chainId,
-      sourceTxHash: tx.hash,
-      sourceNonce: 1,
-      targetChain: targetChain.chainId, 
-      deliveryIndex: 2,
-      multisendIndex: 0,
-      newMaxTransactionFee: value, 
-      newReceiverValue: 0,
-      newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
-    };
-    await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
-    console.log("Message resent");*/
-
-    /*
-    await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(0)
-      }, 4000)
-    })
-
-    console.log("Checking if message was relayed")
-    const message3 = await targetMockIntegration.getMessage()
-    console.log(
-      `Sent message: ${arbitraryPayload1} (expecting ${arbitraryPayload2} from forward)`
-    )
-    console.log(`Received message on target: ${message3}`)
-    expect(message3).to.equal(arbitraryPayload1)
-
-    console.log("Checking if forward message was relayed back (it shouldn't have been!)")
-    const message4 = await sourceMockIntegration.getMessage()
-    console.log(`Sent message: ${arbitraryPayload2}`)
-    console.log(`Received message on source: ${message4}`)
-    expect(message4).to.equal(arbitraryPayload2)
-    */
-
-=======
-      }, 2000)
-=======
-      }, 4000)
->>>>>>> afc4e63 (Typescript test for statusByTx)
+      }, 6000)
     })
     
     const message = await targetMockIntegration.getMessage()
     console.log(`Sent message: ${arbitraryPayload}`)
     console.log(`Received message: ${message}`)
     expect(message).to.equal(arbitraryPayload)
-<<<<<<< HEAD
->>>>>>> fd8a3ec (WIP)
-=======
 
     console.log("Checking status using SDK");
-    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, targetChain.chainId, providerTarget)).pop()?.status
+    const statusArray = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget});
+    status = statusArray[statusArray.length - 1]?.status
     expect(status).to.equal("Delivery Success")
-
   })
+
+    
   it("Tests the Typescript SDK during a redelivery", async () => {
     const arbitraryPayload = ethers.utils.hexlify(
       ethers.utils.toUtf8Bytes(generateRandomString(32))
@@ -515,22 +511,22 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log("Message confirmed!")
 
     console.log("Checking status using SDK");
-    let status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, targetChain.chainId, providerTarget)).pop()?.status
+    let status = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget})).pop()?.status
     expect(status).to.equal("Pending Delivery")
 
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-      }, 4000)
+      }, 6000)
     })
-    
+
     const message = await targetMockIntegration.getMessage()
     console.log(`Sent message: ${arbitraryPayload}`)
     console.log(`Received message: ${message}`)
     expect(message).to.not.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    const statusArray = await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, targetChain.chainId, providerTarget);
+    const statusArray = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget});
     status = statusArray[statusArray.length - 1]?.status
     expect(status).to.equal("Receiver Failure")
     //console.log(`Reason: ${statusArray[statusArray.length - 1].reason}`)
@@ -554,7 +550,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve(0)
-      }, 4000)
+      }, 6000)
     })
 
     console.log("Checking if message was relayed")
@@ -564,9 +560,9 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(messageNew).to.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    status = (await getDeliveryInfoBySourceTx("DEVNET", sourceChain.chainId, providerSource, tx.hash, targetChain.chainId, providerTarget)).pop()?.status
+    status = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget})).pop()?.status
 
     expect(status).to.equal("Delivery Success")
->>>>>>> afc4e63 (Typescript test for statusByTx)
   })
 })
+    

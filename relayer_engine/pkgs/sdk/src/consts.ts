@@ -1,14 +1,14 @@
-import { ChainId, Network, ChainName} from "@certusone/wormhole-sdk"
+import { ChainId, Network, ChainName } from "@certusone/wormhole-sdk"
 import { ethers } from "ethers"
 import { CoreRelayer__factory } from "../src/ethers-contracts/factories/CoreRelayer__factory"
 import { CoreRelayer } from "../src"
 
 const TESTNET = [
-  { chainId: 4, coreRelayerAddress: "0xda2592C43f2e10cBBA101464326fb132eFD8cB09" },
-  { chainId: 5, coreRelayerAddress: "0xFAd28FcD3B05B73bBf52A3c4d8b638dFf1c5605c" },
-  { chainId: 6, coreRelayerAddress: "0xDDe6b89B7d0AD383FafDe6477f0d300eC4d4033e" },
-  { chainId: 14, coreRelayerAddress: "0xA92aa4f8CBE1c2d7321F1575ad85bE396e2bbE0D" },
-  { chainId: 16, coreRelayerAddress: "0x57523648FB5345CF510c1F12D346A18e55Aec5f5" },
+  { chainId: 4, coreRelayerAddress: "0xaC9EF19ab4F9a3a265809df0C4eB1E821f43391A" },
+  { chainId: 5, coreRelayerAddress: "0xEf06AE191B42ac59883815c4cFaCC9164f1d50eE" },
+  { chainId: 6, coreRelayerAddress: "0x9Dfd308e2450b26290d926Beea2Bb4F0B8553729" },
+  { chainId: 14, coreRelayerAddress: "0x49181C4fE76E0F28DB04084935d81DaBb26ac26d" },
+  { chainId: 16, coreRelayerAddress: "0x414De856795ecA8F0207D83d69C372Df799Ee377" },
 ]
 
 const DEVNET = [
@@ -54,8 +54,7 @@ export function getCoreRelayer(
   return contract
 }
 
-export const RPCS_BY_CHAIN: { [key in Network]: {[key in ChainName]?: string} } = {
-  MAINNET: {
+export const RPCS_BY_CHAIN: { [key in ChainName]?: string } = {
   ethereum: process.env.ETH_RPC,
   bsc: process.env.BSC_RPC || 'https://bsc-dataseed2.defibit.io',
   polygon: 'https://rpc.ankr.com/polygon',
@@ -77,41 +76,7 @@ export const RPCS_BY_CHAIN: { [key in Network]: {[key in ChainName]?: string} } 
   terra: 'https://columbus-fcd.terra.dev',
   injective: 'https://k8s.mainnet.lcd.injective.network',
   solana: process.env.SOLANA_RPC ?? 'https://api.mainnet-beta.solana.com',
-  },
-  TESTNET: {
-    solana: "https://api.devnet.solana.com",
-    terra: "https://bombay-lcd.terra.dev",
-    ethereum: "https://rpc.ankr.com/eth_goerli",
-    bsc: "https://data-seed-prebsc-1-s1.binance.org:8545",
-    polygon: "https://rpc.ankr.com/polygon_mumbai",
-    avalanche: "https://rpc.ankr.com/avalanche_fuji",
-    oasis: "https://testnet.emerald.oasis.dev",
-    algorand: "https://testnet-api.algonode.cloud",
-    fantom: "https://rpc.testnet.fantom.network",
-    aurora: "https://testnet.aurora.dev",
-    karura: "https://karura-dev.aca-dev.network/eth/http",
-    acala: "https://acala-dev.aca-dev.network/eth/http",
-    klaytn: "https://api.baobab.klaytn.net:8651",
-    celo: "https://alfajores-forno.celo-testnet.org",
-    near: "https://rpc.testnet.near.org",
-    injective: "https://k8s.testnet.tm.injective.network:443",
-    aptos: "https://fullnode.testnet.aptoslabs.com/v1",
-    pythnet: "https://api.pythtest.pyth.network/",
-    xpla: "https://cube-lcd.xpla.dev:443",
-    moonbeam: "https://rpc.api.moonbase.moonbeam.network",
-    neon: "https://proxy.devnet.neonlabs.org/solana",
-    terra2: "https://pisco-lcd.terra.dev",
-    arbitrum: "https://goerli-rollup.arbitrum.io/rpc",
-    optimism: "https://goerli.optimism.io",
-    gnosis: "https://sokol.poa.network/"
-  },
-  DEVNET: {
-    ethereum: "http://localhost:8545",
-    bsc: "http://localhost:8546"
-  }
 };
-
-
 
 export const GUARDIAN_RPC_HOSTS = [
   'https://wormhole-v2-mainnet-api.certus.one',
