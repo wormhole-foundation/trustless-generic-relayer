@@ -104,7 +104,7 @@ export function printInfo(info: DeliveryInfo | RedeliveryInfo) {
   if(info.type==RelayerPayloadId.Redelivery) {
     console.log(`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}`)
     console.log(`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}`)
-    console.log(`Original Delivery Source Transaction Hash: ${info.redeliveryInstruction.sourceTxHash}`)
+    console.log(`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}`)
     console.log(`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}`)
     console.log(`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}`)
     console.log(`multisendIndex: ${info.redeliveryInstruction.multisendIndex}`)
