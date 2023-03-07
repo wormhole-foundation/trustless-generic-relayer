@@ -39,6 +39,7 @@ type DeliveryStatus =
   | "Forward Request Success"
   | "Forward Request Failure"
   | "This should never happen. Contact Support."
+  | "Delivery didn't happen within given block range"
 
 type DeliveryTargetInfo = {
   status: DeliveryStatus
@@ -209,7 +210,7 @@ export async function getDeliveryInfoBySourceTx(
     )
     if (deliveryEvents.length == 0) {
       deliveryEvents.push({
-        status: "Pending Delivery",
+        status: "Delivery didn't happen within given block range",
         deliveryTxHash: null,
         vaaHash: null,
         sourceChain: infoRequest.sourceChain,
@@ -249,7 +250,7 @@ async function pullEventsBySourceSequence(
 
   // There is a max limit on RPCs sometimes for how many blocks to query
   return await transformDeliveryEvents(
-    await coreRelayer.queryFilter(deliveryEvents, -2040, "latest"),
+    await coreRelayer.queryFilter(deliveryEvents),
     targetChainProvider
   )
 }
