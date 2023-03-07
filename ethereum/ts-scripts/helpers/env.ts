@@ -1,4 +1,4 @@
-import { ChainId, Network } from "@certusone/wormhole-sdk"
+import type { ChainId, Network } from "@certusone/wormhole-sdk"
 import { ethers, Signer } from "ethers"
 import fs from "fs"
 import {
