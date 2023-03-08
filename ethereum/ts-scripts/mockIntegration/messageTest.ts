@@ -90,9 +90,13 @@ async function sendMessage(
     await new Promise<void>((resolve) => setTimeout(() => resolve(), 5000))
     const targetIntegration = getMockIntegration(targetChain)
     const message = await targetIntegration.getMessage()
+    const messages = await targetIntegration.getMessages()
+    const messageHistory = await targetIntegration.getMessageHistory();
     const messageParsed = Buffer.from(message, "hex").toString("utf-8")
     console.log(`Sent message: ${sentMessage}`)
     console.log(`Received message: ${message}`)
+    console.log(`Received messages: ${messages}`)
+    console.log(`Received messageHistory: ${messageHistory}`)
   }
   console.log("")
 }
