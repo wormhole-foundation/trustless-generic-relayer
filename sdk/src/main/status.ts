@@ -30,16 +30,17 @@ import {
 } from "../structs"
 import { DeliveryEvent } from "../ethers-contracts/CoreRelayer"
 
-type DeliveryStatus =
-  | "Waiting for VAA"
-  | "Pending Delivery"
-  | "Delivery Success"
-  | "Receiver Failure"
-  | "Invalid Redelivery"
-  | "Forward Request Success"
-  | "Forward Request Failure"
-  | "This should never happen. Contact Support."
-  | "Delivery didn't happen within given block range"
+enum DeliveryStatus {
+  WaitingForVAA = "Waiting for VAA",
+  PendingDelivery = "Pending Delivery",
+  DeliverySuccess = "Delivery Success",
+  ReceiverFailure = "Receiver Failure",
+  InvalidRedelivery = "Invalid Redelivery",
+  ForwardRequestSuccess = "Forward Request Success",
+  ForwardRequestFailure = "Forward Request Failure",
+  ThisShouldNeverHappen = "This should never happen. Contact Support.",
+  DeliveryDidntHappenWithinRange = "Delivery didn't happen within given block range",
+}
 
 type DeliveryTargetInfo = {
   status: DeliveryStatus
@@ -211,7 +212,7 @@ export async function getDeliveryInfoBySourceTx(
     )
     if (deliveryEvents.length == 0) {
       deliveryEvents.push({
-        status: "Delivery didn't happen within given block range",
+        status: DeliveryStatus.DeliveryDidntHappenWithinRange,
         deliveryTxHash: null,
         vaaHash: null,
         sourceChain: infoRequest.sourceChain,
@@ -267,17 +268,17 @@ async function pullEventsBySourceSequence(
 function deliveryStatus(status: number) {
   switch (status) {
     case 0:
-      return "Delivery Success"
+      return DeliveryStatus.DeliverySuccess
     case 1:
-      return "Receiver Failure"
+      return DeliveryStatus.ReceiverFailure
     case 2:
-      return "Forward Request Failure"
+      return DeliveryStatus.ForwardRequestFailure
     case 3:
-      return "Forward Request Success"
+      return DeliveryStatus.ForwardRequestSuccess
     case 4:
-      return "Invalid Redelivery"
+      return DeliveryStatus.InvalidRedelivery
     default:
-      return "This should never happen. Contact Support."
+      return DeliveryStatus.ThisShouldNeverHappen
   }
 }
 
