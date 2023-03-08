@@ -79,7 +79,7 @@ export function parseWormholeLog(log: ethers.providers.Log): {
   }
 }
 
-type DeliveryInfo = {
+export type DeliveryInfo = {
   type: RelayerPayloadId.Delivery
   sourceChainId: ChainId,
   sourceTransactionHash: string
@@ -90,14 +90,14 @@ type DeliveryInfo = {
   }[]
 }
 
-type RedeliveryInfo = {
+export type RedeliveryInfo = {
   type: RelayerPayloadId.Redelivery
   redeliverySourceChainId: ChainId,
   redeliverySourceTransactionHash: string
   redeliveryInstruction: RedeliveryByTxHashInstruction
 }
 
-function printChain(chainId: number) {
+export function printChain(chainId: number) {
   return `${CHAIN_ID_TO_NAME[chainId as ChainId]} (Chain ${chainId})`
 }
 
@@ -200,13 +200,14 @@ export async function getDeliveryInfoBySourceTx(
       throw Error(
         "No default RPC for this chain; pass in your own provider (as targetChainProvider)"
       )
-
+      const sourceChainBlock = await sourceChainProvider.getBlock(receipt.blockNumber);
     const deliveryEvents = await pullEventsBySourceSequence(
       infoRequest.environment,
       targetChain,
       targetChainProvider,
       infoRequest.sourceChain,
-      BigNumber.from(deliveryLog.sequence)
+      BigNumber.from(deliveryLog.sequence),
+      sourceChainBlock.timestamp
     )
     if (deliveryEvents.length == 0) {
       deliveryEvents.push({
@@ -232,14 +233,22 @@ export async function getDeliveryInfoBySourceTx(
   }
 }
 
+function getBlockRange(provider: ethers.providers.Provider, timestamp: number): [number | string, number | string] {
+
+  return [0, "latest"]
+}
+
 async function pullEventsBySourceSequence(
   environment: Network,
   targetChain: ChainId,
   targetChainProvider: ethers.providers.Provider,
   sourceChain: number,
-  sourceVaaSequence: BigNumber
+  sourceVaaSequence: BigNumber,
+  approximateTimestamp: number
 ): Promise<DeliveryTargetInfo[]> {
   const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
+
+  const [blockRangeStart, blockRangeEnd] = getBlockRange(targetChainProvider, approximateTimestamp)
 
   //TODO These compile errors on sourceChain look like an ethers bug
   const deliveryEvents = coreRelayer.filters.Delivery(
@@ -250,7 +259,7 @@ async function pullEventsBySourceSequence(
 
   // There is a max limit on RPCs sometimes for how many blocks to query
   return await transformDeliveryEvents(
-    await coreRelayer.queryFilter(deliveryEvents),
+    await coreRelayer.queryFilter(deliveryEvents, blockRangeStart, blockRangeEnd),
     targetChainProvider
   )
 }

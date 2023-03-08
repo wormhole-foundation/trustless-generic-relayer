@@ -15,7 +15,7 @@ import {
   loadMockIntegrations,
 } from "../ts-scripts/helpers/env"
 import { MockRelayerIntegration, IWormholeRelayer } from "../../sdk/src"
-import { getDeliveryInfoBySourceTx } from "../../sdk/src"
+import { getDeliveryInfoBySourceTx, DeliveryInfo, RedeliveryInfo } from "../../sdk/src"
 const ETHEREUM_ROOT = `${__dirname}/..`
 
 init()
@@ -326,7 +326,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       newReceiverValue: 0,
       newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
     };
-    await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
+    await sourceCoreRelayer.resend(request, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
     console.log("Message resent");
 
     await new Promise((resolve) => {
@@ -356,12 +356,17 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       500000,
       await sourceCoreRelayer.getDefaultRelayProvider()
     )
-    const extraForwardingValue = await targetCoreRelayer.quoteGas(
+    const notEnoughExtraForwardingValue = await targetCoreRelayer.quoteGas(
       sourceChain.chainId,
       10000,
       await targetCoreRelayer.getDefaultRelayProvider()
     )
-    console.log(`Quoted gas delivery fee: ${value.add(extraForwardingValue)}`)
+    const enoughExtraForwardingValue = await targetCoreRelayer.quoteGas(
+      sourceChain.chainId,
+      500000,
+      await targetCoreRelayer.getDefaultRelayProvider()
+    )
+    console.log(`Quoted gas delivery fee: ${value.add(notEnoughExtraForwardingValue)}`)
 
     const furtherInstructions: MockRelayerIntegration.FurtherInstructionsStruct = {
       keepSending: true,
@@ -373,8 +378,8 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       [arbitraryPayload1],
       furtherInstructions,
       [targetChain.chainId],
-      [value.add(extraForwardingValue)],
-      { value: value.add(extraForwardingValue), gasLimit: 500000 })
+      [value.add(notEnoughExtraForwardingValue)],
+      { value: value.add(notEnoughExtraForwardingValue), gasLimit: 500000 })
       
       console.log("Sent delivery request!")
       const rx = await tx.wait()
@@ -399,25 +404,29 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       console.log(`Sent message: ${arbitraryPayload2}`)
       console.log(`Received message on source: ${message2}`)
       expect(message2).to.not.equal(arbitraryPayload2)
+
+      let info: DeliveryInfo = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash})) as DeliveryInfo
+      let status = info.targetChainStatuses[0].events[0].status
+      console.log(`Status: ${status}`)
   
       // RESEND THE MESSAGE SOMEHOW!
   
-      /*console.log("Resending the message");
+      console.log("Resending the message");
       const request: IWormholeRelayer.ResendByTxStruct = {
-        sourceChain: sourceChain.chainId,
-        sourceTxHash: tx.hash,
+        sourceChain: targetChain.chainId,
+        sourceTxHash: info.targetChainStatuses[0].events[0].transactionHash as string,
         sourceNonce: 1,
-        targetChain: targetChain.chainId, 
+        targetChain: sourceChain.chainId, 
         deliveryIndex: 2,
         multisendIndex: 0,
         newMaxTransactionFee: value, 
         newReceiverValue: 0,
         newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
       };
-      await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000}).then((t)=>t.wait);
-      console.log("Message resent");*/
+      await sourceCoreRelayer.resend(request, sourceCoreRelayer.getDefaultRelayProvider(), {value: value.add(enoughExtraForwardingValue), gasLimit: 500000}).then((t)=>t.wait);
+      console.log("Message resent");
   
-      /*
+      
       await new Promise((resolve) => {
         setTimeout(() => {
           resolve(0)
@@ -430,12 +439,12 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       )
       console.log(`Received message on target: ${message3}`)
       expect(message3).to.equal(arbitraryPayload1)
-      console.log("Checking if forward message was relayed back (it shouldn't have been!)")
+      console.log("Checking if forward message was relayed back (it should now have been!)")
       const message4 = await sourceMockIntegration.getMessage()
       console.log(`Sent message: ${arbitraryPayload2}`)
       console.log(`Received message on source: ${message4}`)
       expect(message4).to.equal(arbitraryPayload2)
-      */
+      
   
     })
 
@@ -463,8 +472,10 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log("Message confirmed!")
 
     console.log("Checking status using SDK");
-    let status = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget})).pop()?.status
-    expect(status).to.equal("Pending Delivery")
+    let info: DeliveryInfo = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash})) as DeliveryInfo
+    let status = info.targetChainStatuses[0].events[0].status
+
+    expect(status).to.equal("Delivery didn't happen within given block range")
 
     await new Promise((resolve) => {
       setTimeout(() => {
@@ -478,8 +489,8 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(message).to.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    const statusArray = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget});
-    status = statusArray[statusArray.length - 1]?.status
+    info = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash}) as DeliveryInfo;
+    status = info.targetChainStatuses[0].events[0].status
     expect(status).to.equal("Delivery Success")
   })
 
@@ -511,8 +522,9 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log("Message confirmed!")
 
     console.log("Checking status using SDK");
-    let status = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget})).pop()?.status
-    expect(status).to.equal("Pending Delivery")
+    let info: DeliveryInfo = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash })) as DeliveryInfo
+    let status = info.targetChainStatuses[0].events[0].status
+    expect(status).to.equal("Delivery didn't happen within given block range")
 
     await new Promise((resolve) => {
       setTimeout(() => {
@@ -526,13 +538,12 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(message).to.not.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    const statusArray = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget});
-    status = statusArray[statusArray.length - 1]?.status
+    info = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash}) as DeliveryInfo;
+    status = info.targetChainStatuses[0].events[0].status
     expect(status).to.equal("Receiver Failure")
-    //console.log(`Reason: ${statusArray[statusArray.length - 1].reason}`)
 
     console.log("Resending the message");
-    const request: CoreRelayerStructs.ResendByTxStruct = {
+    const request: IWormholeRelayer.ResendByTxStruct = {
       sourceChain: sourceChain.chainId,
       sourceTxHash: tx.hash,
       sourceNonce: 1,
@@ -543,7 +554,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       newReceiverValue: 0,
       newRelayParameters: sourceCoreRelayer.getDefaultRelayParams()
     };
-    const newTx = await sourceCoreRelayer.resend(request, 1, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000});
+    const newTx = await sourceCoreRelayer.resend(request, sourceCoreRelayer.getDefaultRelayProvider(), {value: value, gasLimit: 500000});
     await newTx.wait();
     console.log("Message resent");
 
@@ -560,7 +571,8 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     expect(messageNew).to.equal(arbitraryPayload)
 
     console.log("Checking status using SDK");
-    status = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceChainProvider: providerSource, sourceTransaction: tx.hash, targetChain: targetChain.chainId, targetChainProvider: providerTarget})).pop()?.status
+    info = await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash}) as DeliveryInfo;
+    status = info.targetChainStatuses[0].events[1].status
 
     expect(status).to.equal("Delivery Success")
   })
