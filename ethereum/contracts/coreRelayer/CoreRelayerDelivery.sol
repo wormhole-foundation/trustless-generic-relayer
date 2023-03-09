@@ -41,7 +41,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         internal
         returns (bool forwardIsFunded)
     {
-        DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(forwardInstruction.container);
+        DeliveryInstructionsContainer memory container =
+            decodeDeliveryInstructionsContainer(forwardInstruction.container);
 
         // Add any additional funds which were passed in to the forward as msg.value
         transactionFeeRefundAmount = transactionFeeRefundAmount + forwardInstruction.msgValue;
@@ -169,17 +170,28 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             status: status
         });
 
-        payRefunds(internalInstruction, relayerRefundAddress, transactionFeeRefundAmount, callToTargetContractSucceeded, forwardingRequest.isValid, forwardIsFunded);
-
-        
+        payRefunds(
+            internalInstruction,
+            relayerRefundAddress,
+            transactionFeeRefundAmount,
+            callToTargetContractSucceeded,
+            forwardingRequest.isValid,
+            forwardIsFunded
+        );
     }
 
-    function payRefunds(DeliveryInstruction memory internalInstruction, address payable relayerRefundAddress, uint256 transactionFeeRefundAmount, bool callToTargetContractSucceeded, bool forwardingRequestExists, bool forwardWasFunded) internal {
-        
+    function payRefunds(
+        DeliveryInstruction memory internalInstruction,
+        address payable relayerRefundAddress,
+        uint256 transactionFeeRefundAmount,
+        bool callToTargetContractSucceeded,
+        bool forwardingRequestExists,
+        bool forwardWasFunded
+    ) internal {
         // Amount of receiverValue that is refunded to the user (0 if the call to 'receiveWormholeMessages' did not revert, or the full receiverValue otherwise)
         uint256 receiverValueRefundAmount =
             (callToTargetContractSucceeded ? 0 : internalInstruction.receiverValueTarget);
-        
+
         // Total refund to the user
         uint256 refundToRefundAddress = receiverValueRefundAmount + (forwardWasFunded ? 0 : transactionFeeRefundAmount);
 
@@ -187,8 +199,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         bool refundPaidToRefundAddress =
             pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), refundToRefundAddress);
 
-        
-        
         uint256 wormholeMessageFee = wormhole().messageFee();
         // Funds that the relayer passed as msg.value over what they needed
         uint256 extraRelayerFunds = (
@@ -202,7 +212,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             + (internalInstruction.maximumRefundTarget - transactionFeeRefundAmount)
             + (forwardingRequestExists ? 0 : wormholeMessageFee) + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
         pay(relayerRefundAddress, relayerRefundAmount);
-
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
@@ -438,7 +447,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         _executeDelivery(
             deliveryInstruction,
             targetParams.encodedVMs,
-            
             targetParams.relayerRefundAddress,
             DeliveryVAAInfo({
                 sourceChain: deliveryVM.emitterChainId,
