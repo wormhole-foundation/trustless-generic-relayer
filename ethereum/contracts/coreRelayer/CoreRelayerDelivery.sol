@@ -41,7 +41,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         internal
         returns (bool forwardIsFunded)
     {
-        DeliveryInstructionsContainer memory container = forwardInstruction.container;
+        DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(forwardInstruction.container);
 
         // Add any additional funds which were passed in to the forward as msg.value
         transactionFeeRefundAmount = transactionFeeRefundAmount + forwardInstruction.msgValue;
@@ -103,18 +103,17 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      *
      * @param internalInstruction instruction to execute
      * @param encodedVMs list of signed wormhole messages (VAAs)
-     * @param deliveryVaaHash hash of delivery VAA
-     * @param relayerRefund address to send the relayer's refund to
-     * @param sourceChain chain id that the delivery originated from
-     * @param sourceSequence sequence number of the delivery VAA on the source chain
+     * @param relayerRefundAddress address to send the relayer's refund to
+     * @param vaaInfo struct specifying:
+     *      - sourceChain chain id that the delivery originated from
+     *      - sourceSequence sequence number of the delivery VAA on the source chain
+     *      - deliveryVaaHash hash of delivery VAA
      */
     function _executeDelivery(
         DeliveryInstruction memory internalInstruction,
         bytes[] memory encodedVMs,
-        bytes32 deliveryVaaHash,
-        address payable relayerRefund,
-        uint16 sourceChain,
-        uint64 sourceSequence
+        address payable relayerRefundAddress,
+        DeliveryVAAInfo memory vaaInfo
     ) internal {
         // lock the contract to prevent reentrancy
         if (isContractLocked()) {
@@ -161,26 +160,35 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             status = callToTargetContractSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
         }
 
+        // Emit a status update that can be read by a SDK
+        emit Delivery({
+            recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+            sourceChain: vaaInfo.sourceChain,
+            sequence: vaaInfo.sourceSequence,
+            deliveryVaaHash: vaaInfo.deliveryVaaHash,
+            status: status
+        });
+
+        payRefunds(internalInstruction, relayerRefundAddress, transactionFeeRefundAmount, callToTargetContractSucceeded, forwardingRequest.isValid, forwardIsFunded);
+
+        
+    }
+
+    function payRefunds(DeliveryInstruction memory internalInstruction, address payable relayerRefundAddress, uint256 transactionFeeRefundAmount, bool callToTargetContractSucceeded, bool forwardingRequestExists, bool forwardWasFunded) internal {
+        
         // Amount of receiverValue that is refunded to the user (0 if the call to 'receiveWormholeMessages' did not revert, or the full receiverValue otherwise)
         uint256 receiverValueRefundAmount =
             (callToTargetContractSucceeded ? 0 : internalInstruction.receiverValueTarget);
-
+        
         // Total refund to the user
-        uint256 refundToRefundAddress = receiverValueRefundAmount + (forwardIsFunded ? 0 : transactionFeeRefundAmount);
+        uint256 refundToRefundAddress = receiverValueRefundAmount + (forwardWasFunded ? 0 : transactionFeeRefundAmount);
 
         // Whether or not the refund succeeded
         bool refundPaidToRefundAddress =
             pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), refundToRefundAddress);
 
-        // Emit a status update that can be read by a SDK
-        emit Delivery({
-            recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
-            sourceChain: sourceChain,
-            sequence: sourceSequence,
-            deliveryVaaHash: deliveryVaaHash,
-            status: status
-        });
-
+        
+        
         uint256 wormholeMessageFee = wormhole().messageFee();
         // Funds that the relayer passed as msg.value over what they needed
         uint256 extraRelayerFunds = (
@@ -192,8 +200,9 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         // + (the users refund if that refund didn't succeed)
         uint256 relayerRefundAmount = extraRelayerFunds
             + (internalInstruction.maximumRefundTarget - transactionFeeRefundAmount)
-            + (forwardingRequest.isValid ? 0 : wormholeMessageFee) + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
-        pay(relayerRefund, relayerRefundAmount);
+            + (forwardingRequestExists ? 0 : wormholeMessageFee) + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
+        pay(relayerRefundAddress, relayerRefundAmount);
+
     }
 
     function verifyRelayerVM(IWormhole.VM memory vm) internal view returns (bool) {
@@ -300,10 +309,12 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         _executeDelivery(
             originalInstruction,
             targetParams.sourceEncodedVMs,
-            originalDeliveryVM.hash,
             targetParams.relayerRefundAddress,
-            originalDeliveryVM.emitterChainId,
-            originalDeliveryVM.sequence
+            DeliveryVAAInfo({
+                sourceChain: originalDeliveryVM.emitterChainId,
+                sourceSequence: originalDeliveryVM.sequence,
+                deliveryVaaHash: originalDeliveryVM.hash
+            })
         );
     }
 
@@ -427,10 +438,13 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         _executeDelivery(
             deliveryInstruction,
             targetParams.encodedVMs,
-            deliveryVM.hash,
+            
             targetParams.relayerRefundAddress,
-            deliveryVM.emitterChainId,
-            deliveryVM.sequence
+            DeliveryVAAInfo({
+                sourceChain: deliveryVM.emitterChainId,
+                sourceSequence: deliveryVM.sequence,
+                deliveryVaaHash: deliveryVM.hash
+            })
         );
     }
 

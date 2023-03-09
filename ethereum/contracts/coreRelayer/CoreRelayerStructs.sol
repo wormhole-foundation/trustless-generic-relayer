@@ -41,12 +41,18 @@ abstract contract CoreRelayerStructs {
     }
 
     struct ForwardInstruction {
-        DeliveryInstructionsContainer container;
+        bytes container;
         uint32 nonce;
         address sender;
         uint256 msgValue;
         uint256 totalFee;
         address relayProvider;
         bool isValid;
+    }
+
+    struct DeliveryVAAInfo {
+        uint16 sourceChain;
+        uint64 sourceSequence;
+        bytes32 deliveryVaaHash;
     }
 }
