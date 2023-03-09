@@ -315,7 +315,7 @@ contract TestCoreRelayer is Test {
             value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
         }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
     }
@@ -346,7 +346,7 @@ contract TestCoreRelayer is Test {
             1
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
@@ -400,7 +400,7 @@ contract TestCoreRelayer is Test {
             1
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         uint256 USDcost = uint256(payment - uint256(3) * map[setup.sourceChainId].wormhole.messageFee())
             * feeParams.sourceNativePrice
@@ -448,11 +448,11 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
-        genericRelayer(setup.targetChainId, 3);
+        genericRelayer(setup.targetChainId);
 
         assertTrue(keccak256(setup.source.integration.getMessage()) == keccak256(bytes("received!")));
     }
@@ -515,7 +515,7 @@ contract TestCoreRelayer is Test {
             );
 
             // The relayer triggers the call to the malicious contract.
-            genericRelayer(setup.sourceChainId, 3);
+            genericRelayer(setup.sourceChainId);
 
             // The message delivery should fail
             assertTrue(keccak256(setup.target.integration.getMessage()) != keccak256(attackMsg));
@@ -537,7 +537,7 @@ contract TestCoreRelayer is Test {
             // The relayer delivers the victim's message.
             // During the delivery process, the forward request injected by the malicious contract is acknowledged.
             // The victim's refund address is not called due to this.
-            genericRelayer(setup.sourceChainId, 3);
+            genericRelayer(setup.sourceChainId);
 
             // Ensures the message was received.
             assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(victimMsg));
@@ -579,7 +579,7 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(
             (keccak256(setup.target.integration.getMessage()) != keccak256(message))
@@ -610,7 +610,7 @@ contract TestCoreRelayer is Test {
             redeliveryRequest, address(setup.source.relayProvider)
         );
 
-        genericRelayer(setup.sourceChainId, 1);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
     }
@@ -638,7 +638,7 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(
             (keccak256(setup.target.integration.getMessage()) != keccak256(message))
@@ -669,7 +669,7 @@ contract TestCoreRelayer is Test {
             redeliveryRequest, address(setup.source.relayProvider)
         );
 
-        genericRelayer(setup.sourceChainId, 1);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
@@ -695,7 +695,7 @@ contract TestCoreRelayer is Test {
             redeliveryRequest, address(setup.source.relayProvider)
         );
 
-        genericRelayer(setup.sourceChainId, 1);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
@@ -725,7 +725,7 @@ contract TestCoreRelayer is Test {
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
 
@@ -737,7 +737,7 @@ contract TestCoreRelayer is Test {
             secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(secondMessage));
     }
@@ -831,7 +831,7 @@ contract TestCoreRelayer is Test {
                 + uint256(3) * setup.source.wormhole.messageFee()
         }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
-        genericRelayer(setup.sourceChainId, 3);
+        genericRelayer(setup.sourceChainId);
 
         assertTrue(
             (keccak256(setup.target.integration.getMessage()) != keccak256(message))
@@ -1096,7 +1096,7 @@ contract TestCoreRelayer is Test {
                 value: stack.paymentNotEnough + 3 * setup.source.wormhole.messageFee()
             }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
 
-            genericRelayer(setup.sourceChainId, 3);
+            genericRelayer(setup.sourceChainId);
 
             assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
             stack.entries = vm.getRecordedLogs();
@@ -1359,26 +1359,9 @@ contract TestCoreRelayer is Test {
 
     mapping(bytes32 => IDelivery.TargetDeliveryParametersSingle) pastDeliveries;
 
-    function genericRelayer(uint16 chainId, uint8 num) internal {
-        Vm.Log[] memory entries = truncateRecordedLogs(chainId, num);
-        genericRelayerProcessLogs(chainId, entries);
-    }
-
-    /**
-     * Discards wormhole events beyond `num` events.
-     * Expects at least `num` wormhole events.
-     */
-    function truncateRecordedLogs(uint16 chainId, uint8 num) internal returns (Vm.Log[] memory) {
-        // Filters all events to just the wormhole messages.
+    function genericRelayer(uint16 chainId) internal {
         Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
-        // We expect at least `num` events.
-        assertTrue(entries.length >= num);
-
-        Vm.Log[] memory firstEntries = new Vm.Log[](num);
-        for (uint256 i = 0; i < num; i++) {
-            firstEntries[i] = entries[i];
-        }
-        return firstEntries;
+        genericRelayerProcessLogs(chainId, entries);
     }
 
     function genericRelayerProcessLogs(uint16 chainId, Vm.Log[] memory entries) internal {
