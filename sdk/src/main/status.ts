@@ -43,7 +43,7 @@ enum DeliveryStatus {
 }
 
 type DeliveryTargetInfo = {
-  status: DeliveryStatus
+  status: DeliveryStatus | string
   deliveryTxHash: string | null
   vaaHash: string | null
   sourceChain: number | null
@@ -56,6 +56,7 @@ type InfoRequest = {
   sourceTransaction: string
   sourceChainProvider?: ethers.providers.Provider
   targetChainProviders?: Map<number, ethers.providers.Provider>
+  targetChainBlockRanges?: Map<number, [ethers.providers.BlockTag, ethers.providers.BlockTag]>
   sourceNonce?: number
   coreRelayerWhMessageIndex?: number
 }
@@ -87,7 +88,7 @@ export type DeliveryInfo = {
   deliveryInstructionsContainer: DeliveryInstructionsContainer
   targetChainStatuses: {
     chainId: ChainId
-    events: { status: DeliveryStatus; transactionHash: string | null }[]
+    events: { status: DeliveryStatus | string; transactionHash: string | null }[]
   }[]
 }
 
@@ -146,10 +147,6 @@ export async function getDeliveryInfoBySourceTx(
     throw Error(
       "No default RPC for this chain; pass in your own provider (as sourceChainProvider)"
     )
-  console.log(
-    "Default RPC: " +
-      RPCS_BY_CHAIN[infoRequest.environment][CHAIN_ID_TO_NAME[infoRequest.sourceChain]]
-  )
   const receipt = await sourceChainProvider.getTransactionReceipt(
     infoRequest.sourceTransaction
   )
@@ -201,18 +198,30 @@ export async function getDeliveryInfoBySourceTx(
       throw Error(
         "No default RPC for this chain; pass in your own provider (as targetChainProvider)"
       )
-      const sourceChainBlock = await sourceChainProvider.getBlock(receipt.blockNumber);
+    
+    const sourceChainBlock = await sourceChainProvider.getBlock(receipt.blockNumber);
+    const [blockStartNumber, blockEndNumber] =  infoRequest.targetChainBlockRanges?.get(targetChain) || getBlockRange(targetChainProvider, sourceChainBlock.timestamp);
+
     const deliveryEvents = await pullEventsBySourceSequence(
       infoRequest.environment,
       targetChain,
       targetChainProvider,
       infoRequest.sourceChain,
       BigNumber.from(deliveryLog.sequence),
-      sourceChainBlock.timestamp
+      blockStartNumber,
+      blockEndNumber
     )
     if (deliveryEvents.length == 0) {
+      let status = `Delivery didn't happen on ${printChain(targetChain)} within blocks ${blockStartNumber} to ${blockEndNumber}.`;
+      try {
+        const blockStart = await targetChainProvider.getBlock(blockStartNumber);
+        const blockEnd = await targetChainProvider.getBlock(blockEndNumber);
+        status = `Delivery didn't happen on ${printChain(targetChain)} within blocks ${blockStart.number} to ${blockEnd.number} (within times ${new Date(blockStart.timestamp * 1000).toString()} to ${new Date(blockEnd.timestamp * 1000).toString()})`
+      } catch(e) {
+
+      }
       deliveryEvents.push({
-        status: DeliveryStatus.DeliveryDidntHappenWithinRange,
+        status,
         deliveryTxHash: null,
         vaaHash: null,
         sourceChain: infoRequest.sourceChain,
@@ -234,9 +243,8 @@ export async function getDeliveryInfoBySourceTx(
   }
 }
 
-function getBlockRange(provider: ethers.providers.Provider, timestamp: number): [number | string, number | string] {
-
-  return [0, "latest"]
+function getBlockRange(provider: ethers.providers.Provider, timestamp?: number): [ethers.providers.BlockTag, ethers.providers.BlockTag] {
+  return [-2040, "latest"]
 }
 
 async function pullEventsBySourceSequence(
@@ -245,11 +253,10 @@ async function pullEventsBySourceSequence(
   targetChainProvider: ethers.providers.Provider,
   sourceChain: number,
   sourceVaaSequence: BigNumber,
-  approximateTimestamp: number
+  blockStartNumber: ethers.providers.BlockTag,
+  blockEndNumber: ethers.providers.BlockTag
 ): Promise<DeliveryTargetInfo[]> {
   const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
-
-  const [blockRangeStart, blockRangeEnd] = getBlockRange(targetChainProvider, approximateTimestamp)
 
   //TODO These compile errors on sourceChain look like an ethers bug
   const deliveryEvents = coreRelayer.filters.Delivery(
@@ -260,7 +267,7 @@ async function pullEventsBySourceSequence(
 
   // There is a max limit on RPCs sometimes for how many blocks to query
   return await transformDeliveryEvents(
-    await coreRelayer.queryFilter(deliveryEvents, blockRangeStart, blockRangeEnd),
+    await coreRelayer.queryFilter(deliveryEvents, blockStartNumber, blockEndNumber),
     targetChainProvider
   )
 }
