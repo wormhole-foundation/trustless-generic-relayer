@@ -4,39 +4,35 @@ import {
   assertInt,
   CommonPluginEnv,
   ContractFilter,
-  dbg,
   getScopedLogger,
   ParsedVaaWithBytes,
   parseVaaWithBytes,
   Plugin,
-  PluginDefinition,
   Providers,
   sleep,
   StagingAreaKeyLock,
   Workflow,
 } from "@wormhole-foundation/relayer-engine"
 import * as wh from "@certusone/wormhole-sdk"
-import { Logger } from "winston"
-import { PluginError } from "./utils"
-import { SignedVaa } from "@certusone/wormhole-sdk"
+import {SignedVaa} from "@certusone/wormhole-sdk"
+import {Logger} from "winston"
+import {PluginError} from "./utils"
 import {
-  IWormhole,
-  IWormhole__factory,
-  RelayProvider__factory,
-  LogMessagePublishedEvent,
-  IDelivery,
   DeliveryInstructionsContainer,
+  IDelivery,
+  IWormhole__factory,
+  LogMessagePublishedEvent,
   parseDeliveryInstructionsContainer,
-  parseRedeliveryByTxHashInstruction,
   parsePayloadType,
-  RelayerPayloadId,
+  parseRedeliveryByTxHashInstruction,
   RedeliveryByTxHashInstruction,
+  RelayerPayloadId,
+  RelayProvider__factory,
 } from "../../../pkgs/sdk/src"
 import * as ethers from "ethers"
-import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
+import {Implementation__factory} from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
-import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
-import { hexToNativeStringAlgorand } from "@certusone/wormhole-sdk/lib/cjs/algorand"
+import {retryAsyncUntilDefined} from "ts-retry/lib/cjs/retry"
 
 let PLUGIN_NAME: string = "GenericRelayerPlugin"
 
@@ -86,10 +82,6 @@ interface Pending {
   nextRetryTime: string
 }
 
-interface Resolved {
-  hash: string
-}
-
 interface Entry {
   chainId: number
   deliveryVaaIdx: number
@@ -107,7 +99,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   pluginConfig: GenericRelayerPluginConfig
 
   constructor(
-    readonly engineConfig: CommonPluginEnv & { wormholeRpc: string },
+    readonly engineConfig: CommonPluginEnv,
     pluginConfigRaw: Record<string, any>,
     readonly logger: Logger
   ) {
@@ -664,22 +656,6 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   }
 }
 
-class Definition implements PluginDefinition<GenericRelayerPluginConfig, Plugin> {
-  pluginName: string = PLUGIN_NAME
-
-  init(pluginConfig: any): {
-    fn: (engineConfig: any, logger: Logger) => GenericRelayerPlugin
-    pluginName: string
-  } {
-    const pluginConfigParsed: GenericRelayerPluginConfig =
-      GenericRelayerPlugin.validateConfig(pluginConfig)
-    return {
-      fn: (env, logger) => new GenericRelayerPlugin(env, pluginConfigParsed, logger),
-      pluginName: this.pluginName,
-    }
-  }
-}
-
 function assertEvmChainId(chainId: number): wh.EVMChainId {
   if (!wh.isEVMChain(chainId as wh.ChainId)) {
     throw new PluginError("Expected wh evm chainId for target chain", {
@@ -688,6 +664,3 @@ function assertEvmChainId(chainId: number): wh.EVMChainId {
   }
   return chainId as wh.EVMChainId
 }
-
-// todo: move to sdk
-export default new Definition()
