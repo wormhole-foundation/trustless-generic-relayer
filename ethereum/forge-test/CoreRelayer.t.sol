@@ -18,6 +18,7 @@ import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImp
 import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
 import {CoreRelayerMessages} from "../contracts/coreRelayer/CoreRelayerMessages.sol";
 import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
+import {MockGenericRelayer} from "./MockGenericRelayer.sol";
 import {MockWormhole} from "../contracts/mock/MockWormhole.sol";
 import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
 import {WormholeSimulator, FakeWormholeSimulator} from "./WormholeSimulator.sol";
@@ -28,6 +29,7 @@ import "../contracts/libraries/external/BytesLib.sol";
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
+import "forge-std/Vm.sol";
 
 contract TestCoreRelayer is Test {
     using BytesLib for bytes;
@@ -52,6 +54,7 @@ contract TestCoreRelayer is Test {
 
     IWormhole relayerWormhole;
     WormholeSimulator relayerWormholeSimulator;
+    MockGenericRelayer genericRelayer;
 
     function setUp() public {
         // deploy Wormhole
@@ -64,6 +67,8 @@ contract TestCoreRelayer is Test {
         relayerWormholeSimulator = new FakeWormholeSimulator(
             wormhole
         );
+
+        //genericRelayer = new MockGenericRelayer(addres)
 
         setUpChains(5);
     }
@@ -1347,6 +1352,8 @@ contract TestCoreRelayer is Test {
         );
     }
 
+    
+
     /**
      *
      *
@@ -1359,12 +1366,8 @@ contract TestCoreRelayer is Test {
 
     mapping(bytes32 => IDelivery.TargetDeliveryParametersSingle) pastDeliveries;
 
-    function genericRelayer(uint16 chainId) internal {
+   function genericRelayer(uint16 chainId) internal {
         Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
-        genericRelayerProcessLogs(chainId, entries);
-    }
-
-    function genericRelayerProcessLogs(uint16 chainId, Vm.Log[] memory entries) internal {
         bytes[] memory encodedVMs = new bytes[](entries.length);
         for (uint256 i = 0; i < encodedVMs.length; i++) {
             encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
