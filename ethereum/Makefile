@@ -41,10 +41,6 @@ test: unit-test
 unit-test: dependencies build
 	npm run forge-test
 
-.PHONY: test-fast 
-test-fast: dependencies build
-	npm run forge-test-fast
-
 .PHONY: integration-test
 integration-test: dependencies build
 	npm run integration-test
