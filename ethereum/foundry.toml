@@ -2,7 +2,7 @@
 solc_version = "0.8.17"
 optimizer = true
 optimizer_runs = 200
-via_ir = true
+via_ir = false
 extra_output = ["metadata", "storageLayout", "evm.deployedBytecode.immutableReferences"]
 
 src = "contracts"

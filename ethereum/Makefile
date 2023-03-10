@@ -1,6 +1,6 @@
 SOURCE_FILES:=$(shell find contracts -name "*.sol")
 
-.PHONY: dependencies forge_dependencies wormhole_dependencies unit-test integration-test clean all
+.PHONY: dependencies forge_dependencies unit-test integration-test clean all
 
 all: build
 
@@ -25,13 +25,7 @@ lib/forge-std:
 lib/openzeppelin-contracts:
 	forge install openzeppelin/openzeppelin-contracts@0457042d93d9dfd760dbaa06a4d2f1216fdbe297 --no-git --no-commit
 
-.PHONY: wormhole_dependencies
-wormhole_dependencies: wormhole
-
-wormhole:
-	git clone --depth 1 --branch feat/batch_vaa_alternative --single-branch https://github.com/wormhole-foundation/wormhole.git
-
-dependencies: node_modules forge_dependencies wormhole_dependencies
+dependencies: node_modules forge_dependencies 
 
 build: dependencies
 	npm run build
@@ -41,11 +35,11 @@ build: dependencies
 	cp $< $@
 
 .PHONY: test
-test: unit-test integration-test
+test: unit-test 
 
 .PHONY: unit-test
 unit-test: dependencies build
-	npm run unit-test
+	npm run forge-test
 
 .PHONY: integration-test
 integration-test: dependencies build
@@ -53,4 +47,4 @@ integration-test: dependencies build
 
 .PHONY: clean
 clean:
-	rm -rf anvil.log .env node_modules build lib wormhole
+	rm -rf anvil.log .env node_modules build lib 

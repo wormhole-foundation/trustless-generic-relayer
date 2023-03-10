@@ -277,7 +277,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         // because we will then know how much of the 'maxTransactionFee' of the current delivery is still available for use in this forward
         setForwardInstruction(
             ForwardInstruction({
-                container: instructionsContainer,
+                container: encodeDeliveryInstructionsContainer(instructionsContainer),
                 nonce: nonce,
                 msgValue: msg.value,
                 totalFee: totalFee,
