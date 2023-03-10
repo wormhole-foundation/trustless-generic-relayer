@@ -24,6 +24,16 @@ contract MockGenericRelayer {
 
     Vm public constant vm = Vm(VM_ADDRESS);
 
+    mapping(uint16 => address) wormholeRelayerContracts;
+
+    mapping(uint16 => address) relayers;
+
+    mapping(uint16 => uint256) wormholeFees;
+    
+    mapping(uint256 => bool) nonceCompleted;
+
+    mapping(bytes32 => bytes[]) pastEncodedVMs;
+
     constructor(address wormholeRelayer) {
         // deploy Wormhole
         MockWormhole wormhole = new MockWormhole({
@@ -39,6 +49,10 @@ contract MockGenericRelayer {
         parser = IWormholeRelayerInstructionParser(wormholeRelayer);
     }
 
+    function getPastEncodedVMs(bytes32 vaaHash) public returns (bytes[] memory) {
+        return pastEncodedVMs[vaaHash];
+    }
+
     function setWormholeRelayerContract(uint16 chainId, address contractAddress) public {
         wormholeRelayerContracts[chainId] = contractAddress;
     }
@@ -47,15 +61,11 @@ contract MockGenericRelayer {
          relayers[chainId] = deliveryAddress;
     }
 
-    mapping(uint16 => address) wormholeRelayerContracts;
+    function setWormholeFee(uint16 chainId, uint256 fee) public {
+        wormholeFees[chainId] = fee;
+    }
 
-    mapping(uint16 => address) relayers;
-    
-    mapping(uint256 => bool) nonceCompleted;
-
-    mapping(bytes32 => IDelivery.TargetDeliveryParametersSingle) pastDeliveries;
-
-     function genericRelayer(uint16 chainId) public {
+    function relay(uint16 chainId) public {
         Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
         bytes[] memory encodedVMs = new bytes[](entries.length);
         for (uint256 i = 0; i < encodedVMs.length; i++) {
@@ -124,25 +134,24 @@ contract MockGenericRelayer {
                     multisendIndex: k,
                     relayerRefundAddress: payable(relayers[targetChain])
                 });
-                uint256 wormholeFee = 100;
                 if(container.sufficientlyFunded) {
                     vm.prank(relayers[targetChain]);
-                    IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: (budget + wormholeFee)}(package);
-                }
-                pastDeliveries[keccak256(abi.encodePacked(parsedInstruction.hash, k))] = package;
+                    IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: (budget + wormholeFees[targetChain])}(package);
+                } 
             }
+            pastEncodedVMs[parsedInstruction.hash] = encodedVMsToBeDelivered;
         } else if (payloadId == 2) {
             IWormholeRelayerInstructionParser.RedeliveryByTxHashInstruction memory instruction =
                 parser.decodeRedeliveryInstruction(parsedInstruction.payload);
-            IDelivery.TargetDeliveryParametersSingle memory originalDelivery =
-                pastDeliveries[keccak256(abi.encodePacked(instruction.sourceTxHash, instruction.multisendIndex))];
+            bytes[] memory originalEncodedVMs =
+                pastEncodedVMs[instruction.sourceTxHash];
             uint16 targetChain = instruction.targetChain;
             uint256 budget = instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
-                + 100;
+                + wormholeFees[targetChain];
             IDelivery.TargetRedeliveryByTxHashParamsSingle memory package = IDelivery
                 .TargetRedeliveryByTxHashParamsSingle({
                 redeliveryVM: encodedDeliveryInstructionsContainer,
-                sourceEncodedVMs: originalDelivery.encodedVMs,
+                sourceEncodedVMs: originalEncodedVMs,
                 relayerRefundAddress: payable(relayers[targetChain])
             });
             vm.prank(relayers[targetChain]);
