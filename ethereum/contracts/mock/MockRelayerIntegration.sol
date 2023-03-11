@@ -10,6 +10,13 @@ import "../interfaces/IWormholeReceiver.sol";
 
 import "forge-std/console.sol";
 
+interface Structs {
+    struct XAddress {
+        uint16 chainId;
+        bytes32 addr;
+    }
+}
+
 contract MockRelayerIntegration is IWormholeReceiver {
     using BytesLib for bytes;
 
@@ -37,8 +44,6 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint16[] chains;
         uint32[] gasLimits;
     }
-
-    event Received(bytes[] messages, uint16 sourceChain);
 
     constructor(address _wormholeCore, address _coreRelayer) {
         wormhole = IWormhole(_wormholeCore);
@@ -153,7 +158,6 @@ contract MockRelayerIntegration is IWormholeReceiver {
             messages[i] = parsed.payload;
         }
         messageHistory.push(messages);
-        emit Received(messages, emitterChainId);
 
         (IWormhole.VM memory parsed, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(wormholeObservations[wormholeObservations.length - 2]);
@@ -190,17 +194,17 @@ contract MockRelayerIntegration is IWormholeReceiver {
     }
 
     function getMessage() public view returns (bytes memory) {
-        if (messageHistory.length == 0) {
+        if (messageHistory.length == 0 || messageHistory[messageHistory.length - 1].length == 0) {
             return new bytes(0);
         }
-        return messageHistory[0][0];
+        return messageHistory[messageHistory.length - 1][0];
     }
 
     function getMessages() public view returns (bytes[] memory) {
-        if (messageHistory.length == 0 || messageHistory[0].length == 0) {
+        if (messageHistory.length == 0 || messageHistory[messageHistory.length - 1].length == 0) {
             return new bytes[](0);
         }
-        return messageHistory[0];
+        return messageHistory[messageHistory.length - 1];
     }
 
     function getMessageHistory() public view returns (bytes[][] memory) {
@@ -224,16 +228,11 @@ contract MockRelayerIntegration is IWormholeReceiver {
         registeredContracts[chainId] = emitterAddress;
     }
 
-    function registerEmitters(XAddress[] calldata emitters) public {
+    function registerEmitters(Structs.XAddress[] calldata emitters) public {
         require(msg.sender == owner);
-        for (uint256 i = 0; i < emitters.length; ++i) {
-            registerEmitter(emitters[i].chainId, emitters[i].addr);
+        for (uint256 i = 0; i < emitters.length; i++) {
+            registeredContracts[emitters[i].chainId] = emitters[i].addr;
         }
-    }
-
-    struct XAddress {
-        uint16 chainId;
-        bytes32 addr;
     }
 
     function encodeFurtherInstructions(FurtherInstructions memory furtherInstructions)
