@@ -15,7 +15,7 @@ export async function sendMessage(
   targetChain: ChainInfo,
   fetchSignedVaa: boolean = false,
   queryMessageOnTargetFlag: boolean = true
-) {
+): Promise<boolean | undefined> {
   console.log(
     `Sending message from chain ${sourceChain.chainId} to ${targetChain.chainId}...`
   )
@@ -68,12 +68,15 @@ export async function sendMessage(
   }
 
   if (queryMessageOnTargetFlag) {
-    await queryMessageOnTarget(sentMessage, targetChain)
+    return await queryMessageOnTarget(sentMessage, targetChain)
   }
   console.log("")
 }
 
-async function queryMessageOnTarget(sentMessage: string, targetChain: ChainInfo) {
+async function queryMessageOnTarget(
+  sentMessage: string,
+  targetChain: ChainInfo
+): Promise<boolean> {
   let messageHistory: string[][] = []
   const targetIntegration = getMockIntegration(targetChain)
 
@@ -91,8 +94,14 @@ async function queryMessageOnTarget(sentMessage: string, targetChain: ChainInfo)
   }
   console.log("")
 
+  if (notFound) {
+    console.log(`ERROR: Did not receive message!`)
+    return false
+  }
+
   console.log(`Received message: ${messageHistory[messageHistory.length - 1][0]}`)
   console.log(`Received messageHistory: ${messageHistory.join(", ")}`)
+  return true
 }
 
 export async function encodeEmitterAddress(

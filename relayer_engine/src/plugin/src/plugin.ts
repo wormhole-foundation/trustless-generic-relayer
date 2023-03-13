@@ -4,7 +4,6 @@ import {
   assertInt,
   CommonPluginEnv,
   ContractFilter,
-  dbg,
   getScopedLogger,
   ParsedVaaWithBytes,
   parseVaaWithBytes,
@@ -20,7 +19,6 @@ import { Logger } from "winston"
 import { PluginError } from "./utils"
 import { SignedVaa } from "@certusone/wormhole-sdk"
 import {
-  IWormhole,
   IWormhole__factory,
   RelayProvider__factory,
   LogMessagePublishedEvent,
@@ -36,7 +34,6 @@ import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import * as grpcWebNodeHttpTransport from "@improbable-eng/grpc-web-node-http-transport"
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
-import { hexToNativeStringAlgorand } from "@certusone/wormhole-sdk/lib/cjs/algorand"
 
 let PLUGIN_NAME: string = "GenericRelayerPlugin"
 
