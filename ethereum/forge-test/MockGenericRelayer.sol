@@ -6,8 +6,7 @@ import {IWormholeRelayer} from "../contracts/interfaces/IWormholeRelayer.sol";
 import {IDelivery} from "../contracts/interfaces/IDelivery.sol";
 import {IWormholeRelayerInstructionParser} from "./IWormholeRelayerInstructionParser.sol";
 import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
-import {MockWormhole} from "../contracts/mock/MockWormhole.sol";
-import {WormholeSimulator, FakeWormholeSimulator} from "./WormholeSimulator.sol";
+import {WormholeSimulator} from "./WormholeSimulator.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 import "forge-std/Vm.sol";
 
@@ -34,22 +33,15 @@ contract MockGenericRelayer {
 
     mapping(bytes32 => bytes[]) pastEncodedVMs;
 
-    constructor(address wormholeRelayer) {
+    constructor(address _wormhole, address _wormholeSimulator, address wormholeRelayer) {
         // deploy Wormhole
-        MockWormhole wormhole = new MockWormhole({
-            initChainId: 2,
-            initEvmChainId: block.chainid
-        });
 
-        relayerWormhole = wormhole;
-        relayerWormholeSimulator = new FakeWormholeSimulator(
-            wormhole
-        );
-
+        relayerWormhole = IWormhole(_wormhole);
+        relayerWormholeSimulator = WormholeSimulator(_wormholeSimulator);
         parser = IWormholeRelayerInstructionParser(wormholeRelayer);
     }
 
-    function getPastEncodedVMs(bytes32 vaaHash) public returns (bytes[] memory) {
+    function getPastEncodedVMs(bytes32 vaaHash) public view returns (bytes[] memory) {
         return pastEncodedVMs[vaaHash];
     }
 
