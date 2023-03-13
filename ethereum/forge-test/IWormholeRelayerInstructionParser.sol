@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 interface IWormholeRelayerInstructionParser {
-
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bool sufficientlyFunded;
@@ -51,5 +50,4 @@ interface IWormholeRelayerInstructionParser {
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
     function fromWormholeFormat(bytes32 whFormatAddress) external pure returns (address addr);
-
 }

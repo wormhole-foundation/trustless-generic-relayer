@@ -10,7 +10,6 @@ import {WormholeSimulator} from "./WormholeSimulator.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 import "forge-std/Vm.sol";
 
-
 contract MockGenericRelayer {
     using BytesLib for bytes;
 
@@ -18,8 +17,7 @@ contract MockGenericRelayer {
     WormholeSimulator relayerWormholeSimulator;
     IWormholeRelayerInstructionParser parser;
 
-    address constant private VM_ADDRESS =
-        address(bytes20(uint160(uint256(keccak256('hevm cheat code')))));
+    address private constant VM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
 
     Vm public constant vm = Vm(VM_ADDRESS);
 
@@ -28,7 +26,7 @@ contract MockGenericRelayer {
     mapping(uint16 => address) relayers;
 
     mapping(uint16 => uint256) wormholeFees;
-    
+
     mapping(uint256 => bool) nonceCompleted;
 
     mapping(bytes32 => bytes[]) pastEncodedVMs;
@@ -50,7 +48,7 @@ contract MockGenericRelayer {
     }
 
     function setProviderDeliveryAddress(uint16 chainId, address deliveryAddress) public {
-         relayers[chainId] = deliveryAddress;
+        relayers[chainId] = deliveryAddress;
     }
 
     function setWormholeFee(uint16 chainId, uint256 fee) public {
@@ -126,20 +124,21 @@ contract MockGenericRelayer {
                     multisendIndex: k,
                     relayerRefundAddress: payable(relayers[targetChain])
                 });
-                if(container.sufficientlyFunded) {
+                if (container.sufficientlyFunded) {
                     vm.prank(relayers[targetChain]);
-                    IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: (budget + wormholeFees[targetChain])}(package);
-                } 
+                    IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{
+                        value: (budget + wormholeFees[targetChain])
+                    }(package);
+                }
             }
             pastEncodedVMs[parsedInstruction.hash] = encodedVMsToBeDelivered;
         } else if (payloadId == 2) {
             IWormholeRelayerInstructionParser.RedeliveryByTxHashInstruction memory instruction =
                 parser.decodeRedeliveryInstruction(parsedInstruction.payload);
-            bytes[] memory originalEncodedVMs =
-                pastEncodedVMs[instruction.sourceTxHash];
+            bytes[] memory originalEncodedVMs = pastEncodedVMs[instruction.sourceTxHash];
             uint16 targetChain = instruction.targetChain;
-            uint256 budget = instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
-                + wormholeFees[targetChain];
+            uint256 budget =
+                instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeFees[targetChain];
             IDelivery.TargetRedeliveryByTxHashParamsSingle memory package = IDelivery
                 .TargetRedeliveryByTxHashParamsSingle({
                 redeliveryVM: encodedDeliveryInstructionsContainer,
