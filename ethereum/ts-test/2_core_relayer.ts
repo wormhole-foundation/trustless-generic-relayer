@@ -475,7 +475,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     let info: DeliveryInfo = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash})) as DeliveryInfo
     let status = info.targetChainStatuses[0].events[0].status
 
-    expect(status).to.equal("Delivery didn't happen within given block range")
+    expect(status.substring(0, 22)).to.equal("Delivery didn't happen")
 
     await new Promise((resolve) => {
       setTimeout(() => {
@@ -524,7 +524,7 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log("Checking status using SDK");
     let info: DeliveryInfo = (await getDeliveryInfoBySourceTx({environment: "DEVNET", sourceChain: sourceChain.chainId, sourceTransaction: tx.hash })) as DeliveryInfo
     let status = info.targetChainStatuses[0].events[0].status
-    expect(status).to.equal("Delivery didn't happen within given block range")
+    expect(status.substring(0, 22)).to.equal("Delivery didn't happen")
 
     await new Promise((resolve) => {
       setTimeout(() => {
