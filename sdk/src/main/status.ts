@@ -77,7 +77,7 @@ export function parseWormholeLog(log: ethers.providers.Log): {
   } else if (type == RelayerPayloadId.Redelivery) {
     return { type, parsed: parseRedeliveryByTxHashInstruction(payload) }
   } else {
-    return { type: -1, parsed: "Invalid wormhole message" }
+    throw Error("Invalid wormhole log");
   }
 }
 
@@ -104,24 +104,28 @@ export function printChain(chainId: number) {
 }
 
 export function printInfo(info: DeliveryInfo | RedeliveryInfo) {
+  console.log(stringifyInfo(info));
+}
+export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
+  let stringifiedInfo = "";
   if(info.type==RelayerPayloadId.Redelivery) {
-    console.log(`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}`)
-    console.log(`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}`)
-    console.log(`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}`)
-    console.log(`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}`)
-    console.log(`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}`)
-    console.log(`multisendIndex: ${info.redeliveryInstruction.multisendIndex}`)
-    console.log(`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}`)
-    console.log(`New max amount (in target chain currency) to use for gas: ${info.redeliveryInstruction.newMaximumRefundTarget}`)
-    console.log(`New amount (in target chain currency) to pass into target address: ${info.redeliveryInstruction.newMaximumRefundTarget}`)
-    console.log(`New target chain gas limit: ${info.redeliveryInstruction.executionParameters.gasLimit}`)
-    console.log(`Relay Provider Delivery Address: 0x${info.redeliveryInstruction.executionParameters.providerDeliveryAddress.toString("hex")}`)
+    stringifiedInfo += (`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}`)
+    stringifiedInfo += (`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}`)
+    stringifiedInfo += (`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}`)
+    stringifiedInfo += (`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}`)
+    stringifiedInfo += (`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}`)
+    stringifiedInfo += (`multisendIndex: ${info.redeliveryInstruction.multisendIndex}`)
+    stringifiedInfo += (`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}`)
+    stringifiedInfo += (`New max amount (in target chain currency) to use for gas: ${info.redeliveryInstruction.newMaximumRefundTarget}`)
+    stringifiedInfo += (`New amount (in target chain currency) to pass into target address: ${info.redeliveryInstruction.newMaximumRefundTarget}`)
+    stringifiedInfo += (`New target chain gas limit: ${info.redeliveryInstruction.executionParameters.gasLimit}`)
+    stringifiedInfo += (`Relay Provider Delivery Address: 0x${info.redeliveryInstruction.executionParameters.providerDeliveryAddress.toString("hex")}`)
   } else if(info.type==RelayerPayloadId.Delivery) {
-    console.log(`Found delivery request in transaction ${info.sourceTransactionHash} on ${printChain(info.sourceChainId)}`)
-    console.log((info.deliveryInstructionsContainer.sufficientlyFunded ? "The delivery was funded" : "** NOTE: The delivery was NOT sufficiently funded. You did not have enough leftover funds to perform the forward **"))
+    stringifiedInfo += (`Found delivery request in transaction ${info.sourceTransactionHash} on ${printChain(info.sourceChainId)}`)
+    stringifiedInfo += ((info.deliveryInstructionsContainer.sufficientlyFunded ? "The delivery was funded" : "** NOTE: The delivery was NOT sufficiently funded. You did not have enough leftover funds to perform the forward **"))
     const length = info.deliveryInstructionsContainer.instructions.length;
-    console.log(`\nMessages were requested to be sent to ${length} destination${length == 1 ? "" : "s"}:`)
-    console.log(info.deliveryInstructionsContainer.instructions.map((instruction: DeliveryInstruction, i) => {
+    stringifiedInfo += (`\nMessages were requested to be sent to ${length} destination${length == 1 ? "" : "s"}:`)
+    stringifiedInfo += (info.deliveryInstructionsContainer.instructions.map((instruction: DeliveryInstruction, i) => {
       let result = "";
       const targetChainName = CHAIN_ID_TO_NAME[instruction.targetChain as ChainId];
       result += `\n(Destination ${i}): Target address is 0x${instruction.targetAddress.toString("hex")} on ${printChain(instruction.targetChain)}\n`
@@ -133,6 +137,7 @@ export function printInfo(info: DeliveryInfo | RedeliveryInfo) {
       return result;
     }).join("\n"))
   }
+  return stringifiedInfo
 }
 
 export async function getDeliveryInfoBySourceTx(
@@ -158,7 +163,7 @@ export async function getDeliveryInfoBySourceTx(
     infoRequest.environment
   )
   if (!bridgeAddress || !coreRelayerAddress) {
-    throw Error("Invalid chain ID or network")
+    throw Error(`Invalid chain ID or network: Chain ID ${infoRequest.sourceChain}, ${infoRequest.environment}`)
   }
 
   const deliveryLog = findLog(
@@ -187,7 +192,7 @@ export async function getDeliveryInfoBySourceTx(
 
   const targetChainStatuses = await Promise.all(deliveryInstructionsContainer.instructions.map(async (instruction: DeliveryInstruction) => {
     const targetChain = instruction.targetChain as ChainId;
-    if(!isChain(targetChain)) throw Error("Invalid Chain")
+    if(!isChain(targetChain)) throw Error(`Invalid Chain: ${targetChain}`)
     const targetChainProvider = 
       infoRequest.targetChainProviders?.get(targetChain) ||
       new ethers.providers.StaticJsonRpcProvider(
@@ -350,111 +355,3 @@ export function findLog(
     }
   }
 }
-
-/* [1]
-  let vaa: GetSignedVAAResponse | null = null
-  if (guardianRpcHosts && guardianRpcHosts.length > 0) {
-    vaa = await pullVaa(
-      guardianRpcHosts,
-      sourceTransaction,
-      coreRelayerAddress,
-      deliveryLog.sequence,
-      sourceChainId
-    )
-    //TODO we should technically return this value if the other VAAs in the batch aren't emitted yet as well
-    if (!vaa) {
-      return [
-        {
-          status: "Waiting for VAA",
-          deliveryTxHash: null,
-          vaaHash: null,
-          sourceChain: sourceChainId,
-          sourceVaaSequence: BigNumber.from(deliveryLog.sequence),
-        },
-      ]
-    }
-  }
-
-  if (vaa != null) {
-    return getDeliveryInfoByVaaHash(
-      environment,
-      targetChain,
-      targetChainProvider,
-      parseVaa(vaa.vaaBytes).hash.toString("hex")
-    )
-    
-  }
-  */
-
-/*
-export async function getDeliveryInfoByVaaHash(
-  environment: Network,
-  targetChain: ChainId,
-  targetChainProvider: ethers.providers.Provider,
-  vaaHash: string
-): Promise<DeliveryTargetInfo[]> {
-  const deliveryEventInfos = await pullEventsByVaaHash(
-    environment,
-    targetChain,
-    targetChainProvider,
-    vaaHash
-  )
-  if (deliveryEventInfos.length == 0) {
-    deliveryEventInfos.push({
-      //can't actually figure out the sequence number from this because there's no way to pull a VAA by its hash
-      status: "Pending Delivery",
-      deliveryTxHash: null,
-      vaaHash: null,
-      sourceChain: null,
-      sourceVaaSequence: null,
-    })
-  }
-
-  return deliveryEventInfos
-}
-
-async function pullEventsByVaaHash(
-  environment: Network,
-  targetChain: ChainId,
-  targetChainProvider: ethers.providers.Provider,
-  vaaHash: string
-): Promise<DeliveryTargetInfo[]> {
-  const coreRelayer = getCoreRelayer(targetChain, environment, targetChainProvider)
-
-  const deliverys = coreRelayer.filters.Delivery(null, null, null, vaaHash)
-
-  return combinedQuery(
-    coreRelayer,
-    deliverys
-  )
-}
-*/
-
-/*
-//TODO be able to find the VAA even if the sequence number rolls back
-export async function pullVaa(
-  hosts: string[],
-  txHash: string,
-  emitterAddress: string,
-  sequence: string,
-  chain: ChainId
-) {
-  try {
-    return await getSignedVAAWithRetry(
-      hosts,
-      chain,
-      emitterAddress,
-      sequence,
-      {},
-      undefined,
-      hosts.length * 2
-    )
-  } catch (e) {}
-
-  return null
-}
-
-export async function pullAllVaasForTx(hosts: string[], txHash: string) {
-  //TODO This
-}
-*/
