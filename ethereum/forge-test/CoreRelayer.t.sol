@@ -25,6 +25,7 @@ import {WormholeSimulator, FakeWormholeSimulator} from "./WormholeSimulator.sol"
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {AttackForwardIntegration} from "../contracts/mock/AttackForwardIntegration.sol";
 import {MockRelayerIntegration, Structs} from "../contracts/mock/MockRelayerIntegration.sol";
+import {ForwardTester} from "./ForwardTester.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 
 import "forge-std/Test.sol";
@@ -303,6 +304,11 @@ contract TestCoreRelayer is Test {
         vaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
     }
 
+    function getDeliveryStatus() internal returns (DeliveryStatus status) {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        status = DeliveryStatus(logs[logs.length - 1].data.toUint256(32));
+    }
+
     function testSend(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
@@ -418,37 +424,49 @@ contract TestCoreRelayer is Test {
         assertTrue(USDcost == relayerProfit, "We paid the exact amount");
     }
 
-    function testForward(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
+    function assumeAndGetForwardPayment(
+        uint32 gasFirst,
+        uint32 gasSecond,
+        StandardSetupTwoChains memory setup,
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams
+    ) internal returns (uint256) {
         vm.assume(
             uint256(1) * gasParams.targetGasPrice * feeParams.targetNativePrice
                 > uint256(1) * gasParams.sourceGasPrice * feeParams.sourceNativePrice
         );
 
-        vm.recordLogs();
         vm.assume(
-            setup.source.coreRelayer.quoteGas(
-                setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-            ) < uint256(2) ** 221
+            setup.source.coreRelayer.quoteGas(setup.targetChainId, gasFirst, address(setup.source.relayProvider))
+                < uint256(2) ** 221
         );
         vm.assume(
-            setup.target.coreRelayer.quoteGas(setup.sourceChainId, 500000, address(setup.target.relayProvider))
+            setup.target.coreRelayer.quoteGas(setup.sourceChainId, gasSecond, address(setup.target.relayProvider))
                 < uint256(2) ** 221 / feeParams.targetNativePrice
         );
-        // estimate the cost based on the intialized values
+
         uint256 payment = setup.source.coreRelayer.quoteGas(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + uint256(3) * setup.source.wormhole.messageFee();
+            setup.targetChainId, gasFirst, address(setup.source.relayProvider)
+        ) + 3 * setup.source.wormhole.messageFee();
 
         uint256 payment2 = (
-            setup.target.coreRelayer.quoteGas(setup.sourceChainId, 500000, address(setup.target.relayProvider))
+            setup.target.coreRelayer.quoteGas(setup.sourceChainId, gasSecond, address(setup.target.relayProvider))
                 + uint256(2) * setup.target.wormhole.messageFee()
         ) * feeParams.targetNativePrice / feeParams.sourceNativePrice + 1;
 
         vm.assume((payment + payment2) < (uint256(2) ** 222));
 
-        setup.source.integration.sendMessageWithForwardedResponse{value: payment + payment2}(
+        return payment + payment2;
+    }
+
+    function testForward(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        uint256 payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
+
+        vm.recordLogs();
+
+        setup.source.integration.sendMessageWithForwardedResponse{value: payment}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
@@ -1568,13 +1586,14 @@ contract TestCoreRelayer is Test {
 
         setup.source.relayProvider.updateDeliverGasOverhead(setup.targetChainId, gasParams.evmGasOverhead);
 
-        uint256 deliveryOverhead = setup.source.relayProvider.quoteDeliveryOverhead(setup.targetChainId);
-        vm.assume(deliveryOverhead > 0);
+        uint256 maxTransactionFee = setup.source.coreRelayer.quoteGas(
+            setup.targetChainId, 1, setup.source.coreRelayer.getDefaultRelayProvider()
+        ) - 1;
 
         uint256 wormholeFee = setup.source.wormhole.messageFee();
 
         vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough(uint8)", 0));
-        setup.source.integration.sendMessageWithRefundAddress{value: deliveryOverhead - 1 + 3 * wormholeFee}(
+        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + 3 * wormholeFee}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
     }
@@ -1617,8 +1636,8 @@ contract TestCoreRelayer is Test {
 
         stack.deliveryVaaHash = sendWithoutEnoughMaxTransactionFee(message, setup);
 
-        stack.payment = setup.source.relayProvider.quoteDeliveryOverhead(setup.targetChainId) - 1
-            + setup.source.wormhole.messageFee();
+        stack.payment = setup.source.coreRelayer.quoteGas(setup.targetChainId, 1, address(setup.source.relayProvider))
+            - 1 + setup.source.wormhole.messageFee();
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
@@ -1688,6 +1707,107 @@ contract TestCoreRelayer is Test {
 
         setup.source.coreRelayer.multichainSend{value: wormholeFee}(
             IWormholeRelayer.MultichainSend(address(0x1), new IWormholeRelayer.Send[](0)), 1
+        );
+    }
+
+    ForwardTester forwardTester;
+
+    struct ForwardStack {
+        bytes32 targetAddress;
+        uint256 payment;
+        uint256 wormholeFee;
+    }
+
+    function executeForwardTest(
+        ForwardTester.Action test,
+        DeliveryStatus desiredOutcome,
+        StandardSetupTwoChains memory setup,
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams
+    ) internal {
+        ForwardStack memory stack;
+        vm.recordLogs();
+        forwardTester = new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer));
+        stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
+        stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
+        stack.wormholeFee = setup.source.wormhole.messageFee();
+        setup.source.wormhole.publishMessage{value: stack.wormholeFee}(1, abi.encodePacked(uint8(test)), 200);
+        setup.source.coreRelayer.send{value: stack.payment}(
+            setup.targetChainId, stack.targetAddress, stack.targetAddress, stack.payment - stack.wormholeFee, 0, 1
+        );
+        genericRelayer.relay(setup.sourceChainId);
+        DeliveryStatus status = getDeliveryStatus();
+        assertTrue(status == desiredOutcome);
+    }
+
+    function testForwardTester(GasParameters memory gasParams, FeeParameters memory feeParams) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        executeForwardTest(
+            ForwardTester.Action.WorksCorrectly, DeliveryStatus.FORWARD_REQUEST_SUCCESS, setup, gasParams, feeParams
+        );
+    }
+
+    function testRevertForwardNoDeliveryInProgress(GasParameters memory gasParams, FeeParameters memory feeParams)
+        public
+    {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        bytes32 targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
+
+        vm.expectRevert(abi.encodeWithSignature("NoDeliveryInProgress()"));
+        setup.source.coreRelayer.forward(setup.targetChainId, targetAddress, targetAddress, 0, 0, 1);
+    }
+
+    function testRevertForwardMultipleForwardsRequested(GasParameters memory gasParams, FeeParameters memory feeParams)
+        public
+    {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        executeForwardTest(
+            ForwardTester.Action.MultipleForwardsRequested, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
+        );
+    }
+
+    function testRevertForwardMultichainSendEmpty(GasParameters memory gasParams, FeeParameters memory feeParams)
+        public
+    {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        executeForwardTest(
+            ForwardTester.Action.MultichainSendEmpty, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
+        );
+    }
+
+    function testRevertForwardNonceIsZero(GasParameters memory gasParams, FeeParameters memory feeParams) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        executeForwardTest(
+            ForwardTester.Action.NonceIsZero, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
+        );
+    }
+
+    function testRevertForwardMaxTransactionFeeNotEnough(GasParameters memory gasParams, FeeParameters memory feeParams)
+        public
+    {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        executeForwardTest(
+            ForwardTester.Action.MaxTransactionFeeNotEnough,
+            DeliveryStatus.RECEIVER_FAILURE,
+            setup,
+            gasParams,
+            feeParams
+        );
+    }
+
+    function testRevertForwardFundsTooMuch(GasParameters memory gasParams, FeeParameters memory feeParams) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        setup.target.relayProvider.updateMaximumBudget(
+            setup.sourceChainId, uint256(10000 - 1) * gasParams.sourceGasPrice
+        );
+
+        executeForwardTest(
+            ForwardTester.Action.FundsTooMuch, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
         );
     }
 
