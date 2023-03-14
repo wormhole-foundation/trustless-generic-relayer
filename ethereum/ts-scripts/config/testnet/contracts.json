@@ -48,23 +48,23 @@
   "mockIntegrations": [
     {
       "chainId": 6,
-      "address": "0x0819CaB27473e585DD28c0D908DCc218dE4cB05C"
+      "address": "0xaC19a80C3409F8296043FC24F955790164Ccb15E"
     },
     {
       "chainId": 14,
-      "address": "0xB7c205B9E147e4371E28fAe3F9530566de374Dcc"
+      "address": "0xC02d04f9067Ede6fF4CaDC31233c795ec982eFd7"
     },
     {
       "chainId": 4,
-      "address": "0xD1d6Ae0149A460204967F91Cb358C3581D4F1692"
+      "address": "0x3C1cd47E8D9aa563B238841B8D95c80d11E6B3A6"
     },
     {
       "chainId": 5,
-      "address": "0xE8cfD947Eb14b0F08DEE7bf0E352480164ED2e6e"
+      "address": "0xf4092f14f74E119fae5343d08C3A253FB9D2e8d6"
     },
     {
       "chainId": 16,
-      "address": "0x87c26Ad201cfC0A969911143985B39855C9CB704"
+      "address": "0x0896fB74CaBeDb603E3A6EdA36f40af00010Bf4c"
     }
   ]
 }

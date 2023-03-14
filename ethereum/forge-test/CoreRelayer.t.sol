@@ -23,7 +23,7 @@ import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
 import {WormholeSimulator, FakeWormholeSimulator} from "./WormholeSimulator.sol";
 import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {AttackForwardIntegration} from "../contracts/mock/AttackForwardIntegration.sol";
-import {MockRelayerIntegration} from "../contracts/mock/MockRelayerIntegration.sol";
+import {MockRelayerIntegration, Structs} from "../contracts/mock/MockRelayerIntegration.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 
 import "forge-std/Test.sol";
@@ -255,6 +255,9 @@ contract TestCoreRelayer is Test {
                 );
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
                 map[i].integration.registerEmitter(j, bytes32(uint256(uint160(address(map[j].integration)))));
+                Structs.XAddress[] memory addresses = new Structs.XAddress[](1);
+                addresses[0] = Structs.XAddress(j, bytes32(uint256(uint160(address(map[j].integration)))));
+                map[i].integration.registerEmitters(addresses);
             }
         }
     }
