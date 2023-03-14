@@ -13,7 +13,8 @@ export async function fetchReceipt(
   sequence: BigInt,
   chainId: wh.EVMChainId,
   provider: ethers.providers.Provider,
-  chainConfig: ChainInfo
+  chainConfig: ChainInfo,
+  logger: ScopedLogger
 ): Promise<ethers.ContractReceipt> {
   const coreWHContract = IWormhole__factory.connect(chainConfig.coreContract!, provider)
   const filter = coreWHContract.filters.LogMessagePublished(chainConfig.relayerAddress)
@@ -25,7 +26,7 @@ export async function fetchReceipt(
     } else {
       paginatedLogs = await coreWHContract.queryFilter(
         filter,
-        blockNumber - (i + 1) * 20,
+        blockNumber - (i + 2) * 20,
         blockNumber - i * 20
       )
     }
@@ -33,13 +34,23 @@ export async function fetchReceipt(
       (log) => log.args.sequence.toString() === sequence.toString()
     )
     if (log) {
-      return await log.getTransactionReceipt()
+      const rx = await log.getTransactionReceipt()
+      if (rx) {
+        return rx
+      } else {
+        logger.error("Returned transaction receipt was not defined", {
+          rx,
+          sequence,
+          chainId,
+        })
+      }
     }
   }
+  logger.info("Did not fetch receipt in initial scan, trying latest 500 blocks...")
   try {
     return await retryAsyncUntilDefined(
       async () => {
-        const paginatedLogs = await coreWHContract.queryFilter(filter, -50)
+        const paginatedLogs = await coreWHContract.queryFilter(filter, -500)
         const log = paginatedLogs.find(
           (log) => log.args.sequence.toString() === sequence.toString()
         )
