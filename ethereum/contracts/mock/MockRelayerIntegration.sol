@@ -10,6 +10,13 @@ import "../interfaces/IWormholeReceiver.sol";
 
 import "forge-std/console.sol";
 
+interface Structs {
+    struct XAddress {
+        uint16 chainId;
+        bytes32 addr;
+    }
+}
+
 contract MockRelayerIntegration is IWormholeReceiver {
     using BytesLib for bytes;
 
@@ -28,7 +35,8 @@ contract MockRelayerIntegration is IWormholeReceiver {
     // mapping of other MockRelayerIntegration contracts
     mapping(uint16 => bytes32) registeredContracts;
 
-    bytes[] messages;
+    // bytes[] messages;
+    bytes[][] messageHistory;
 
     struct FurtherInstructions {
         bool keepSending;
@@ -139,14 +147,17 @@ contract MockRelayerIntegration is IWormholeReceiver {
     function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
-        messages = new bytes[](wormholeObservations.length - 2);
+        bytes[] memory messages = new bytes[](wormholeObservations.length - 2);
+        uint16 emitterChainId;
         for (uint256 i = 0; i < numObservations - 2; i++) {
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
             require(registeredContracts[parsed.emitterChainId] == parsed.emitterAddress);
+            emitterChainId = parsed.emitterChainId;
             messages[i] = parsed.payload;
         }
+        messageHistory.push(messages);
 
         (IWormhole.VM memory parsed, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(wormholeObservations[wormholeObservations.length - 2]);
@@ -183,14 +194,21 @@ contract MockRelayerIntegration is IWormholeReceiver {
     }
 
     function getMessage() public view returns (bytes memory) {
-        if (messages.length == 0) {
+        if (messageHistory.length == 0 || messageHistory[messageHistory.length - 1].length == 0) {
             return new bytes(0);
         }
-        return messages[0];
+        return messageHistory[messageHistory.length - 1][0];
     }
 
     function getMessages() public view returns (bytes[] memory) {
-        return messages;
+        if (messageHistory.length == 0 || messageHistory[messageHistory.length - 1].length == 0) {
+            return new bytes[](0);
+        }
+        return messageHistory[messageHistory.length - 1];
+    }
+
+    function getMessageHistory() public view returns (bytes[][] memory) {
+        return messageHistory;
     }
 
     function clearPayload(bytes32 hash) public {
@@ -208,6 +226,13 @@ contract MockRelayerIntegration is IWormholeReceiver {
     function registerEmitter(uint16 chainId, bytes32 emitterAddress) public {
         require(msg.sender == owner);
         registeredContracts[chainId] = emitterAddress;
+    }
+
+    function registerEmitters(Structs.XAddress[] calldata emitters) public {
+        require(msg.sender == owner);
+        for (uint256 i = 0; i < emitters.length; i++) {
+            registeredContracts[emitters[i].chainId] = emitters[i].addr;
+        }
     }
 
     function encodeFurtherInstructions(FurtherInstructions memory furtherInstructions)
