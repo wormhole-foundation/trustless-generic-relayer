@@ -1,15 +1,7 @@
-import {
-  EVMChainId,
-  CONTRACTS,
-  coalesceChainName,
-  ChainId,
-} from "@certusone/wormhole-sdk"
+import {ChainId, coalesceChainName, CONTRACTS, EVMChainId,} from "@certusone/wormhole-sdk"
 import * as relayerEngine from "@wormhole-foundation/relayer-engine"
-import { EnvType, validateStringEnum } from "@wormhole-foundation/relayer-engine"
-import GenericRelayerPluginDef, {
-  ChainInfo,
-  GenericRelayerPluginConfig,
-} from "./plugin/src/plugin"
+import {validateStringEnum} from "@wormhole-foundation/relayer-engine"
+import {ChainInfo, GenericRelayerPlugin, GenericRelayerPluginConfig,} from "./plugin/src/plugin"
 
 type ContractConfigEntry = { chainId: EVMChainId; address: "string" }
 type ContractsJson = {
@@ -48,7 +40,9 @@ async function main() {
   // run relayer engine
   await relayerEngine.run({
     configs: "./engine_config/" + envType.toLowerCase(),
-    plugins: [GenericRelayerPluginDef.init(pluginConfig)],
+    plugins: {
+      [GenericRelayerPlugin.pluginName]: (engineConfig, logger) => new GenericRelayerPlugin(engineConfig, pluginConfig, logger)
+    },
     mode: relayerEngine.Mode.BOTH,
   })
 }

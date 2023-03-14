@@ -8,24 +8,23 @@ import {
   ParsedVaaWithBytes,
   parseVaaWithBytes,
   Plugin,
-  PluginDefinition,
   Providers,
   StagingAreaKeyLock,
   Workflow,
 } from "@wormhole-foundation/relayer-engine"
 import * as wh from "@certusone/wormhole-sdk"
-import { config, Logger } from "winston"
-import { convertAddressBytesToHex, PluginError } from "./utils"
-import { SignedVaa } from "@certusone/wormhole-sdk"
+import {SignedVaa} from "@certusone/wormhole-sdk"
+import { Logger } from "winston"
+import { PluginError } from "./utils"
 import {
-  RelayProvider__factory,
-  IDelivery,
   DeliveryInstructionsContainer,
+  IDelivery,
   parseDeliveryInstructionsContainer,
-  parseRedeliveryByTxHashInstruction,
   parsePayloadType,
-  RelayerPayloadId,
+  parseRedeliveryByTxHashInstruction,
   RedeliveryByTxHashInstruction,
+  RelayerPayloadId,
+  RelayProvider__factory,
 } from "../../../pkgs/sdk/src"
 import * as ethers from "ethers"
 import * as vaaFetching from "./vaaFetching"
@@ -75,7 +74,7 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   pluginConfig: GenericRelayerPluginConfig
 
   constructor(
-    readonly engineConfig: CommonPluginEnv & { wormholeRpc: string },
+    readonly engineConfig: CommonPluginEnv,
     pluginConfigRaw: Record<string, any>,
     readonly logger: Logger
   ) {
@@ -409,20 +408,3 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
   }
 }
 
-class Definition implements PluginDefinition<GenericRelayerPluginConfig, Plugin> {
-  pluginName: string = PLUGIN_NAME
-
-  init(pluginConfig: any): {
-    fn: (engineConfig: any, logger: Logger) => GenericRelayerPlugin
-    pluginName: string
-  } {
-    const pluginConfigParsed: GenericRelayerPluginConfig =
-      GenericRelayerPlugin.validateConfig(pluginConfig)
-    return {
-      fn: (env, logger) => new GenericRelayerPlugin(env, pluginConfigParsed, logger),
-      pluginName: this.pluginName,
-    }
-  }
-}
-
-export default new Definition()

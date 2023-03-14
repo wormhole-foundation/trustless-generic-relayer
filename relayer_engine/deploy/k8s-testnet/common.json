@@ -1,6 +1,7 @@
 {
   "mode": "BOTH",
   "logLevel": "debug",
+  "logFormat": "json",
   "storeType": "Redis",
   "redis": {
     "port": 6379,
@@ -14,6 +15,8 @@
   },
   "wormholeRpc": "https://wormhole-v2-testnet-api.certus.one",
   "readinessPort": 2000,
+  "promPort": 9090,
+  "apiPort": 3000,
   "numGuardians": 1,
   "supportedChains": [
     {
