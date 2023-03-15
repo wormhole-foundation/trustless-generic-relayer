@@ -5,15 +5,16 @@ import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
 import { ChainInfo } from "./plugin"
-import { ScopedLogger } from "@wormhole-foundation/relayer-engine/relayer-engine/lib/helpers/logHelper"
 import { tryNativeToHexString } from "@certusone/wormhole-sdk"
+import { Logger } from "winston"
 
 // fetch  the contract transaction receipt for the given sequence number emitted by the core relayer contract
 export async function fetchReceipt(
   sequence: BigInt,
   chainId: wh.EVMChainId,
   provider: ethers.providers.Provider,
-  chainConfig: ChainInfo
+  chainConfig: ChainInfo,
+  logger: Logger
 ): Promise<ethers.ContractReceipt> {
   const coreWHContract = IWormhole__factory.connect(chainConfig.coreContract!, provider)
   const filter = coreWHContract.filters.LogMessagePublished(chainConfig.relayerAddress)
@@ -25,7 +26,7 @@ export async function fetchReceipt(
     } else {
       paginatedLogs = await coreWHContract.queryFilter(
         filter,
-        blockNumber - (i + 1) * 20,
+        blockNumber - (i + 2) * 20,
         blockNumber - i * 20
       )
     }
@@ -33,13 +34,23 @@ export async function fetchReceipt(
       (log) => log.args.sequence.toString() === sequence.toString()
     )
     if (log) {
-      return await log.getTransactionReceipt()
+      const rx = await log.getTransactionReceipt()
+      if (rx) {
+        return rx
+      } else {
+        logger.error("Returned transaction receipt was not defined", {
+          rx,
+          sequence,
+          chainId,
+        })
+      }
     }
   }
+  logger.info("Did not fetch receipt in initial scan, trying latest 500 blocks...")
   try {
     return await retryAsyncUntilDefined(
       async () => {
-        const paginatedLogs = await coreWHContract.queryFilter(filter, -50)
+        const paginatedLogs = await coreWHContract.queryFilter(filter, -500)
         const log = paginatedLogs.find(
           (log) => log.args.sequence.toString() === sequence.toString()
         )
@@ -59,7 +70,7 @@ export function filterLogs(
   rx: ethers.ContractReceipt,
   nonce: number,
   chainConfig: ChainInfo,
-  logger: ScopedLogger
+  logger: Logger
 ): {
   vaas: {
     sequence: string
