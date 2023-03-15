@@ -1783,8 +1783,9 @@ contract TestCoreRelayer is Test {
     ) internal {
         ForwardStack memory stack;
         vm.recordLogs();
-        forwardTester = new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer), address(setup.target.wormholeSimulator));
-        vm.deal(address(forwardTester), type(uint256).max/2);
+        forwardTester =
+        new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer), address(setup.target.wormholeSimulator));
+        vm.deal(address(forwardTester), type(uint256).max / 2);
         stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
         stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
         stack.wormholeFee = setup.source.wormhole.messageFee();
@@ -1849,7 +1850,11 @@ contract TestCoreRelayer is Test {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         executeForwardTest(
-            ForwardTester.Action.ForwardRequestFromWrongAddress, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
+            ForwardTester.Action.ForwardRequestFromWrongAddress,
+            DeliveryStatus.RECEIVER_FAILURE,
+            setup,
+            gasParams,
+            feeParams
         );
     }
 

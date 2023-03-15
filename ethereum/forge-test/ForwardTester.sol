@@ -26,7 +26,12 @@ contract ForwardTester is IWormholeReceiver {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         genericRelayer = new MockGenericRelayer(_wormhole, _wormholeSimulator, _wormholeRelayer);
         genericRelayer.setWormholeRelayerContract(wormhole.chainId(), address(wormholeRelayer));
-        genericRelayer.setProviderDeliveryAddress(wormhole.chainId(), wormholeRelayer.fromWormholeFormat(IRelayProvider(wormholeRelayer.getDefaultRelayProvider()).getDeliveryAddress(wormhole.chainId())));
+        genericRelayer.setProviderDeliveryAddress(
+            wormhole.chainId(),
+            wormholeRelayer.fromWormholeFormat(
+                IRelayProvider(wormholeRelayer.getDefaultRelayProvider()).getDeliveryAddress(wormhole.chainId())
+            )
+        );
         genericRelayer.setWormholeFee(wormhole.chainId(), wormhole.messageFee());
     }
 
@@ -58,9 +63,7 @@ contract ForwardTester is IWormholeReceiver {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
             DummyContract dc = new DummyContract(address(wormholeRelayer));
-            dc.forward(
-                vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1
-            );
+            dc.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
         } else if (action == Action.NonceIsZero) {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
@@ -85,9 +88,10 @@ contract ForwardTester is IWormholeReceiver {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(wormhole.chainId(), 10000, wormholeRelayer.getDefaultRelayProvider());
             vm.recordLogs();
-            wormholeRelayer.send{value: maxTransactionFee + wormhole.messageFee()}(wormhole.chainId(), vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
+            wormholeRelayer.send{value: maxTransactionFee + wormhole.messageFee()}(
+                wormhole.chainId(), vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1
+            );
             genericRelayer.relay(wormhole.chainId());
-            
         } else {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
@@ -100,12 +104,19 @@ contract ForwardTester is IWormholeReceiver {
 
 contract DummyContract {
     IWormholeRelayer wormholeRelayer;
+
     constructor(address _wormholeRelayer) {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
     }
 
-    function forward(uint16 chainId, bytes32 targetAddress, bytes32 refundAddress, uint256 maxTransactionFee, uint256 receiverValue, uint32 nonce) public {
+    function forward(
+        uint16 chainId,
+        bytes32 targetAddress,
+        bytes32 refundAddress,
+        uint256 maxTransactionFee,
+        uint256 receiverValue,
+        uint32 nonce
+    ) public {
         wormholeRelayer.forward(chainId, targetAddress, refundAddress, maxTransactionFee, receiverValue, nonce);
     }
-
 }
