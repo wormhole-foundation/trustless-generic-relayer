@@ -1,6 +1,7 @@
 import {
   ChainId,
   CHAIN_ID_TO_NAME,
+  CHAINS,
   isChain,
   CONTRACTS,
   getSignedVAAWithRetry,
@@ -140,14 +141,17 @@ export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
   return stringifiedInfo
 }
 
+function getDefaultProvider(network: Network, chainId: ChainId) {
+  return new ethers.providers.StaticJsonRpcProvider(
+    RPCS_BY_CHAIN[network][CHAIN_ID_TO_NAME[chainId]]
+  )
+}
+
 export async function getDeliveryInfoBySourceTx(
   infoRequest: InfoRequest
 ): Promise<DeliveryInfo | RedeliveryInfo> {
   const sourceChainProvider =
-    infoRequest.sourceChainProvider ||
-    new ethers.providers.StaticJsonRpcProvider(
-      RPCS_BY_CHAIN[infoRequest.environment][CHAIN_ID_TO_NAME[infoRequest.sourceChain]]
-    )
+    infoRequest.sourceChainProvider || getDefaultProvider(infoRequest.environment, infoRequest.sourceChain);
   if (!sourceChainProvider)
     throw Error(
       "No default RPC for this chain; pass in your own provider (as sourceChainProvider)"
@@ -195,9 +199,7 @@ export async function getDeliveryInfoBySourceTx(
     if(!isChain(targetChain)) throw Error(`Invalid Chain: ${targetChain}`)
     const targetChainProvider = 
       infoRequest.targetChainProviders?.get(targetChain) ||
-      new ethers.providers.StaticJsonRpcProvider(
-        RPCS_BY_CHAIN[infoRequest.environment][CHAIN_ID_TO_NAME[targetChain]]
-      )
+      getDefaultProvider(infoRequest.environment, targetChain)
 
     if (!targetChainProvider)
       throw Error(
