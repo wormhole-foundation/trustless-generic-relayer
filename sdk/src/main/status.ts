@@ -109,22 +109,22 @@ export function printInfo(info: DeliveryInfo | RedeliveryInfo) {
 export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
   let stringifiedInfo = "";
   if(info.type==RelayerPayloadId.Redelivery) {
-    stringifiedInfo += (`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}`)
-    stringifiedInfo += (`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}`)
-    stringifiedInfo += (`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}`)
-    stringifiedInfo += (`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}`)
-    stringifiedInfo += (`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}`)
-    stringifiedInfo += (`multisendIndex: ${info.redeliveryInstruction.multisendIndex}`)
-    stringifiedInfo += (`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}`)
-    stringifiedInfo += (`New max amount (in target chain currency) to use for gas: ${info.redeliveryInstruction.newMaximumRefundTarget}`)
-    stringifiedInfo += (`New amount (in target chain currency) to pass into target address: ${info.redeliveryInstruction.newMaximumRefundTarget}`)
-    stringifiedInfo += (`New target chain gas limit: ${info.redeliveryInstruction.executionParameters.gasLimit}`)
-    stringifiedInfo += (`Relay Provider Delivery Address: 0x${info.redeliveryInstruction.executionParameters.providerDeliveryAddress.toString("hex")}`)
+    stringifiedInfo += (`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}\n`)
+    stringifiedInfo += (`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}\n`)
+    stringifiedInfo += (`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}\n`)
+    stringifiedInfo += (`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}\n`)
+    stringifiedInfo += (`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}\n`)
+    stringifiedInfo += (`multisendIndex: ${info.redeliveryInstruction.multisendIndex}\n`)
+    stringifiedInfo += (`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}\n`)
+    stringifiedInfo += (`New max amount (in target chain currency) to use for gas: ${info.redeliveryInstruction.newMaximumRefundTarget}\n`)
+    stringifiedInfo += (`New amount (in target chain currency) to pass into target address: ${info.redeliveryInstruction.newMaximumRefundTarget}\n`)
+    stringifiedInfo += (`New target chain gas limit: ${info.redeliveryInstruction.executionParameters.gasLimit}\n`)
+    stringifiedInfo += (`Relay Provider Delivery Address: 0x${info.redeliveryInstruction.executionParameters.providerDeliveryAddress.toString("hex")}\n`)
   } else if(info.type==RelayerPayloadId.Delivery) {
-    stringifiedInfo += (`Found delivery request in transaction ${info.sourceTransactionHash} on ${printChain(info.sourceChainId)}`)
-    stringifiedInfo += ((info.deliveryInstructionsContainer.sufficientlyFunded ? "The delivery was funded" : "** NOTE: The delivery was NOT sufficiently funded. You did not have enough leftover funds to perform the forward **"))
+    stringifiedInfo += (`Found delivery request in transaction ${info.sourceTransactionHash} on ${printChain(info.sourceChainId)}\n`)
+    stringifiedInfo += ((info.deliveryInstructionsContainer.sufficientlyFunded ? "The delivery was funded\n" : "** NOTE: The delivery was NOT sufficiently funded. You did not have enough leftover funds to perform the forward **\n"))
     const length = info.deliveryInstructionsContainer.instructions.length;
-    stringifiedInfo += (`\nMessages were requested to be sent to ${length} destination${length == 1 ? "" : "s"}:`)
+    stringifiedInfo += (`\nMessages were requested to be sent to ${length} destination${length == 1 ? "" : "s"}:\n`)
     stringifiedInfo += (info.deliveryInstructionsContainer.instructions.map((instruction: DeliveryInstruction, i) => {
       let result = "";
       const targetChainName = CHAIN_ID_TO_NAME[instruction.targetChain as ChainId];
@@ -135,7 +135,7 @@ export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
       result += `Relay Provider Delivery Address: 0x${instruction.executionParameters.providerDeliveryAddress.toString("hex")}\n`
       result += info.targetChainStatuses[i].events.map((e, i) => (`Delivery attempt ${i+1}: ${e.status}${e.transactionHash ? ` (${targetChainName} transaction hash: ${e.transactionHash})` : ""}`)).join("\n")
       return result;
-    }).join("\n"))
+    }).join("\n")) + "\n"
   }
   return stringifiedInfo
 }
