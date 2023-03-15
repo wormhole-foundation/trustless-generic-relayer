@@ -304,9 +304,13 @@ contract TestCoreRelayer is Test {
         vaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
     }
 
+    function getDeliveryStatus(Vm.Log memory log) internal returns (DeliveryStatus status) {
+        status = DeliveryStatus(log.data.toUint256(32));
+    }
+
     function getDeliveryStatus() internal returns (DeliveryStatus status) {
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        status = DeliveryStatus(logs[logs.length - 1].data.toUint256(32));
+        status = getDeliveryStatus(logs[logs.length - 1]);
     }
 
     function testSend(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
@@ -418,9 +422,6 @@ contract TestCoreRelayer is Test {
         uint256 relayerProfit = uint256(feeParams.sourceNativePrice)
             * (setup.source.rewardAddress.balance - rewardAddressBalance)
             - feeParams.targetNativePrice * (relayerBalance - setup.target.relayer.balance);
-        console.log(USDcost);
-        console.log(relayerProfit);
-        console.log((USDcost - relayerProfit));
         assertTrue(USDcost == relayerProfit, "We paid the exact amount");
     }
 
@@ -477,6 +478,61 @@ contract TestCoreRelayer is Test {
         genericRelayer.relay(setup.targetChainId);
 
         assertTrue(keccak256(setup.source.integration.getMessage()) == keccak256(bytes("received!")));
+    }
+
+    function testForwardRequestFail(
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams,
+        bytes memory message
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        vm.assume(
+            uint256(1) * feeParams.targetNativePrice * gasParams.targetGasPrice * 10
+                < uint256(1) * feeParams.sourceNativePrice * gasParams.sourceGasPrice
+        );
+        uint256 payment =
+            setup.source.coreRelayer.quoteGas(setup.targetChainId, 1000000, address(setup.source.relayProvider));
+
+        vm.recordLogs();
+
+        IWormhole wormhole = setup.source.wormhole;
+        uint256 wormholeFee = wormhole.messageFee();
+        vm.prank(address(setup.source.integration));
+        wormhole.publishMessage{value: wormholeFee}(1, message, 200);
+
+        uint16[] memory chains = new uint16[](1);
+        chains[0] = wormhole.chainId();
+        uint32[] memory gasLimits = new uint32[](1);
+        gasLimits[0] = 1000000;
+        bytes[] memory newMessages = new bytes[](2);
+        newMessages[0] = bytes("received!");
+        newMessages[1] = abi.encodePacked(uint8(0));
+        MockRelayerIntegration.FurtherInstructions memory instructions = MockRelayerIntegration.FurtherInstructions({
+            keepSending: true,
+            newMessages: newMessages,
+            chains: chains,
+            gasLimits: gasLimits
+        });
+        vm.prank(address(setup.source.integration));
+        wormhole.publishMessage{value: wormholeFee}(
+            1, setup.source.integration.encodeFurtherInstructions(instructions), 200
+        );
+        bytes32 targetAddress = setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration));
+
+        setup.source.coreRelayer.send{value: payment + wormholeFee}(
+            setup.targetChainId, targetAddress, targetAddress, payment, 0, 1
+        );
+
+        genericRelayer.relay(setup.sourceChainId);
+
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        genericRelayer.relay(logs, setup.targetChainId);
+
+        assertTrue(keccak256(setup.source.integration.getMessage()) != keccak256(bytes("received!")));
+        assertTrue(getDeliveryStatus(logs[logs.length - 1]) == DeliveryStatus.FORWARD_REQUEST_FAILURE);
     }
 
     function testAttackForwardRequestCache(GasParameters memory gasParams, FeeParameters memory feeParams) public {
@@ -1727,7 +1783,8 @@ contract TestCoreRelayer is Test {
     ) internal {
         ForwardStack memory stack;
         vm.recordLogs();
-        forwardTester = new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer));
+        forwardTester = new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer), address(setup.target.wormholeSimulator));
+        vm.deal(address(forwardTester), type(uint256).max/2);
         stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
         stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
         stack.wormholeFee = setup.source.wormhole.messageFee();
@@ -1785,6 +1842,24 @@ contract TestCoreRelayer is Test {
         );
     }
 
+    function testRevertForwardForwardRequestFromWrongAddress(
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        executeForwardTest(
+            ForwardTester.Action.ForwardRequestFromWrongAddress, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
+        );
+    }
+
+    function testRevertDeliveryReentrantCall(GasParameters memory gasParams, FeeParameters memory feeParams) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        executeForwardTest(
+            ForwardTester.Action.ReentrantCall, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
+        );
+    }
+
     function testRevertForwardMaxTransactionFeeNotEnough(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
@@ -1839,5 +1914,11 @@ contract TestCoreRelayer is Test {
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
+    }
+
+    function testToAndFromWormholeFormat(bytes32 msg2, address msg1) public {
+        assertTrue(map[1].coreRelayer.fromWormholeFormat(msg2) == address(uint160(uint256(msg2))));
+        assertTrue(map[1].coreRelayer.toWormholeFormat(msg1) == bytes32(uint256(uint160(msg1))));
+        assertTrue(map[1].coreRelayer.fromWormholeFormat(map[1].coreRelayer.toWormholeFormat(msg1)) == msg1);
     }
 }

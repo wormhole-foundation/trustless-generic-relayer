@@ -7,6 +7,7 @@ import "../interfaces/IWormholeReceiver.sol";
 import "../interfaces/IDelivery.sol";
 import "./CoreRelayerGovernance.sol";
 import "./CoreRelayerStructs.sol";
+import "forge-std/console.sol";
 
 contract CoreRelayerDelivery is CoreRelayerGovernance {
     enum DeliveryStatus {

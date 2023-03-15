@@ -9,6 +9,7 @@ import {IWormhole} from "../contracts/interfaces/IWormhole.sol";
 import {WormholeSimulator} from "./WormholeSimulator.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 import "forge-std/Vm.sol";
+import "forge-std/console.sol";
 
 contract MockGenericRelayer {
     using BytesLib for bytes;
@@ -56,7 +57,11 @@ contract MockGenericRelayer {
     }
 
     function relay(uint16 chainId) public {
-        Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(vm.getRecordedLogs());
+        relay(vm.getRecordedLogs(), chainId);
+    }
+
+    function relay(Vm.Log[] memory logs, uint16 chainId) public {
+        Vm.Log[] memory entries = relayerWormholeSimulator.fetchWormholeMessageFromLog(logs);
         bytes[] memory encodedVMs = new bytes[](entries.length);
         for (uint256 i = 0; i < encodedVMs.length; i++) {
             encodedVMs[i] = relayerWormholeSimulator.fetchSignedMessageFromLogs(
@@ -67,7 +72,6 @@ contract MockGenericRelayer {
         for (uint16 i = 0; i < encodedVMs.length; i++) {
             parsed[i] = relayerWormhole.parseVM(encodedVMs[i]);
         }
-
         for (uint16 i = 0; i < encodedVMs.length; i++) {
             if (!nonceCompleted[parsed[i].nonce]) {
                 nonceCompleted[parsed[i].nonce] = true;
