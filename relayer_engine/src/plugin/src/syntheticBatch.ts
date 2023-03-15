@@ -5,8 +5,8 @@ import * as ethers from "ethers"
 import { Implementation__factory } from "@certusone/wormhole-sdk/lib/cjs/ethers-contracts"
 import { retryAsyncUntilDefined } from "ts-retry/lib/cjs/retry"
 import { ChainInfo } from "./plugin"
-import { ScopedLogger } from "@wormhole-foundation/relayer-engine/relayer-engine/lib/helpers/logHelper"
 import { tryNativeToHexString } from "@certusone/wormhole-sdk"
+import { Logger } from "winston"
 
 // fetch  the contract transaction receipt for the given sequence number emitted by the core relayer contract
 export async function fetchReceipt(
@@ -14,7 +14,7 @@ export async function fetchReceipt(
   chainId: wh.EVMChainId,
   provider: ethers.providers.Provider,
   chainConfig: ChainInfo,
-  logger: ScopedLogger
+  logger: Logger
 ): Promise<ethers.ContractReceipt> {
   const coreWHContract = IWormhole__factory.connect(chainConfig.coreContract!, provider)
   const filter = coreWHContract.filters.LogMessagePublished(chainConfig.relayerAddress)
@@ -70,7 +70,7 @@ export function filterLogs(
   rx: ethers.ContractReceipt,
   nonce: number,
   chainConfig: ChainInfo,
-  logger: ScopedLogger
+  logger: Logger
 ): {
   vaas: {
     sequence: string

@@ -13,7 +13,7 @@ import {
   Workflow,
 } from "@wormhole-foundation/relayer-engine"
 import * as wh from "@certusone/wormhole-sdk"
-import {SignedVaa} from "@certusone/wormhole-sdk"
+import { SignedVaa } from "@certusone/wormhole-sdk"
 import { Logger } from "winston"
 import { PluginError } from "./utils"
 import {
@@ -167,7 +167,8 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
       coreRelayerVaa.sequence,
       chainId,
       providers.evm[chainId],
-      this.pluginConfig.supportedChains.get(chainId)!
+      this.pluginConfig.supportedChains.get(chainId)!,
+      this.logger
     )
 
     const chainConfig = this.pluginConfig.supportedChains.get(chainId)!
@@ -407,4 +408,3 @@ export class GenericRelayerPlugin implements Plugin<WorkflowPayload> {
     }
   }
 }
-
