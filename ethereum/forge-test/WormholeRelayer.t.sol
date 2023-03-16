@@ -27,13 +27,14 @@ import {IWormholeReceiver} from "../contracts/interfaces/IWormholeReceiver.sol";
 import {AttackForwardIntegration} from "../contracts/mock/AttackForwardIntegration.sol";
 import {MockRelayerIntegration, Structs} from "../contracts/mock/MockRelayerIntegration.sol";
 import {ForwardTester} from "./ForwardTester.sol";
+import {TestHelpers} from "./TestHelpers.sol";
 import "../contracts/libraries/external/BytesLib.sol";
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "forge-std/Vm.sol";
 
-contract TestCoreRelayer is Test {
+contract WormholeRelayerTests is Test {
     using BytesLib for bytes;
 
     uint16 MAX_UINT16_VALUE = 65535;
@@ -57,6 +58,7 @@ contract TestCoreRelayer is Test {
     IWormhole relayerWormhole;
     WormholeSimulator relayerWormholeSimulator;
     MockGenericRelayer genericRelayer;
+    TestHelpers helpers;
 
     function setUp() public {
         // deploy Wormhole
@@ -70,69 +72,15 @@ contract TestCoreRelayer is Test {
             wormhole
         );
 
+        helpers = new TestHelpers();
+
         genericRelayer =
-        new MockGenericRelayer(address(wormhole), address(relayerWormholeSimulator), address(setUpCoreRelayer(2, wormhole, address(0x1))));
+        new MockGenericRelayer(address(wormhole), address(relayerWormholeSimulator), address(helpers.setUpCoreRelayer(2, wormhole, address(0x1))));
 
         setUpChains(5);
-    }
 
-    function setUpWormhole(uint16 chainId)
-        internal
-        returns (IWormhole wormholeContract, WormholeSimulator wormholeSimulator)
-    {
-        // deploy Wormhole
-        MockWormhole wormhole = new MockWormhole({
-            initChainId: chainId,
-            initEvmChainId: block.chainid
-        });
+        //
 
-        // replace Wormhole with the Wormhole Simulator contract (giving access to some nice helper methods for signing)
-        wormholeSimulator = new FakeWormholeSimulator(
-            wormhole
-        );
-
-        wormholeContract = wormhole;
-    }
-
-    function setUpRelayProvider(uint16 chainId) internal returns (RelayProvider relayProvider) {
-        RelayProviderSetup relayProviderSetup = new RelayProviderSetup();
-        RelayProviderImplementation relayProviderImplementation = new RelayProviderImplementation();
-        RelayProviderProxy myRelayProvider = new RelayProviderProxy(
-            address(relayProviderSetup),
-            abi.encodeCall(
-                RelayProviderSetup.setup,
-                (
-                    address(relayProviderImplementation),
-                    chainId
-                )
-            )
-        );
-
-        relayProvider = RelayProvider(address(myRelayProvider));
-    }
-
-    function setUpCoreRelayer(uint16 chainId, IWormhole wormhole, address defaultRelayProvider)
-        internal
-        returns (IWormholeRelayer coreRelayer)
-    {
-        CoreRelayerSetup coreRelayerSetup = new CoreRelayerSetup();
-        CoreRelayerImplementation coreRelayerImplementation = new CoreRelayerImplementation();
-        CoreRelayerProxy myCoreRelayer = new CoreRelayerProxy(
-            address(coreRelayerSetup),
-            abi.encodeCall(
-                CoreRelayerSetup.setup,
-                (
-                    address(coreRelayerImplementation),
-                    chainId,
-                    address(wormhole),
-                    defaultRelayProvider,
-                    wormhole.governanceChainId(),
-                    wormhole.governanceContract(),
-                    block.chainid
-                )
-            )
-        );
-        coreRelayer = IWormholeRelayer(address(myCoreRelayer));
     }
 
     struct StandardSetupTwoChains {
@@ -241,9 +189,9 @@ contract TestCoreRelayer is Test {
     function setUpChains(uint16 numChains) internal {
         for (uint16 i = 1; i <= numChains; i++) {
             Contracts memory mapEntry;
-            (mapEntry.wormhole, mapEntry.wormholeSimulator) = setUpWormhole(i);
-            mapEntry.relayProvider = setUpRelayProvider(i);
-            mapEntry.coreRelayer = setUpCoreRelayer(i, mapEntry.wormhole, address(mapEntry.relayProvider));
+            (mapEntry.wormhole, mapEntry.wormholeSimulator) = helpers.setUpWormhole(i);
+            mapEntry.relayProvider = helpers.setUpRelayProvider(i);
+            mapEntry.coreRelayer = helpers.setUpCoreRelayer(i, mapEntry.wormhole, address(mapEntry.relayProvider));
             mapEntry.coreRelayerFull = CoreRelayer(address(mapEntry.coreRelayer));
             genericRelayer.setWormholeRelayerContract(i, address(mapEntry.coreRelayer));
             mapEntry.integration = new MockRelayerIntegration(address(mapEntry.wormhole), address(mapEntry.coreRelayer));
@@ -256,15 +204,17 @@ contract TestCoreRelayer is Test {
             mapEntry.chainId = i;
             map[i] = mapEntry;
         }
+           
+    
         uint256 maxBudget = type(uint256).max;
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
-                registerCoreRelayerContract(
-                    map[i].coreRelayerFull, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
-                );
+               helpers.registerCoreRelayerContract(
+                    map[i].coreRelayerFull, map[i].wormhole, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
+                ); 
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
                 map[i].integration.registerEmitter(j, bytes32(uint256(uint160(address(map[j].integration)))));
                 Structs.XAddress[] memory addresses = new Structs.XAddress[](1);
@@ -274,33 +224,7 @@ contract TestCoreRelayer is Test {
         }
     }
 
-    function registerCoreRelayerContract(
-        CoreRelayer governance,
-        uint16 currentChainId,
-        uint16 chainId,
-        bytes32 coreRelayerContractAddress
-    ) internal {
-        bytes32 coreRelayerModule = 0x000000000000000000000000000000000000000000436F726552656C61796572;
-        bytes memory message =
-            abi.encodePacked(coreRelayerModule, uint8(2), currentChainId, chainId, coreRelayerContractAddress);
-        IWormhole.VM memory preSignedMessage = IWormhole.VM({
-            version: 1,
-            timestamp: uint32(block.timestamp),
-            nonce: 0,
-            emitterChainId: relayerWormhole.governanceChainId(),
-            emitterAddress: relayerWormhole.governanceContract(),
-            sequence: 0,
-            consistencyLevel: 200,
-            payload: message,
-            guardianSetIndex: 0,
-            signatures: new IWormhole.Signature[](0),
-            hash: bytes32("")
-        });
-
-        bytes memory signed = relayerWormholeSimulator.encodeAndSignMessage(preSignedMessage);
-        governance.registerCoreRelayerContract(signed);
-    }
-
+   
     function getDeliveryVAAHash() internal returns (bytes32 vaaHash) {
         vaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
     }
@@ -1928,152 +1852,4 @@ contract TestCoreRelayer is Test {
         assertTrue(map[1].coreRelayer.fromWormholeFormat(map[1].coreRelayer.toWormholeFormat(msg1)) == msg1);
     }
 
-    function testSetDefaultRelayProvider() public {
-        IRelayProvider relayProviderA = setUpRelayProvider(1);
-        IRelayProvider relayProviderB = setUpRelayProvider(1);
-        IRelayProvider relayProviderC = setUpRelayProvider(1);
-        (IWormhole wormhole, WormholeSimulator simulator) = setUpWormhole(1);
-
-        IWormholeRelayer wormholeRelayer = setUpCoreRelayer(1, wormhole, address(relayProviderA));
-
-        assertTrue(wormholeRelayer.getDefaultRelayProvider() == address(relayProviderA));
-
-        bytes32 relayerModule = 0x000000000000000000000000000000000000000000436F726552656C61796572;
-        bytes memory message = abi.encodePacked(
-            relayerModule, uint8(3), uint16(1), wormholeRelayer.toWormholeFormat(address(relayProviderB))
-        );
-        IWormhole.VM memory preSignedMessage = IWormhole.VM({
-            version: 1,
-            timestamp: uint32(block.timestamp),
-            nonce: 0,
-            emitterChainId: wormhole.governanceChainId(),
-            emitterAddress: wormhole.governanceContract(),
-            sequence: 0,
-            consistencyLevel: 200,
-            payload: message,
-            guardianSetIndex: 0,
-            signatures: new IWormhole.Signature[](0),
-            hash: bytes32("")
-        });
-
-        bytes memory signed = simulator.encodeAndSignMessage(preSignedMessage);
-
-        CoreRelayerGovernance(address(wormholeRelayer)).setDefaultRelayProvider(signed);
-
-        assertTrue(wormholeRelayer.getDefaultRelayProvider() == address(relayProviderB));
-
-        message = abi.encodePacked(
-            relayerModule, uint8(3), uint16(1), wormholeRelayer.toWormholeFormat(address(relayProviderC))
-        );
-
-        preSignedMessage = IWormhole.VM({
-            version: 1,
-            timestamp: uint32(block.timestamp),
-            nonce: 0,
-            emitterChainId: wormhole.governanceChainId(),
-            emitterAddress: wormhole.governanceContract(),
-            sequence: 0,
-            consistencyLevel: 200,
-            payload: message,
-            guardianSetIndex: 0,
-            signatures: new IWormhole.Signature[](0),
-            hash: bytes32("")
-        });
-
-        signed = simulator.encodeAndSignMessage(preSignedMessage);
-
-        CoreRelayerGovernance(address(wormholeRelayer)).setDefaultRelayProvider(signed);
-
-        assertTrue(wormholeRelayer.getDefaultRelayProvider() == address(relayProviderC));
-    }
-
-    function testRegisterChain() public {
-        IRelayProvider relayProviderA = setUpRelayProvider(1);
-
-        (IWormhole wormhole,) = setUpWormhole(1);
-
-        IWormholeRelayer wormholeRelayer1 = setUpCoreRelayer(1, wormhole, address(relayProviderA));
-        IWormholeRelayer wormholeRelayer2 = setUpCoreRelayer(1, wormhole, address(relayProviderA));
-        IWormholeRelayer wormholeRelayer3 = setUpCoreRelayer(1, wormhole, address(relayProviderA));
-
-        registerCoreRelayerContract(
-            CoreRelayer(address(wormholeRelayer1)), 1, 2, wormholeRelayer1.toWormholeFormat(address(wormholeRelayer2))
-        );
-
-        registerCoreRelayerContract(
-            CoreRelayer(address(wormholeRelayer1)), 1, 3, wormholeRelayer1.toWormholeFormat(address(wormholeRelayer3))
-        );
-
-        assertTrue(
-            CoreRelayer(address(wormholeRelayer1)).registeredCoreRelayerContract(2)
-                == wormholeRelayer1.toWormholeFormat(address(wormholeRelayer2))
-        );
-
-        assertTrue(
-            CoreRelayer(address(wormholeRelayer1)).registeredCoreRelayerContract(3)
-                == wormholeRelayer1.toWormholeFormat(address(wormholeRelayer3))
-        );
-
-        registerCoreRelayerContract(
-            CoreRelayer(address(wormholeRelayer1)), 1, 3, wormholeRelayer1.toWormholeFormat(address(wormholeRelayer2))
-        );
-
-        assertTrue(
-            CoreRelayer(address(wormholeRelayer1)).registeredCoreRelayerContract(3)
-                == wormholeRelayer1.toWormholeFormat(address(wormholeRelayer2))
-        );
-    }
-
-    function testUpgradeContractToItself() public {
-        IRelayProvider relayProvider = setUpRelayProvider(1);
-        (IWormhole wormhole, WormholeSimulator simulator) = setUpWormhole(1);
-
-        CoreRelayerSetup coreRelayerSetup = new CoreRelayerSetup();
-        CoreRelayerImplementation coreRelayerImplementation = new CoreRelayerImplementation();
-        CoreRelayerProxy myCoreRelayer = new CoreRelayerProxy(
-            address(coreRelayerSetup),
-            abi.encodeCall(
-                CoreRelayerSetup.setup,
-                (
-                    address(coreRelayerImplementation),
-                    1,
-                    address(wormhole),
-                    address(relayProvider),
-                    wormhole.governanceChainId(),
-                    wormhole.governanceContract(),
-                    block.chainid
-                )
-            )
-        );
-        CoreRelayer wormholeRelayer = CoreRelayer(address(myCoreRelayer));
-
-        for (uint256 i = 0; i < 10; i++) {
-            CoreRelayerImplementation coreRelayerImplementationNew = new CoreRelayerImplementation();
-
-            bytes32 relayerModule = 0x000000000000000000000000000000000000000000436F726552656C61796572;
-            bytes memory message = abi.encodePacked(
-                relayerModule,
-                uint8(1),
-                uint16(1),
-                wormholeRelayer.toWormholeFormat(address(coreRelayerImplementationNew))
-            );
-            IWormhole.VM memory preSignedMessage = IWormhole.VM({
-                version: 1,
-                timestamp: uint32(block.timestamp),
-                nonce: 0,
-                emitterChainId: wormhole.governanceChainId(),
-                emitterAddress: wormhole.governanceContract(),
-                sequence: 0,
-                consistencyLevel: 200,
-                payload: message,
-                guardianSetIndex: 0,
-                signatures: new IWormhole.Signature[](0),
-                hash: bytes32("")
-            });
-
-            bytes memory signed = simulator.encodeAndSignMessage(preSignedMessage);
-
-            CoreRelayerGovernance(address(wormholeRelayer)).submitContractUpgrade(signed);
-        }
-    }
 }
