@@ -80,7 +80,6 @@ contract WormholeRelayerTests is Test {
         setUpChains(5);
 
         //
-
     }
 
     struct StandardSetupTwoChains {
@@ -204,17 +203,20 @@ contract WormholeRelayerTests is Test {
             mapEntry.chainId = i;
             map[i] = mapEntry;
         }
-           
-    
+
         uint256 maxBudget = type(uint256).max;
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
                 map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
-               helpers.registerCoreRelayerContract(
-                    map[i].coreRelayerFull, map[i].wormhole, i, j, bytes32(uint256(uint160(address(map[j].coreRelayer))))
-                ); 
+                helpers.registerCoreRelayerContract(
+                    map[i].coreRelayerFull,
+                    map[i].wormhole,
+                    i,
+                    j,
+                    bytes32(uint256(uint160(address(map[j].coreRelayer))))
+                );
                 map[i].relayProvider.updateMaximumBudget(j, maxBudget);
                 map[i].integration.registerEmitter(j, bytes32(uint256(uint160(address(map[j].integration)))));
                 Structs.XAddress[] memory addresses = new Structs.XAddress[](1);
@@ -224,7 +226,6 @@ contract WormholeRelayerTests is Test {
         }
     }
 
-   
     function getDeliveryVAAHash() internal returns (bytes32 vaaHash) {
         vaaHash = vm.getRecordedLogs()[0].data.toBytes32(0);
     }
@@ -1851,5 +1852,4 @@ contract WormholeRelayerTests is Test {
         assertTrue(map[1].coreRelayer.toWormholeFormat(msg1) == bytes32(uint256(uint160(msg1))));
         assertTrue(map[1].coreRelayer.fromWormholeFormat(map[1].coreRelayer.toWormholeFormat(msg1)) == msg1);
     }
-
 }

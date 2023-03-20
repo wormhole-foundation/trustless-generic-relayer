@@ -31,8 +31,9 @@ contract TestHelpers {
     Vm public constant vm = Vm(VM_ADDRESS);
 
     WormholeSimulator helperWormholeSimulator;
+
     constructor() {
-       (, helperWormholeSimulator) = setUpWormhole(1);
+        (, helperWormholeSimulator) = setUpWormhole(1);
     }
 
     function registerCoreRelayerContract(
@@ -64,7 +65,7 @@ contract TestHelpers {
     }
 
     function setUpWormhole(uint16 chainId)
-        public 
+        public
         returns (IWormhole wormholeContract, WormholeSimulator wormholeSimulator)
     {
         // deploy Wormhole
@@ -124,6 +125,4 @@ contract TestHelpers {
         );
         coreRelayer = IWormholeRelayer(address(myCoreRelayer));
     }
-
-
 }
