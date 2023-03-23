@@ -28,7 +28,7 @@ interface IWormholeRelayer {
      *  If maxTransactionFee >= quoteGas(targetChain, gasLimit, getDefaultRelayProvider()), then as long as 'targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
      *  @param receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
      *  If receiverValue >= quoteReceiverValue(targetChain, targetAmount, getDefaultRelayProvider()), then at least 'targetAmount' of targetChain currency will be passed into the 'receiveWormholeFunction' as value.
-     *  @param messages The messages to be relayed are described here
+     *  @param messages Array of (emitterAddress, sequence, hash) structs identifying each message to be relayed. For each entry in this array, either the (emitterAddress, sequence) pair must be provided, or the hash must be provided.
      *
      *  This function must be called with a payment of at least maxTransactionFee + receiverValue + one wormhole message fee.
      *
@@ -76,7 +76,7 @@ interface IWormholeRelayer {
      *
      *
      *  @param request The Send request containing info about the targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, and relayParameters
-     *  @param messages The messages to be relayed are described here
+     *  @param messages Array of (emitterAddress, sequence, hash) structs identifying each message to be relayed. For each entry in this array, either the (emitterAddress, sequence) pair must be provided, or the hash must be provided.
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If request.maxTransactionFee >= quoteGas(request.targetChain, gasLimit, relayProvider),
      *  then as long as 'request.targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
@@ -123,7 +123,7 @@ interface IWormholeRelayer {
      *  If maxTransactionFee >= quoteGas(targetChain, gasLimit, getDefaultRelayProvider()), then as long as 'targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
      *  @param receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
      *  If receiverValue >= quoteReceiverValue(targetChain, targetAmount, getDefaultRelayProvider()), then at least 'targetAmount' of targetChain currency will be passed into the 'receiveWormholeFunction' as value.
-     *  @param messages The messages to be relayed are described here
+     *  @param messages Array of (emitterAddress, sequence, hash) structs identifying each message to be relayed. For each entry in this array, either the (emitterAddress, sequence) pair must be provided, or the hash must be provided.
      *  This forward will succeed if (leftover funds from the current delivery that would have been refunded) + (any extra msg.value passed into forward) is at least maxTransactionFee + receiverValue + one wormhole message fee.
      */
     function forward(
@@ -158,7 +158,7 @@ interface IWormholeRelayer {
      *  @param request The Send request containing info about the targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, and relayParameters
      *  (specifically, the send info that will be used to deliver all of the wormhole messages emitted during the execution of oldTargetAddress's receiveWormholeMessages)
      *  This forward will succeed if (leftover funds from the current delivery that would have been refunded) + (any extra msg.value passed into forward) is at least maxTransactionFee + receiverValue + one wormhole message fee.
-     *  @param messages The messages to be relayed are described here    
+     *  @param messages Array of (emitterAddress, sequence, hash) structs identifying each message to be relayed. For each entry in this array, either the (emitterAddress, sequence) pair must be provided, or the hash must be provided.
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If request.maxTransactionFee >= quoteGas(request.targetChain, gasLimit, relayProvider),
      *  then as long as 'request.targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
@@ -195,10 +195,7 @@ interface IWormholeRelayer {
      *  @return sequence The sequence number for the emitted wormhole message, which contains encoded delivery instructions meant for the default wormhole relay provider.
      *  The relay provider will listen for these messages, and then execute the delivery as described
      */
-    function multichainSend(MultichainSend memory sendContainer)
-        external
-        payable
-        returns (uint64 sequence);
+    function multichainSend(MultichainSend memory sendContainer) external payable returns (uint64 sequence);
 
     /**
      * @notice The multichainForward function can only be called in a IWormholeReceiver within the 'receiveWormholeMessages' function
@@ -226,7 +223,7 @@ interface IWormholeRelayer {
      *  @custom:member sourceChain The chain (that the original Send was initiated from (or equivalent, the chain that the original wormhole messages were emitted from).
      *  Important note: This does not need to be the current chain. A resend can be requested from any chain.
      *  @custom:member sourceTxHash The transaction hash of the original source chain transaction that contained the original wormhole messages and the original 'Send' request
-     *  @custom:member sourceSequence The wormhole sequence number for the original delivery VAA
+     *  @custom:member deliveryVAASequence The wormhole sequence number for the original delivery VAA
      *  @custom:member targetChain The chain that the encoded+signed Wormhole messages (VAAs) were originally delivered to (and will be redelivered to), in Wormhole Chain ID format
      *  @custom:member deliveryIndex If all the originally emitted wormhole messages are ordered, *including* the wormhole message emitted from the original Send request,
      *  this is the (0-indexed) index of the wormhole message emitted from the original Send request. So, if originally the 'send' request was made after the publishing of x wormhole messages,
@@ -244,9 +241,8 @@ interface IWormholeRelayer {
     struct ResendByTx {
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint64 sourceSequence;
+        uint64 deliveryVAASequence;
         uint16 targetChain;
-        uint8 deliveryIndex;
         uint8 multisendIndex;
         uint256 newMaxTransactionFee;
         uint256 newReceiverValue;
