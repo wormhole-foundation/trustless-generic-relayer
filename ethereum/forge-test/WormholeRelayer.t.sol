@@ -239,6 +239,17 @@ contract WormholeRelayerTests is Test {
         status = getDeliveryStatus(logs[logs.length - 1]);
     }
 
+    function messageInfoArray(uint64 sequence, address emitterAddress) internal returns (IWormholeRelayer.MessageInfo[] memory messageInfos) {
+        messageInfos = new IWormholeRelayer.MessageInfo[](1);
+        messageInfos[0] = IWormholeRelayer.MessageInfo(fromWormholeFormat(emitterAddress), sequence, bytes(0x0));
+    }
+
+    function messageInfoArray(uint64 sequence1, bytes32 emitterAddress1, uint64 sequence2, bytes32 emitterAddress2) internal returns (IWormholeRelayer.MessageInfo[] memory messageInfos) {
+        messageInfos = new IWormholeRelayer.MessageInfo[](2);
+        messageInfos[0] = IWormholeRelayer.MessageInfo(fromWormholeFormat(emitterAddress1), sequence1, bytes(0x0));
+        messageInfos[1] = IWormholeRelayer.MessageInfo(fromWormholeFormat(emitterAddress2), sequence2, bytes(0x0));
+    }
+
     function testSend(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
@@ -441,13 +452,13 @@ contract WormholeRelayerTests is Test {
             gasLimits: gasLimits
         });
         vm.prank(address(setup.source.integration));
-        wormhole.publishMessage{value: wormholeFee}(
-            1, setup.source.integration.encodeFurtherInstructions(instructions), 200
+        uint64 sequence = wormhole.publishMessage{value: wormholeFee}(
+            0, setup.source.integration.encodeFurtherInstructions(instructions), 200
         );
         bytes32 targetAddress = setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration));
 
         setup.source.coreRelayer.send{value: payment + wormholeFee}(
-            setup.targetChainId, targetAddress, targetAddress, payment, 0, 1
+            setup.targetChainId, targetAddress, targetAddress, payment, 0, messageInfoArray(address(setup.source.integration), sequence)
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -1538,7 +1549,7 @@ contract WormholeRelayerTests is Test {
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
         );
 
-        setup.source.wormhole.publishMessage{value: setup.source.wormhole.messageFee()}(1, message, 200);
+        uint64 sequence = setup.source.wormhole.publishMessage{value: setup.source.wormhole.messageFee()}(1, message, 200);
 
         IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send({
             targetChain: setup.targetChainId,
@@ -1553,7 +1564,7 @@ contract WormholeRelayerTests is Test {
 
         vm.expectRevert(abi.encodeWithSignature("MsgValueTooLow()"));
         setup.source.coreRelayer.send{value: maxTransactionFee + wormholeFee - 1}(
-            deliveryRequest, 1, address(setup.source.relayProvider)
+            deliveryRequest, messageInfoArray(address(this), sequence), address(setup.source.relayProvider)
         );
     }
 
@@ -1715,9 +1726,9 @@ contract WormholeRelayerTests is Test {
         stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
         stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
         stack.wormholeFee = setup.source.wormhole.messageFee();
-        setup.source.wormhole.publishMessage{value: stack.wormholeFee}(1, abi.encodePacked(uint8(test)), 200);
+        uint64 sequence = setup.source.wormhole.publishMessage{value: stack.wormholeFee}(1, abi.encodePacked(uint8(test)), 200);
         setup.source.coreRelayer.send{value: stack.payment}(
-            setup.targetChainId, stack.targetAddress, stack.targetAddress, stack.payment - stack.wormholeFee, 0, 1
+            setup.targetChainId, stack.targetAddress, stack.targetAddress, stack.payment - stack.wormholeFee, 0, messageInfoArray(address(this), sequence)
         );
         genericRelayer.relay(setup.sourceChainId);
         DeliveryStatus status = getDeliveryStatus();
