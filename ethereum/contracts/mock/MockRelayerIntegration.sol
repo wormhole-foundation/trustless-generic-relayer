@@ -153,7 +153,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
-            require(registeredContracts[parsed.emitterChainId] == parsed.emitterAddress);
+            require(registeredContracts[parsed.emitterChainId] == parsed.emitterAddress, "Emitter address not valid");
             emitterChainId = parsed.emitterChainId;
             messages[i] = parsed.payload;
         }
