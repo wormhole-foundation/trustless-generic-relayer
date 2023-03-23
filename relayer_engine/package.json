@@ -20,7 +20,7 @@
     "@wormhole-foundation/relayer-engine": "github:wormhole-foundation/relayer-engine#cc0aad43787a87ecd9f0d9893d8ccf92901d7adb",
     "ts-retry": "^4.1.1"
   },
-  "author": "Chase Moran",
+  "author": "Joe Howarth",
   "license": "ISC",
   "peerDependencies": {
     "ethers": "^5",

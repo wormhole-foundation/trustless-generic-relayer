@@ -25,6 +25,13 @@ export interface DeliveryInstructionsContainer {
   sufficientlyFunded: boolean
   messages: MessageInfo[]
   instructions: DeliveryInstruction[]
+  messages: MessageInfo[]
+}
+
+export interface MessageInfo {
+  emitterAddress: Buffer
+  sequence: BigNumber
+  vaaHash: Buffer
 }
 
 export interface DeliveryInstruction {
@@ -151,11 +158,26 @@ export function parseWormholeRelayerSend(
       }
     )
   }
+  const messages = [] as MessageInfo[]
+  const numMessages = bytes.readUInt8(idx)
+  idx += 1
+  for (let i = 0; i < numMessages; ++i) {
+    const emitterAddress = bytes.slice(idx, idx + 32)
+    idx += 32
+    const sequence = ethers.BigNumber.from(
+      Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
+    )
+    idx += 8
+    const vaaHash = bytes.slice(idx, idx + 32)
+    idx += 32
+    messages.push({ emitterAddress, sequence, vaaHash })
+  }
   return {
     payloadId,
     sufficientlyFunded,
     messages,
     instructions,
+    messages,
   }
 }
 
