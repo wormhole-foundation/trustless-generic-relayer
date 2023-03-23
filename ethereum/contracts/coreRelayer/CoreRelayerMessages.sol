@@ -22,7 +22,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      */
     function getTotalFeeMultichainSend(IWormholeRelayer.MultichainSend memory sendContainer, uint256 wormholeMessageFee)
         internal
-        view
+        pure
         returns (uint256 totalFee)
     {
         totalFee = wormholeMessageFee;
@@ -54,6 +54,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     {
         instructionsContainer.payloadId = 1;
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
+        instructionsContainer.messages = sendContainer.messages;
+
         uint256 length = sendContainer.requests.length;
         instructionsContainer.instructions = new DeliveryInstruction[](length);
         for (uint256 i = 0; i < length; i++) {
@@ -172,9 +174,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.payloadId = 2;
         instruction.sourceChain = resend.sourceChain;
         instruction.sourceTxHash = resend.sourceTxHash;
-        instruction.sourceNonce = resend.sourceNonce;
+        instruction.deliveryVAASequence = resend.deliveryVAASequence;
         instruction.targetChain = resend.targetChain;
-        instruction.deliveryIndex = resend.deliveryIndex;
         instruction.multisendIndex = resend.multisendIndex;
         instruction.newMaximumRefundTarget =
             calculateTargetRedeliveryMaximumRefund(resend.targetChain, resend.newMaxTransactionFee, relayProvider);
@@ -197,9 +198,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.payloadId,
             instruction.sourceChain,
             instruction.sourceTxHash,
-            instruction.sourceNonce,
+            instruction.deliveryVAASequence,
             instruction.targetChain,
-            instruction.deliveryIndex,
             instruction.multisendIndex,
             instruction.newMaximumRefundTarget,
             instruction.newReceiverValueTarget,
@@ -219,9 +219,21 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             container.payloadId, uint8(container.sufficientlyFunded ? 1 : 0), uint8(container.instructions.length)
         );
 
+        for (uint256 i = 0; i < container.messages.length; i++) {
+            encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messages[i]));
+        }
+
         for (uint256 i = 0; i < container.instructions.length; i++) {
             encoded = abi.encodePacked(encoded, encodeDeliveryInstruction(container.instructions[i]));
         }
+    }
+
+    function encodeMessageInfo(IWormholeRelayer.MessageInfo memory messageInfo)
+        internal
+        pure
+        returns (bytes memory encoded)
+    {
+        encoded = abi.encodePacked(messageInfo.emitterAddress, messageInfo.sequence, messageInfo.vaaHash);
     }
 
     // encode a 'DeliveryInstruction' into bytes
@@ -472,14 +484,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.sourceTxHash = encoded.toBytes32(index);
         index += 32;
 
-        instruction.sourceNonce = encoded.toUint32(index);
-        index += 4;
+        instruction.deliveryVAASequence = encoded.toUint64(index);
+        index += 8;
 
         instruction.targetChain = encoded.toUint16(index);
         index += 2;
-
-        instruction.deliveryIndex = encoded.toUint8(index);
-        index += 1;
 
         instruction.multisendIndex = encoded.toUint8(index);
         index += 1;
@@ -500,6 +509,58 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 32;
     }
 
+    function decodeDeliveryInstruction(bytes memory encoded, uint256 index)
+        public
+        pure
+        returns (DeliveryInstruction memory instruction, uint256 newIndex)
+    {
+        // target chain of the delivery instruction
+        instruction.targetChain = encoded.toUint16(index);
+        index += 2;
+
+        // target contract address
+        instruction.targetAddress = encoded.toBytes32(index);
+        index += 32;
+
+        // address to send the refund to
+        instruction.refundAddress = encoded.toBytes32(index);
+        index += 32;
+
+        instruction.maximumRefundTarget = encoded.toUint256(index);
+        index += 32;
+
+        instruction.receiverValueTarget = encoded.toUint256(index);
+        index += 32;
+
+        instruction.executionParameters.version = encoded.toUint8(index);
+        index += 1;
+
+        instruction.executionParameters.gasLimit = encoded.toUint32(index);
+        index += 4;
+
+        instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
+        index += 32;
+
+        newIndex = index;
+    }
+
+    function decodeMessageInfo(bytes memory encoded, uint256 index)
+        public
+        pure
+        returns (IWormholeRelayer.MessageInfo memory messageInfo, uint256 newIndex)
+    {
+        messageInfo.emitterAddress = encoded.toBytes32(index);
+        index += 32;
+
+        messageInfo.sequence = encoded.toUint64(index);
+        index += 8;
+
+        messageInfo.vaaHash = encoded.toBytes32(index);
+        index += 32;
+
+        newIndex = index;
+    }
+
     // decode a 'DeliveryInstructionsContainer' from bytes
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         public
@@ -515,42 +576,21 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 1;
         bool sufficientlyFunded = encoded.toUint8(index) == 1;
         index += 1;
-        uint8 arrayLen = encoded.toUint8(index);
+
+        uint8 messagesArrayLen = encoded.toUint8(index);
         index += 1;
 
-        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](arrayLen);
+        IWormholeRelayer.MessageInfo[] memory messages = new IWormholeRelayer.MessageInfo[](messagesArrayLen);
+        for (uint8 i = 0; i < messagesArrayLen; i++) {
+            (messages[i], index) = decodeMessageInfo(encoded, index);
+        }
 
-        for (uint8 i = 0; i < arrayLen; i++) {
-            DeliveryInstruction memory instruction;
+        uint8 instructionsArrayLen = encoded.toUint8(index);
+        index += 1;
 
-            // target chain of the delivery instruction
-            instruction.targetChain = encoded.toUint16(index);
-            index += 2;
-
-            // target contract address
-            instruction.targetAddress = encoded.toBytes32(index);
-            index += 32;
-
-            // address to send the refund to
-            instruction.refundAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instruction.maximumRefundTarget = encoded.toUint256(index);
-            index += 32;
-
-            instruction.receiverValueTarget = encoded.toUint256(index);
-            index += 32;
-
-            instruction.executionParameters.version = encoded.toUint8(index);
-            index += 1;
-
-            instruction.executionParameters.gasLimit = encoded.toUint32(index);
-            index += 4;
-
-            instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instructionArray[i] = instruction;
+        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](instructionsArrayLen);
+        for (uint8 i = 0; i < instructionsArrayLen; i++) {
+            (instructionArray[i], index) = decodeDeliveryInstruction(encoded, index);
         }
 
         if (index != encoded.length) {
@@ -560,6 +600,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         return DeliveryInstructionsContainer({
             payloadId: payloadId,
             sufficientlyFunded: sufficientlyFunded,
+            messages: messages,
             instructions: instructionArray
         });
     }

@@ -9,6 +9,7 @@ abstract contract CoreRelayerStructs {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bool sufficientlyFunded;
+        IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
 
@@ -31,9 +32,9 @@ abstract contract CoreRelayerStructs {
         uint8 payloadId; //2
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint32 sourceNonce;
+        uint64 deliveryVAASequence;
+        IWormholeRelayer.MessageInfo[] messages;
         uint16 targetChain;
-        uint8 deliveryIndex;
         uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
         uint256 newReceiverValueTarget;
@@ -42,7 +43,6 @@ abstract contract CoreRelayerStructs {
 
     struct ForwardInstruction {
         bytes container;
-        uint32 nonce;
         address sender;
         uint256 msgValue;
         uint256 totalFee;
