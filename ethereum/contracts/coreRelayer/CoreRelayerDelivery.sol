@@ -74,9 +74,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         // Publishes the DeliveryInstruction, with a 'sufficientlyFunded' flag indicating whether the forward had enough funds
         container.sufficientlyFunded = forwardIsFunded;
         wormhole.publishMessage{value: wormholeMessageFee}(
-            forwardInstruction.nonce,
-            encodeDeliveryInstructionsContainer(container),
-            relayProvider.getConsistencyLevel()
+            0, encodeDeliveryInstructionsContainer(container), relayProvider.getConsistencyLevel()
         );
 
         // if funded, pay out reward to provider. Otherwise, the delivery code will handle sending a refund.
@@ -120,6 +118,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         if (isContractLocked()) {
             revert IDelivery.ReentrantCall();
         }
+
         setContractLock(true);
         setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
 
@@ -263,18 +262,19 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         // Obtain the original delivery VAA
         IWormhole.VM memory originalDeliveryVM;
-        (originalDeliveryVM, valid, reason) =
-            wormhole.parseAndVerifyVM(targetParams.sourceEncodedVMs[redeliveryInstruction.deliveryIndex]);
+        (originalDeliveryVM, valid, reason) = wormhole.parseAndVerifyVM(targetParams.originalEncodedDeliveryVAA);
 
         // Check that the original delivery VAA has a valid signature
         if (!valid) {
-            revert IDelivery.InvalidVaa(redeliveryInstruction.deliveryIndex, reason);
+            revert IDelivery.InvalidDeliveryVaa(reason);
         }
 
         // Check that the original delivery VAA's emitter is one of these CoreRelayer contracts
         if (!verifyRelayerVM(originalDeliveryVM)) {
-            revert IDelivery.InvalidEmitterInOriginalDeliveryVM(redeliveryInstruction.deliveryIndex);
+            revert IDelivery.InvalidEmitterInOriginalDeliveryVM();
         }
+
+        checkMessageInfosWithVAAs(redeliveryInstruction.messages, targetParams.sourceEncodedVMs);
 
         // Obtain the specific old instruction that was originally executed (and is meant to be re-executed with new parameters)
         // specifying the the target chain (must be this chain), target address, refund address, old maximum refund (in this chain's currency),
@@ -400,11 +400,11 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         // Obtain the delivery VAA
         (IWormhole.VM memory deliveryVM, bool valid, string memory reason) =
-            wormhole.parseAndVerifyVM(targetParams.encodedVMs[targetParams.deliveryIndex]);
+            wormhole.parseAndVerifyVM(targetParams.encodedDeliveryVAA);
 
         // Check that the delivery VAA has a valid signature
         if (!valid) {
-            revert IDelivery.InvalidVaa(targetParams.deliveryIndex, reason);
+            revert IDelivery.InvalidDeliveryVaa(reason);
         }
 
         // Check that the delivery VAA's emitter is one of these CoreRelayer contracts
@@ -444,6 +444,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.TargetChainIsNotThisChain(deliveryInstruction.targetChain);
         }
 
+        checkMessageInfosWithVAAs(container.messages, targetParams.encodedVMs);
+
         _executeDelivery(
             deliveryInstruction,
             targetParams.encodedVMs,
@@ -454,6 +456,36 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
                 deliveryVaaHash: deliveryVM.hash
             })
         );
+    }
+
+    function checkMessageInfosWithVAAs(IWormholeRelayer.MessageInfo[] memory messageInfos, bytes[] memory vaas)
+        internal
+        view
+    {
+        if (messageInfos.length != vaas.length) {
+            revert IDelivery.MessageInfosLengthDoesNotMatchVaasLength();
+        }
+        for (uint8 i = 0; i < messageInfos.length; i++) {
+            if (!messageInfoMatchesVAA(messageInfos[i], vaas[i])) {
+                revert IDelivery.MessageInfosDoNotMatchVaas(i);
+            }
+        }
+    }
+
+    function messageInfoMatchesVAA(IWormholeRelayer.MessageInfo memory messageInfo, bytes memory vaa)
+        internal
+        view
+        returns (bool)
+    {
+        IWormhole.VM memory parsedVaa = wormhole().parseVM(vaa);
+        bool emitterAddressMatch = messageInfo.emitterAddress == parsedVaa.emitterAddress;
+        bool sequenceMatch = (messageInfo.sequence == parsedVaa.sequence);
+        bool emitterAddressAndSequenceEmpty =
+            (messageInfo.emitterAddress == bytes32(0x0)) && (messageInfo.sequence == 0);
+        bool vaaHashMatch = (messageInfo.vaaHash == parsedVaa.hash);
+        bool vaaHashEmpty = messageInfo.vaaHash == bytes32(0x0);
+        return (emitterAddressMatch && sequenceMatch && (vaaHashEmpty || vaaHashMatch))
+            || (emitterAddressAndSequenceEmpty && vaaHashMatch);
     }
 
     /**
