@@ -5,15 +5,18 @@ import {
   Environment,
   Next,
   StandardRelayerApp,
+  StandardRelayerContext,
 } from "wormhole-relayer"
-
-import {
-  EVMChainId,
-} from "@certusone/wormhole-sdk"
+import { EVMChainId } from "@certusone/wormhole-sdk"
 import { rootLogger } from "./log"
-import { GRContext, processGenericRelayerVaa } from "./processor"
+import { processGenericRelayerVaa } from "./processor"
 import { Logger } from "winston"
-import { sourceTx } from "wormhole-relayer/lib/middleware/source-tx.middleware"
+import * as deepCopy from "clone"
+
+export type GRContext = StandardRelayerContext & {
+  relayProviders: Record<EVMChainId, string>
+  wormholeRelayer: Record<EVMChainId, string>
+}
 
 type Opts = {
   flag: Flag
@@ -35,28 +38,14 @@ type ContractsJson = {
 
 async function main() {
   let opts = yargs(process.argv.slice(2)).argv as unknown as Opts
-
-  // Config
-  const contracts = JSON.parse(
-    await fs.readFile(`../ethereum/ts-scripts/config/testnet/contracts.json`, {
-      encoding: "utf-8",
-    })
-  ) as ContractsJson
-  const chainIds = new Set(contracts.coreRelayers.map((r) => r.chainId))
-
-  const privateKey = process.env["PRIVATE_KEY"]! as string
-  const privateKeys = {} as Record<EVMChainId, [string]>
-  for (const chainId of chainIds) {
-    privateKeys[chainId] = [privateKey]
-  }
+  const contracts = await loadContractsJson()
 
   const app = new StandardRelayerApp<GRContext>(flagToEnvironment(opts.flag), {
     name: "GenericRelayer",
-    privateKeys,
+    privateKeys: privateKeys(contracts),
     // redis: {},
     // redisCluster: {},
     // redisClusterEndpoints: [],
-    fetchSourceTxhash: true,
   })
 
   // Build contract address maps
@@ -71,14 +60,13 @@ async function main() {
 
   // Set up middleware
   app.use(async (ctx: GRContext, next: Next) => {
-    ctx.relayProviders = relayProviders
-    ctx.wormholeRelayer = wormholeRelayers
+    ctx.relayProviders = deepCopy(relayProviders)
+    ctx.wormholeRelayer = deepCopy(wormholeRelayers)
     next()
   })
-  app.use(sourceTx())
 
   // Set up routes
-  app.multiple(wormholeRelayers, processGenericRelayerVaa)
+  app.multiple(deepCopy(wormholeRelayers), processGenericRelayerVaa)
 
   app.listen()
   runUI(app, opts, rootLogger)
@@ -97,12 +85,6 @@ function runUI(relayer: any, { port }: any, logger: Logger) {
   })
 }
 
-main().catch((e) => {
-  console.error("Encountered unrecoverable error:")
-  console.error(e)
-  process.exit(1)
-})
-
 function flagToEnvironment(flag: Flag): Environment {
   switch (flag) {
     case Flag.K8sTestnet:
@@ -115,3 +97,27 @@ function flagToEnvironment(flag: Flag): Environment {
       return Environment.DEVNET
   }
 }
+
+async function loadContractsJson(): Promise<ContractsJson> {
+  return JSON.parse(
+    await fs.readFile(`../ethereum/ts-scripts/config/testnet/contracts.json`, {
+      encoding: "utf-8",
+    })
+  ) as ContractsJson
+}
+
+function privateKeys(contracts: ContractsJson) {
+  const chainIds = new Set(contracts.coreRelayers.map((r) => r.chainId))
+  const privateKey = process.env["PRIVATE_KEY"]! as string
+  const privateKeys = {} as Record<EVMChainId, [string]>
+  for (const chainId of chainIds) {
+    privateKeys[chainId] = [privateKey]
+  }
+  return privateKeys
+}
+
+main().catch((e) => {
+  console.error("Encountered unrecoverable error:")
+  console.error(e)
+  process.exit(1)
+})
