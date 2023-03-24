@@ -23,6 +23,10 @@ const chains = loadChains()
 const coreRelayers = loadCoreRelayers()
 const mockIntegrations = loadMockIntegrations()
 
+const getWormholeSequenceNumber = (rx: ethers.providers.TransactionReceipt, wormholeAddress: string) => {
+  return Number(rx.logs.find((logentry: ethers.providers.Log)=>(logentry.address == wormholeAddress))?.data?.substring(0, 16) || 0);
+}
+
 describe("Core Relayer Integration Test - Two Chains", () => {
   // signers
 
@@ -314,13 +318,14 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     console.log(`Received message: ${message}`)
     expect(message).to.not.equal(arbitraryPayload)
 
+    
+
     console.log("Resending the message");
     const request: IWormholeRelayer.ResendByTxStruct = {
       sourceChain: sourceChain.chainId,
       sourceTxHash: tx.hash,
-      sourceNonce: 1,
+      deliveryVAASequence: getWormholeSequenceNumber(rx, sourceChain.wormholeAddress),
       targetChain: targetChain.chainId, 
-      deliveryIndex: 2,
       multisendIndex: 0,
       newMaxTransactionFee: value, 
       newReceiverValue: 0,
@@ -415,9 +420,8 @@ describe("Core Relayer Integration Test - Two Chains", () => {
       const request: IWormholeRelayer.ResendByTxStruct = {
         sourceChain: targetChain.chainId,
         sourceTxHash: info.targetChainStatuses[0].events[0].transactionHash as string,
-        sourceNonce: 1,
+        deliveryVAASequence: getWormholeSequenceNumber(rx, sourceChain.wormholeAddress),
         targetChain: sourceChain.chainId, 
-        deliveryIndex: 2,
         multisendIndex: 0,
         newMaxTransactionFee: value, 
         newReceiverValue: 0,
@@ -546,9 +550,8 @@ describe("Core Relayer Integration Test - Two Chains", () => {
     const request: IWormholeRelayer.ResendByTxStruct = {
       sourceChain: sourceChain.chainId,
       sourceTxHash: tx.hash,
-      sourceNonce: 1,
+      deliveryVAASequence: getWormholeSequenceNumber(rx, sourceChain.wormholeAddress),
       targetChain: targetChain.chainId, 
-      deliveryIndex: 2,
       multisendIndex: 0,
       newMaxTransactionFee: value, 
       newReceiverValue: 0,
