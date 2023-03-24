@@ -223,22 +223,22 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      * The instruction specifies, among other things, the target chain (must be this chain), refund address, new maximum refund (in this chain's currency),
      * new receiverValue (in this chain's currency), new upper bound on gas
      *
-     * The relay provider must pass in the original signed wormhole messages from the source chain of the same nonce
-     * (the wormhole message with the original delivery instructions (the delivery VAA) must be one of these messages)
-     * as well as the wormhole message with the new redelivery instruction (the redelivery VAA)
+     * The relay provider must pass in the signed wormhole message with the new redelivery instructions (the redelivery VAA)
+     * as well as the original signed wormhole messages (VAAs) from the source chain
+     * as well as the original signed wormhole message with the delivery instructions (the delivery VAA)
      *
      * The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met:
      * - the redelivery VAA (targetParams.redeliveryVM) has a valid signature
      * - the redelivery VAA's emitter is one of these CoreRelayer contracts
      * - the original delivery VAA has a valid signature
      * - the original delivery VAA's emitter is one of these CoreRelayer contracts
+     * - the original signed VAAs match the descriptions from the original delivery instructions (the VAA hashes match, or the emitter address, sequence number pair matches, depending on the description given)
      * - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas
      * - the new redelivery instruction's 'receiver value' amount >= the original instruction's 'receiver value' amount
-     * - the redelivery instruction's target chain = this chain
-     * - the original instruction's target chain = this chain
+     * - the redelivery instruction's target chain = the original instruction's target chain = this chain
      * - for the redelivery instruction, the relay provider passed in at least [(one wormhole message fee) + instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget] of this chain's currency as msg.value
      * - msg.sender is the permissioned address allowed to execute this redelivery instruction
-     * - the permissioned address allowed to execute this redelivery instruction is the permissioned address allowed to execute the old instruction
+     * - msg.sender is the permissioned address allowed to execute the old instruction
      *
      * @param targetParams struct containing the signed wormhole messages and encoded redelivery instruction (and other information)
      */
@@ -388,17 +388,18 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      * The instruction specifies the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
      * receiver value (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
      *
-     * The relay provider must pass in the signed wormhole messages (VAAs) from the source chain of the same nonce
-     * (the wormhole message with the delivery instructions (the delivery VAA) must be one of these messages)
-     * as well as identify which of these messages is the delivery VAA and which of the many instructions in the multichainSend container is meant to be executed
+     * The relay provider must pass in the signed wormhole messages (VAAs) from the source chain
+     * as well as the signed wormhole message with the delivery instructions (the delivery VAA)
+     * as well as identify which of the many instructions in the multichainSend container is meant to be executed
      *
      * The messages will be relayed to the target address (with the specified gas limit and receiver value) iff the following checks are met:
      * - the delivery VAA has a valid signature
      * - the delivery VAA's emitter is one of these CoreRelayer contracts
      * - the delivery instruction container in the delivery VAA was fully funded
-     * - the instruction's target chain is this chain
-     * - the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefundTarget + instruction.receiverValueTarget] of this chain's currency as msg.value
      * - msg.sender is the permissioned address allowed to execute this instruction
+     * - the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefundTarget + instruction.receiverValueTarget] of this chain's currency as msg.value
+     * - the instruction's target chain is this chain
+     * - the relayed signed VAAs match the descriptions in container.messages (the VAA hashes match, or the emitter address, sequence number pair matches, depending on the description given)
      *
      * @param targetParams struct containing the signed wormhole messages and encoded delivery instruction container (and other information)
      */
@@ -451,6 +452,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.TargetChainIsNotThisChain(deliveryInstruction.targetChain);
         }
 
+        // Check that the relayed signed VAAs match the descriptions in container.messages (the VAA hashes match, or the emitter address, sequence number pair matches, depending on the description given)
         checkMessageInfosWithVAAs(container.messages, targetParams.encodedVMs);
 
         _executeDelivery(
@@ -465,26 +467,42 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         );
     }
 
-    function checkMessageInfosWithVAAs(IWormholeRelayer.MessageInfo[] memory messageInfos, bytes[] memory vaas)
+    /**
+     * @notice checkMessageInfosWithVAAs checks that the array of signed VAAs 'signedVaas' matches the descriptions
+     * given by the array of MessageInfo structs 'messageInfos'
+     *
+     * @param messageInfos Array of MessageInfo structs, each describing a wormhole message (VAA)
+     * @param signedVaas Array of signed wormhole messages (signed VAAs)
+     */
+    function checkMessageInfosWithVAAs(IWormholeRelayer.MessageInfo[] memory messageInfos, bytes[] memory signedVaas)
         internal
         view
     {
-        if (messageInfos.length != vaas.length) {
+        if (messageInfos.length != signedVaas.length) {
             revert IDelivery.MessageInfosLengthDoesNotMatchVaasLength();
         }
         for (uint8 i = 0; i < messageInfos.length; i++) {
-            if (!messageInfoMatchesVAA(messageInfos[i], vaas[i])) {
+            if (!messageInfoMatchesVAA(messageInfos[i], signedVaas[i])) {
                 revert IDelivery.MessageInfosDoNotMatchVaas(i);
             }
         }
     }
 
-    function messageInfoMatchesVAA(IWormholeRelayer.MessageInfo memory messageInfo, bytes memory vaa)
+    /**
+     * @notice messageInfosWithVAAs checks that signedVaa matches the description given by 'messageInfo'
+     * Specifically, if 'messageInfo.infoType' is MessageInfoType.EMITTER_SEQUENCE, then we check
+     * if the emitterAddress and sequence match
+     * else if 'messageInfo.infoType' is MessageInfoType.EMITTER_SEQUENCE, then we check if the VAA hash matches
+     *
+     * @param messageInfo MessageInfo struct describing a wormhole message (VAA)
+     * @param signedVaa signed wormhole message
+     */
+    function messageInfoMatchesVAA(IWormholeRelayer.MessageInfo memory messageInfo, bytes memory signedVaa)
         internal
         view
         returns (bool)
     {
-        IWormhole.VM memory parsedVaa = wormhole().parseVM(vaa);
+        IWormhole.VM memory parsedVaa = wormhole().parseVM(signedVaa);
         if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
             return
                 (messageInfo.emitterAddress == parsedVaa.emitterAddress) && (messageInfo.sequence == parsedVaa.sequence);

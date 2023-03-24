@@ -231,6 +231,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
+    // encode a 'MessageInfo' into bytes
     function encodeMessageInfo(IWormholeRelayer.MessageInfo memory messageInfo)
         internal
         pure
@@ -517,6 +518,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 32;
     }
 
+    // decode a 'DeliveryInstruction' from bytes
     function decodeDeliveryInstruction(bytes memory encoded, uint256 index)
         public
         pure
@@ -552,6 +554,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         newIndex = index;
     }
 
+    // decode a 'MessageInfo' from bytes
     function decodeMessageInfo(bytes memory encoded, uint256 index)
         public
         pure
