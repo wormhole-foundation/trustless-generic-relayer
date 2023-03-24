@@ -1,5 +1,5 @@
 import * as wh from "@certusone/wormhole-sdk"
-import { Next, StandardRelayerContext } from "wormhole-relayer"
+import { Next } from "wormhole-relayer"
 import {
   IDelivery,
   parseDeliveryInstructionsContainer,
@@ -9,11 +9,7 @@ import {
   RelayProvider__factory,
 } from "../pkgs/sdk/src"
 import { EVMChainId } from "@certusone/wormhole-sdk"
-
-export type GRContext = StandardRelayerContext & {
-  relayProviders: Record<EVMChainId, string>
-  wormholeRelayer: Record<EVMChainId, string>
-}
+import { GRContext } from "./app"
 
 export async function processGenericRelayerVaa(ctx: GRContext, next: Next) {
   const payloadId = parsePayloadType(ctx.vaa!.payload)
