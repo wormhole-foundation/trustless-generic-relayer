@@ -58,7 +58,6 @@ type InfoRequest = {
   sourceChainProvider?: ethers.providers.Provider
   targetChainProviders?: Map<number, ethers.providers.Provider>
   targetChainBlockRanges?: Map<number, [ethers.providers.BlockTag, ethers.providers.BlockTag]>
-  sourceNonce?: number
   coreRelayerWhMessageIndex?: number
 }
 
@@ -113,10 +112,10 @@ export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
     stringifiedInfo += (`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}\n`)
     stringifiedInfo += (`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}\n`)
     stringifiedInfo += (`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}\n`)
-    stringifiedInfo += (`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}\n`)
+    //stringifiedInfo += (`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}\n`)
     stringifiedInfo += (`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}\n`)
     stringifiedInfo += (`multisendIndex: ${info.redeliveryInstruction.multisendIndex}\n`)
-    stringifiedInfo += (`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}\n`)
+    //stringifiedInfo += (`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}\n`)
     stringifiedInfo += (`New max amount (in target chain currency) to use for gas: ${info.redeliveryInstruction.newMaximumRefundTarget}\n`)
     stringifiedInfo += (`New amount (in target chain currency) to pass into target address: ${info.redeliveryInstruction.newMaximumRefundTarget}\n`)
     stringifiedInfo += (`New target chain gas limit: ${info.redeliveryInstruction.executionParameters.gasLimit}\n`)
@@ -175,7 +174,6 @@ export async function getDeliveryInfoBySourceTx(
     bridgeAddress,
     tryNativeToHexString(coreRelayerAddress, "ethereum"),
     infoRequest.coreRelayerWhMessageIndex ? infoRequest.coreRelayerWhMessageIndex : 0,
-    infoRequest.sourceNonce?.toString()
   )
 
   const { type, parsed } = parseWormholeLog(deliveryLog.log)
@@ -318,7 +316,6 @@ export function findLog(
   bridgeAddress: string,
   emitterAddress: string,
   index: number,
-  nonce?: string
 ): { log: ethers.providers.Log; sequence: string } {
   const bridgeLogs = receipt.logs.filter((l) => {
     return l.address === bridgeAddress
@@ -340,8 +337,7 @@ export function findLog(
 
   const filtered = parsed.filter(
     (x) =>
-      x.emitterAddress == emitterAddress.toLowerCase() &&
-      (!nonce || x.nonce == nonce.toLowerCase())
+      x.emitterAddress == emitterAddress.toLowerCase() 
   )
 
   if (filtered.length == 0) {
