@@ -244,8 +244,12 @@ contract WormholeRelayerTests is Test {
         returns (IWormholeRelayer.MessageInfo[] memory messageInfos)
     {
         messageInfos = new IWormholeRelayer.MessageInfo[](1);
-        messageInfos[0] =
-            IWormholeRelayer.MessageInfo(map[1].coreRelayer.toWormholeFormat(emitterAddress), sequence, bytes32(0x0));
+        messageInfos[0] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            map[1].coreRelayer.toWormholeFormat(emitterAddress),
+            sequence,
+            bytes32(0x0)
+        );
     }
 
     function messageInfoArray(uint64 sequence1, address emitterAddress1, uint64 sequence2, address emitterAddress2)
@@ -253,10 +257,18 @@ contract WormholeRelayerTests is Test {
         returns (IWormholeRelayer.MessageInfo[] memory messageInfos)
     {
         messageInfos = new IWormholeRelayer.MessageInfo[](2);
-        messageInfos[0] =
-            IWormholeRelayer.MessageInfo(map[1].coreRelayer.toWormholeFormat(emitterAddress1), sequence1, bytes32(0x0));
-        messageInfos[1] =
-            IWormholeRelayer.MessageInfo(map[1].coreRelayer.toWormholeFormat(emitterAddress2), sequence2, bytes32(0x0));
+        messageInfos[0] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            map[1].coreRelayer.toWormholeFormat(emitterAddress1),
+            sequence1,
+            bytes32(0x0)
+        );
+        messageInfos[1] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            map[1].coreRelayer.toWormholeFormat(emitterAddress2),
+            sequence2,
+            bytes32(0x0)
+        );
     }
 
     function testSend(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
