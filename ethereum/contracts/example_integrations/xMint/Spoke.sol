@@ -97,9 +97,9 @@ contract XmintSpoke is IWormholeReceiver {
             relayParameters: core_relayer.getDefaultRelayParams() //no overrides
         });
 
-        core_relayer.send{value: maxTransactionFee + receiverValue}(
-            request, nonce, core_relayer.getDefaultRelayProvider()
-        );
+        //core_relayer.send{value: maxTransactionFee + receiverValue}(
+        //     request, nonce, core_relayer.getDefaultRelayProvider()
+        //);
     }
 
     function bytesToBytes32(bytes memory b, uint256 offset) private pure returns (bytes32) {

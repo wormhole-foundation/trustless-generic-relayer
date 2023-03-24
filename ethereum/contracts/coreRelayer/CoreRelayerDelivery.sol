@@ -274,13 +274,16 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.InvalidEmitterInOriginalDeliveryVM();
         }
 
-        checkMessageInfosWithVAAs(redeliveryInstruction.messages, targetParams.sourceEncodedVMs);
+        DeliveryInstructionsContainer memory originalContainer =
+            decodeDeliveryInstructionsContainer(originalDeliveryVM.payload);
 
         // Obtain the specific old instruction that was originally executed (and is meant to be re-executed with new parameters)
         // specifying the the target chain (must be this chain), target address, refund address, old maximum refund (in this chain's currency),
         // old receiverValue (in this chain's currency), old upper bound on gas, and the permissioned address allowed to execute this instruction
-        DeliveryInstruction memory originalInstruction = decodeDeliveryInstructionsContainer(originalDeliveryVM.payload)
-            .instructions[redeliveryInstruction.multisendIndex];
+        DeliveryInstruction memory originalInstruction =
+            originalContainer.instructions[redeliveryInstruction.multisendIndex];
+
+        checkMessageInfosWithVAAs(originalContainer.messages, targetParams.sourceEncodedVMs);
 
         // Perform the following checks:
         // - the new redelivery instruction's upper bound on gas >= the original instruction's upper bound on gas

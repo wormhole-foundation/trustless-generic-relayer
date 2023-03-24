@@ -99,9 +99,9 @@ contract XmintHub is ERC20, IWormholeReceiver {
             relayParameters: core_relayer.getDefaultRelayParams() //no overrides
         });
 
-        core_relayer.send{value: maxTransactionFee + receiverValue}(
-            request, nonce, core_relayer.getDefaultRelayProvider()
-        );
+        // core_relayer.send{value: maxTransactionFee + receiverValue}(
+        //    request, nonce, core_relayer.getDefaultRelayProvider()
+        //);
     }
 
     //This function calculates how many tokens should be minted to the end user based on how much

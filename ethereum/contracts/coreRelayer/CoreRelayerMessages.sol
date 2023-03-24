@@ -216,7 +216,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
-            container.payloadId, uint8(container.sufficientlyFunded ? 1 : 0), uint8(container.instructions.length)
+            container.payloadId,
+            uint8(container.sufficientlyFunded ? 1 : 0),
+            uint8(container.messages.length),
+            uint8(container.instructions.length)
         );
 
         for (uint256 i = 0; i < container.messages.length; i++) {
@@ -580,13 +583,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         uint8 messagesArrayLen = encoded.toUint8(index);
         index += 1;
 
+        uint8 instructionsArrayLen = encoded.toUint8(index);
+        index += 1;
+
         IWormholeRelayer.MessageInfo[] memory messages = new IWormholeRelayer.MessageInfo[](messagesArrayLen);
         for (uint8 i = 0; i < messagesArrayLen; i++) {
             (messages[i], index) = decodeMessageInfo(encoded, index);
         }
-
-        uint8 instructionsArrayLen = encoded.toUint8(index);
-        index += 1;
 
         DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](instructionsArrayLen);
         for (uint8 i = 0; i < instructionsArrayLen; i++) {
