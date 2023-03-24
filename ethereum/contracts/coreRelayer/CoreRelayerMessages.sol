@@ -591,6 +591,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             (messages[i], index) = decodeMessageInfo(encoded, index);
         }
 
+
         DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](instructionsArrayLen);
         for (uint8 i = 0; i < instructionsArrayLen; i++) {
             (instructionArray[i], index) = decodeDeliveryInstruction(encoded, index);
