@@ -28,6 +28,7 @@ import {
   DeliveryInstructionsContainer,
   RedeliveryByTxHashInstruction,
   ExecutionParameters,
+  MessageInfoType,
 } from "../structs"
 import { DeliveryEvent } from "../ethers-contracts/CoreRelayer"
 
@@ -84,7 +85,8 @@ export function parseWormholeLog(log: ethers.providers.Log): {
 export type DeliveryInfo = {
   type: RelayerPayloadId.Delivery
   sourceChainId: ChainId,
-  sourceTransactionHash: string
+  sourceTransactionHash: string,
+  sourceDeliverySequenceNumber: number,
   deliveryInstructionsContainer: DeliveryInstructionsContainer
   targetChainStatuses: {
     chainId: ChainId
@@ -112,10 +114,9 @@ export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
     stringifiedInfo += (`Found Redelivery request in transaction ${info.redeliverySourceTransactionHash} on ${printChain(info.redeliverySourceChainId)}\n`)
     stringifiedInfo += (`Original Delivery Source Chain: ${printChain(info.redeliveryInstruction.sourceChain)}\n`)
     stringifiedInfo += (`Original Delivery Source Transaction Hash: 0x${info.redeliveryInstruction.sourceTxHash.toString("hex")}\n`)
-    //stringifiedInfo += (`Original Delivery Source Nonce: ${info.redeliveryInstruction.sourceNonce}\n`)
+    stringifiedInfo += (`Original Delivery sequence number: ${info.redeliveryInstruction.deliveryVAASequence}\n`)
     stringifiedInfo += (`Target Chain: ${printChain(info.redeliveryInstruction.targetChain)}\n`)
     stringifiedInfo += (`multisendIndex: ${info.redeliveryInstruction.multisendIndex}\n`)
-    //stringifiedInfo += (`deliveryIndex: ${info.redeliveryInstruction.deliveryIndex}\n`)
     stringifiedInfo += (`New max amount (in target chain currency) to use for gas: ${info.redeliveryInstruction.newMaximumRefundTarget}\n`)
     stringifiedInfo += (`New amount (in target chain currency) to pass into target address: ${info.redeliveryInstruction.newMaximumRefundTarget}\n`)
     stringifiedInfo += (`New target chain gas limit: ${info.redeliveryInstruction.executionParameters.gasLimit}\n`)
@@ -123,6 +124,22 @@ export function stringifyInfo(info: DeliveryInfo | RedeliveryInfo): string {
   } else if(info.type==RelayerPayloadId.Delivery) {
     stringifiedInfo += (`Found delivery request in transaction ${info.sourceTransactionHash} on ${printChain(info.sourceChainId)}\n`)
     stringifiedInfo += ((info.deliveryInstructionsContainer.sufficientlyFunded ? "The delivery was funded\n" : "** NOTE: The delivery was NOT sufficiently funded. You did not have enough leftover funds to perform the forward **\n"))
+    
+    const numMsgs = info.deliveryInstructionsContainer.messages.length;
+    stringifiedInfo += `\nThe following ${numMsgs} messages were requested to be relayed:\n`
+    stringifiedInfo += info.deliveryInstructionsContainer.messages.map((msgInfo, i) => {
+      let result = "";
+      result += `\n(Message ${i}): `
+      if(msgInfo.infoType == MessageInfoType.EMITTER_SEQUENCE) {
+        result += `Message with emitter address ${msgInfo.emitterAddress.toString("hex")} and sequence number ${msgInfo.sequence}\n`
+      } else if(msgInfo.infoType == MessageInfoType.VAAHASH) {
+        result += `Message with VAA Hash ${msgInfo.vaaHash.toString("hex")}\n`
+      } else {
+        result += `Message not specified correctly\n`
+      }
+
+    })
+
     const length = info.deliveryInstructionsContainer.instructions.length;
     stringifiedInfo += (`\nMessages were requested to be sent to ${length} destination${length == 1 ? "" : "s"}:\n`)
     stringifiedInfo += (info.deliveryInstructionsContainer.instructions.map((instruction: DeliveryInstruction, i) => {
@@ -243,6 +260,7 @@ export async function getDeliveryInfoBySourceTx(
     type,
     sourceChainId: infoRequest.sourceChain,
     sourceTransactionHash: infoRequest.sourceTransaction,
+    sourceDeliverySequenceNumber: BigNumber.from(deliveryLog.sequence).toNumber(),
     deliveryInstructionsContainer,
     targetChainStatuses
   }
