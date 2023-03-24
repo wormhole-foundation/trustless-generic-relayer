@@ -2,10 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+import "../contracts/interfaces/IWormholeRelayer.sol";
+
 interface IWormholeRelayerInstructionParser {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bool sufficientlyFunded;
+        IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
 
@@ -28,9 +31,9 @@ interface IWormholeRelayerInstructionParser {
         uint8 payloadId; //2
         uint16 sourceChain;
         bytes32 sourceTxHash;
-        uint32 sourceNonce;
+        uint64 deliveryVAASequence;
+        IWormholeRelayer.MessageInfo[] messages;
         uint16 targetChain;
-        uint8 deliveryIndex;
         uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
         uint256 newReceiverValueTarget;

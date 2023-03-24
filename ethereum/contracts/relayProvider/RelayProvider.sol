@@ -56,7 +56,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     }
 
     //returns the consistency level that should be put on delivery VAAs
-    function getConsistencyLevel() public view override returns (uint8 consistencyLevel) {
+    function getConsistencyLevel() public pure override returns (uint8 consistencyLevel) {
         return 200; //REVISE consider adding state variable for this
     }
 

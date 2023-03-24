@@ -15,7 +15,7 @@ interface IDelivery {
      */
     struct TargetDeliveryParametersSingle {
         bytes[] encodedVMs;
-        uint8 deliveryIndex;
+        bytes encodedDeliveryVAA;
         uint8 multisendIndex;
         address payable relayerRefundAddress;
     }
@@ -53,6 +53,7 @@ interface IDelivery {
     struct TargetRedeliveryByTxHashParamsSingle {
         bytes redeliveryVM;
         bytes[] sourceEncodedVMs;
+        bytes originalEncodedDeliveryVAA;
         address payable relayerRefundAddress;
     }
 
@@ -83,9 +84,10 @@ interface IDelivery {
     function redeliverSingle(TargetRedeliveryByTxHashParamsSingle memory targetParams) external payable;
 
     error InvalidEmitterInRedeliveryVM(); // The redelivery VAA (signed wormhole message with redelivery instructions) has an invalid sender
-    error InvalidEmitterInOriginalDeliveryVM(uint8 index); // The original delivery VAA (original signed wormhole message with delivery instructions) has an invalid sender
+    error InvalidEmitterInOriginalDeliveryVM(); // The original delivery VAA (original signed wormhole message with delivery instructions) has an invalid sender
     error InvalidRedeliveryVM(string reason); // The redelivery VAA is not valid
     error InvalidVaa(uint8 index, string reason); // The VAA is not valid
+    error InvalidDeliveryVaa(string reason); // The Delivery VAA is not valid
     error MismatchingRelayProvidersInRedelivery(); // The relay provider specified for the redelivery is different from the relay provider specified for the original delivery
     error UnexpectedRelayer(); // msg.sender must be the delivery address of the specified relay provider
     error InvalidEmitter(); // The delivery VAA (signed wormhole message with delivery instructions) has an invalid sender
@@ -93,4 +95,6 @@ interface IDelivery {
     error InsufficientRelayerFunds(); // The relay provider didn't pass in sufficient funds (msg.value does not cover the necessary budget fees)
     error TargetChainIsNotThisChain(uint16 targetChainId); // The specified target chain is not the current chain
     error ReentrantCall(); // A delivery cannot occur during another delivery
+    error MessageInfosDoNotMatchVaas(uint8 index);
+    error MessageInfosLengthDoesNotMatchVaasLength();
 }
