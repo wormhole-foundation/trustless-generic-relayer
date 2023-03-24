@@ -485,9 +485,10 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         returns (bool)
     {
         IWormhole.VM memory parsedVaa = wormhole().parseVM(vaa);
-        if(messageInfo.infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
-            return (messageInfo.emitterAddress == parsedVaa.emitterAddress) && (messageInfo.sequence == parsedVaa.sequence);
-        } else if(messageInfo.infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
+        if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
+            return
+                (messageInfo.emitterAddress == parsedVaa.emitterAddress) && (messageInfo.sequence == parsedVaa.sequence);
+        } else if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
             return (messageInfo.vaaHash == parsedVaa.hash);
         } else {
             return false;
