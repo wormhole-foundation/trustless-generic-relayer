@@ -236,7 +236,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         pure
         returns (bytes memory encoded)
     {
-        encoded = abi.encodePacked(messageInfo.emitterAddress, messageInfo.sequence, messageInfo.vaaHash);
+        encoded = abi.encodePacked(uint8(1), uint8(messageInfo.infoType));
+        if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
+            encoded = abi.encodePacked(encoded, messageInfo.emitterAddress, messageInfo.sequence);
+        } else if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
+            encoded = abi.encodePacked(encoded, messageInfo.vaaHash);
+        }
     }
 
     // encode a 'DeliveryInstruction' into bytes
@@ -552,15 +557,26 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         pure
         returns (IWormholeRelayer.MessageInfo memory messageInfo, uint256 newIndex)
     {
-        messageInfo.emitterAddress = encoded.toBytes32(index);
-        index += 32;
+        uint8 payloadId = encoded.toUint8(index);
+        index += 1;
 
-        messageInfo.sequence = encoded.toUint64(index);
-        index += 8;
+        if (payloadId != 1) {
+            revert InvalidPayloadId(payloadId);
+        }
 
-        messageInfo.vaaHash = encoded.toBytes32(index);
-        index += 32;
+        IWormholeRelayer.MessageInfoType infoType = IWormholeRelayer.MessageInfoType(encoded.toUint8(index));
+        index += 1;
 
+        if (infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
+            messageInfo.emitterAddress = encoded.toBytes32(index);
+            index += 32;
+
+            messageInfo.sequence = encoded.toUint64(index);
+            index += 8;
+        } else if (infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
+            messageInfo.vaaHash = encoded.toBytes32(index);
+            index += 32;
+        }
         newIndex = index;
     }
 

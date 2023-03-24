@@ -73,8 +73,18 @@ contract MockRelayerIntegration is IWormholeReceiver {
         returns (IWormholeRelayer.MessageInfo[] memory messageInfos)
     {
         messageInfos = new IWormholeRelayer.MessageInfo[](2);
-        messageInfos[0] = IWormholeRelayer.MessageInfo(relayer.toWormholeFormat(address(this)), sequence1, bytes32(0x0));
-        messageInfos[1] = IWormholeRelayer.MessageInfo(relayer.toWormholeFormat(address(this)), sequence2, bytes32(0x0));
+        messageInfos[0] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            relayer.toWormholeFormat(address(this)),
+            sequence1,
+            bytes32(0x0)
+        );
+        messageInfos[1] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            relayer.toWormholeFormat(address(this)),
+            sequence2,
+            bytes32(0x0)
+        );
     }
 
     function sendMessageWithForwardedResponse(
@@ -121,14 +131,22 @@ contract MockRelayerIntegration is IWormholeReceiver {
         IWormholeRelayer.MessageInfo[] memory messageInfos = new IWormholeRelayer.MessageInfo[](messages.length + 1);
         for (uint16 i = 0; i < messages.length; i++) {
             uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(0, messages[i], 200);
-            messageInfos[i] =
-                IWormholeRelayer.MessageInfo(relayer.toWormholeFormat(address(this)), sequence, bytes32(0x0));
+            messageInfos[i] = IWormholeRelayer.MessageInfo(
+                IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+                relayer.toWormholeFormat(address(this)),
+                sequence,
+                bytes32(0x0)
+            );
         }
         uint64 lastSequence = wormhole.publishMessage{value: wormhole.messageFee()}(
             0, encodeFurtherInstructions(furtherInstructions), 200
         );
-        messageInfos[messages.length] =
-            IWormholeRelayer.MessageInfo(relayer.toWormholeFormat(address(this)), lastSequence, bytes32(0x0));
+        messageInfos[messages.length] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            relayer.toWormholeFormat(address(this)),
+            lastSequence,
+            bytes32(0x0)
+        );
         IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](chains.length);
         for (uint16 i = 0; i < chains.length; i++) {
             requests[i] = IWormholeRelayer.Send({
@@ -194,8 +212,12 @@ contract MockRelayerIntegration is IWormholeReceiver {
                 uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(
                     parsed.nonce, instructions.newMessages[i], 200
                 );
-                messageInfos[i] =
-                    IWormholeRelayer.MessageInfo(relayer.toWormholeFormat(address(this)), sequence, bytes32(0x0));
+                messageInfos[i] = IWormholeRelayer.MessageInfo(
+                    IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+                    relayer.toWormholeFormat(address(this)),
+                    sequence,
+                    bytes32(0x0)
+                );
             }
             IWormholeRelayer.Send[] memory sendRequests = new IWormholeRelayer.Send[](instructions.chains.length);
             for (uint16 i = 0; i < instructions.chains.length; i++) {

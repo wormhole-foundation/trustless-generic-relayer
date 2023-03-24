@@ -348,7 +348,13 @@ interface IWormholeRelayer {
      */
     function getDefaultRelayParams() external pure returns (bytes memory relayParams);
 
+    enum MessageInfoType {
+        EMITTER_SEQUENCE,
+        VAAHASH
+    }
+
     struct MessageInfo {
+        MessageInfoType infoType;
         bytes32 emitterAddress;
         uint64 sequence;
         bytes32 vaaHash;
