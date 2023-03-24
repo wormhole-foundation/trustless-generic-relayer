@@ -70,14 +70,14 @@ contract MockGenericRelayer {
         returns (bool)
     {
         IWormhole.VM memory parsedVaa = relayerWormhole.parseVM(vaa);
-        bool emitterAddressMatch = messageInfo.emitterAddress == parsedVaa.emitterAddress;
-        bool sequenceMatch = (messageInfo.sequence == parsedVaa.sequence);
-        bool emitterAddressAndSequenceEmpty =
-            (messageInfo.emitterAddress == bytes32(0x0)) && (messageInfo.sequence == 0);
-        bool vaaHashMatch = (messageInfo.vaaHash == parsedVaa.hash);
-        bool vaaHashEmpty = messageInfo.vaaHash == bytes32(0x0);
-        return (emitterAddressMatch && sequenceMatch && (vaaHashEmpty || vaaHashMatch))
-            || (emitterAddressAndSequenceEmpty && vaaHashMatch);
+        if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
+            return
+                (messageInfo.emitterAddress == parsedVaa.emitterAddress) && (messageInfo.sequence == parsedVaa.sequence);
+        } else if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
+            return (messageInfo.vaaHash == parsedVaa.hash);
+        } else {
+            return false;
+        }
     }
 
     function relay(Vm.Log[] memory logs, uint16 chainId) public {

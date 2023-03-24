@@ -33,7 +33,6 @@ abstract contract CoreRelayerStructs {
         uint16 sourceChain;
         bytes32 sourceTxHash;
         uint64 deliveryVAASequence;
-        IWormholeRelayer.MessageInfo[] messages;
         uint16 targetChain;
         uint8 multisendIndex;
         uint256 newMaximumRefundTarget;
