@@ -15,10 +15,16 @@ export interface DeliveryInstructionsContainer {
   messages: MessageInfo[]
 }
 
+export enum MessageInfoType {
+  EmitterSequence = 0,
+  VaaHash = 1,
+}
+
 export interface MessageInfo {
-  emitterAddress: Buffer
-  sequence: BigNumber
-  vaaHash: Buffer
+  payloadType: MessageInfoType
+  emitterAddress?: Buffer
+  sequence?: BigNumber
+  vaaHash?: Buffer
 }
 
 export interface DeliveryInstruction {
@@ -40,8 +46,7 @@ export interface RedeliveryByTxHashInstruction {
   payloadId: number //2
   sourceChain: number
   sourceTxHash: Buffer
-  deliveryVAASequence: number
-  sourceNonce: BigNumber
+  deliveryVaaSequence: BigNumber
   targetChain: number
   multisendIndex: number
   newMaximumRefundTarget: BigNumber
@@ -132,7 +137,7 @@ export function parseDeliveryInstructionsContainer(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
-    const executionParameters = parseExecutionParameters(bytes, idx)
+    const executionParameters = parseExecutionParameters(bytes, [idx])
     idx += 37
     instructions.push(
       // dumb typechain format
@@ -146,19 +151,15 @@ export function parseDeliveryInstructionsContainer(
       }
     )
   }
-  const messages = [] as MessageInfo[]
+
+  // parse the manifest
   const numMessages = bytes.readUInt8(idx)
   idx += 1
+
+  const idxPtr: [number] = [idx]
+  const messages = [] as MessageInfo[]
   for (let i = 0; i < numMessages; ++i) {
-    const emitterAddress = bytes.slice(idx, idx + 32)
-    idx += 32
-    const sequence = ethers.BigNumber.from(
-      Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
-    )
-    idx += 8
-    const vaaHash = bytes.slice(idx, idx + 32)
-    idx += 32
-    messages.push({ emitterAddress, sequence, vaaHash })
+    messages.push(parseMessageInfo(bytes, idxPtr))
   }
   return {
     payloadId,
@@ -166,6 +167,27 @@ export function parseDeliveryInstructionsContainer(
     messages,
     instructions,
     messages,
+  }
+}
+
+function parseMessageInfo(bytes: Buffer, idxPtr: [number]): MessageInfo {
+  let idx = idxPtr[0]
+  const payloadType = bytes.readUInt8(idx) as MessageInfoType
+  switch (payloadType) {
+    case MessageInfoType.EmitterSequence:
+      const emitterAddress = bytes.slice(idx, idx + 32)
+      idx += 32
+      const sequence = ethers.BigNumber.from(
+        Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
+      )
+      idx += 8
+      idxPtr[0] = idx
+      return { emitterAddress, sequence, payloadType }
+    case MessageInfoType.VaaHash:
+      const vaaHash = bytes.slice(idx, idx + 32)
+      idx += 32
+      idxPtr[0] = idx
+      return { vaaHash, payloadType }
   }
 }
 
@@ -187,7 +209,7 @@ export function parseRedeliveryByTxHashInstruction(
   const sourceTxHash = bytes.slice(idx, idx + 32)
   idx += 32
 
-  const deliveryVAASequence = BigNumber.from(bytes.slice(idx, idx + 8))
+  const deliveryVaaSequence = BigNumber.from(bytes.slice(idx, idx + 8))
   idx += 8
 
   const targetChain = bytes.readUInt16BE(idx)
@@ -203,13 +225,13 @@ export function parseRedeliveryByTxHashInstruction(
   const newReceiverValueTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
 
-  const executionParameters = parseExecutionParameters(bytes, idx)
+  const executionParameters = parseExecutionParameters(bytes, [idx])
   idx += 37
   return {
     payloadId,
     sourceChain,
     sourceTxHash,
-    deliveryVAASequence,
+    deliveryVaaSequence,
     targetChain,
     multisendIndex,
     newMaximumRefundTarget,
@@ -218,13 +240,18 @@ export function parseRedeliveryByTxHashInstruction(
   }
 }
 
-function parseExecutionParameters(bytes: Buffer, idx: number = 0): ExecutionParameters {
+function parseExecutionParameters(
+  bytes: Buffer,
+  idxPtr: [number] = [0]
+): ExecutionParameters {
+  let idx = idxPtr[0]
   const version = bytes.readUInt8(idx)
   idx += 1
   const gasLimit = bytes.readUint32BE(idx)
   idx += 4
   const providerDeliveryAddress = bytes.slice(idx, idx + 32)
   idx += 32
+  idxPtr[0] = idx
   return { version, gasLimit, providerDeliveryAddress }
 }
 
