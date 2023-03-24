@@ -28,10 +28,16 @@ export interface DeliveryInstructionsContainer {
   messages: MessageInfo[]
 }
 
+export enum MessageInfoType {
+  EmitterSequence = 0,
+  VaaHash = 1,
+}
+
 export interface MessageInfo {
-  emitterAddress: Buffer
-  sequence: BigNumber
-  vaaHash: Buffer
+  payloadType: MessageInfoType
+  emitterAddress?: Buffer
+  sequence?: BigNumber
+  vaaHash?: Buffer
 }
 
 export interface DeliveryInstruction {
@@ -53,7 +59,7 @@ export interface RedeliveryByTxHashInstruction {
   payloadId: number //2
   sourceChain: number
   sourceTxHash: Buffer
-  deliveryVAASequence: number
+  deliveryVaaSequence: BigNumber
   targetChain: number
   multisendIndex: number
   newMaximumRefundTarget: BigNumber
@@ -158,19 +164,15 @@ export function parseWormholeRelayerSend(
       }
     )
   }
-  const messages = [] as MessageInfo[]
+
+  // parse the manifest
   const numMessages = bytes.readUInt8(idx)
   idx += 1
+
+  const idxPtr: [number] = [idx]
+  const messages = [] as MessageInfo[]
   for (let i = 0; i < numMessages; ++i) {
-    const emitterAddress = bytes.slice(idx, idx + 32)
-    idx += 32
-    const sequence = ethers.BigNumber.from(
-      Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
-    )
-    idx += 8
-    const vaaHash = bytes.slice(idx, idx + 32)
-    idx += 32
-    messages.push({ emitterAddress, sequence, vaaHash })
+    messages.push(parseMessageInfo(bytes, idxPtr))
   }
   return {
     payloadId,
@@ -236,6 +238,7 @@ function parseWormholeRelayerExecutionParameters(bytes: Buffer, idx: number = 0)
   idx += 4
   const providerDeliveryAddress = bytes.slice(idx, idx + 32)
   idx += 32
+  idxPtr[0] = idx
   return { version, gasLimit, providerDeliveryAddress }
 }
 
