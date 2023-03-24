@@ -26,8 +26,8 @@ const chains = loadChains()
 async function run(
   sourceChain: ChainInfo,
   targetChain: ChainInfo,
-  nonce: number,
-  sourceTxHash: string
+  sourceTxHash: string,
+  deliveryVAASequence: number,
 ) {
   const coreRelayer = getCoreRelayer(sourceChain)
   const relayProvider = await coreRelayer.getDefaultRelayProvider()
@@ -40,10 +40,9 @@ async function run(
     .resend(
       {
         sourceChain: sourceChain.chainId,
-        sourceNonce: nonce,
         sourceTxHash: sourceTxHash,
+        deliveryVAASequence,
         targetChain: targetChain.chainId,
-        deliveryIndex: 1,
         multisendIndex: 0,
         newMaxTransactionFee: relayQuote,
         newReceiverValue: BigNumber.from(0),
@@ -57,7 +56,7 @@ async function run(
 }
 
 async function main() {
-  await run(getChainById(6), getChainById(14), 1, process.argv[2])
+  await run(getChainById(6), getChainById(14), process.argv[2], Number(process.argv[3]))
 }
 
 console.log("Start!")
