@@ -28,7 +28,7 @@ interface IWormholeRelayer {
      *  If receiverValue >= quoteReceiverValue(targetChain, targetAmount, getDefaultRelayProvider()), then at least 'targetAmount' of targetChain currency will be passed into the 'receiveWormholeFunction' as value.
      *  @param messages Array of MessageInfo structs identifying each message to be relayed. Each MessageInfo struct specifies a wormhole message in the current transaction, either by the VAA hash, or by the (emitter address, sequence number) pair.
      *  The relay provider will call receiveWormholeMessages with an array of signed VAAs specified by this messages array.
-     *  Specifically, the 'signedVaa' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaa[i] will match the description in messages[i]
+     *  Specifically, the 'signedVaas' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaas[i] will match the description in messages[i]
      *
      *  This function must be called with a payment of at least maxTransactionFee + receiverValue + one wormhole message fee.
      *
@@ -97,7 +97,7 @@ interface IWormholeRelayer {
      *  @param request The Send request containing info about the targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, and relayParameters
      *  @param messages Array of MessageInfo structs identifying each message to be relayed. Each MessageInfo struct specifies a wormhole message in the current transaction, either by the VAA hash, or by the (emitter address, sequence number) pair.
      *  The relay provider will call receiveWormholeMessages with an array of signed VAAs specified by this messages array.
-     *  Specifically, the 'signedVaa' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaa[i] will match the description in messages[i]
+     *  Specifically, the 'signedVaas' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaas[i] will match the description in messages[i]
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If request.maxTransactionFee >= quoteGas(request.targetChain, gasLimit, relayProvider),
      *  then as long as 'request.targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
@@ -145,7 +145,7 @@ interface IWormholeRelayer {
      *  If receiverValue >= quoteReceiverValue(targetChain, targetAmount, getDefaultRelayProvider()), then at least 'targetAmount' of targetChain currency will be passed into the 'receiveWormholeFunction' as value.
      *  @param messages Array of MessageInfo structs identifying each message to be relayed. Each MessageInfo struct specifies a wormhole message in the current transaction, either by the VAA hash, or by the (emitter address, sequence number) pair.
      *  The relay provider will call receiveWormholeMessages with an array of signed VAAs specified by this messages array.
-     *  Specifically, the 'signedVaa' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaa[i] will match the description in messages[i]
+     *  Specifically, the 'signedVaas' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaas[i] will match the description in messages[i]
      *
      *  This forward will succeed if (leftover funds from the current delivery that would have been refunded) + (any extra msg.value passed into forward) is at least maxTransactionFee + receiverValue + one wormhole message fee.
      */
@@ -182,7 +182,7 @@ interface IWormholeRelayer {
      *  This forward will succeed if (leftover funds from the current delivery that would have been refunded) + (any extra msg.value passed into forward) is at least maxTransactionFee + receiverValue + one wormhole message fee.
      *  @param messages Array of MessageInfo structs identifying each message to be relayed. Each MessageInfo struct specifies a wormhole message in the current transaction, either by the VAA hash, or by the (emitter address, sequence number) pair.
      *  The relay provider will call receiveWormholeMessages with an array of signed VAAs specified by this messages array.
-     *  Specifically, the 'signedVaa' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaa[i] will match the description in messages[i]
+     *  Specifically, the 'signedVaas' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaas[i] will match the description in messages[i]
      *  @param relayProvider The address of (the relay provider you wish to deliver the messages)'s contract on this source chain. This must be a contract that implements IRelayProvider.
      *  If request.maxTransactionFee >= quoteGas(request.targetChain, gasLimit, relayProvider),
      *  then as long as 'request.targetAddress''s receiveWormholeMessage function uses at most 'gasLimit' units of gas (and doesn't revert), the delivery will succeed
@@ -202,7 +202,7 @@ interface IWormholeRelayer {
      *  Use getDefaultRelayProvider() here to use the default relay provider.
      *  @custom:member messages Array of MessageInfo structs identifying each message to be relayed. Each MessageInfo struct specifies a wormhole message in the current transaction, either by the VAA hash, or by the (emitter address, sequence number) pair.
      *  The relay provider will call receiveWormholeMessages with an array of signed VAAs specified by this messages array.
-     *  Specifically, the 'signedVaa' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaa[i] will match the description in messages[i]
+     *  Specifically, the 'signedVaas' array will have the same length as 'messages', and additionally for each 0 <= i < messages.length, signedVaas[i] will match the description in messages[i]
      *  @custom:member requests The array of send requests, each specifying a targetAddress on a targetChain, along with information about the desired maxTransactionFee, receiverValue, refundAddress, and relayParameters
      */
     struct MultichainSend {

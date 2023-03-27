@@ -34,7 +34,6 @@ export interface RedeliveryByTxHashInstruction {
   sourceChain: number
   sourceTxHash: Buffer
   deliveryVAASequence: number
-  sourceNonce: BigNumber
   targetChain: number
   multisendIndex: number
   newMaximumRefundTarget: BigNumber
@@ -165,7 +164,7 @@ export function parseRedeliveryByTxHashInstruction(
   const sourceTxHash = bytes.slice(idx, idx + 32)
   idx += 32
 
-  const deliveryVAASequence = BigNumber.from(bytes.slice(idx, idx + 8))
+  const deliveryVAASequence = BigNumber.from(bytes.slice(idx, idx + 8)).toNumber()
   idx += 8
 
   const targetChain = bytes.readUInt16BE(idx)
