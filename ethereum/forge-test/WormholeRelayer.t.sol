@@ -837,7 +837,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,
@@ -858,9 +858,9 @@ contract WormholeRelayerTests is Test {
             stack.entries[0], setup.sourceChainId, address(setup.source.coreRelayer)
         );
 
-        stack.originalEncodedVMs = genericRelayer.getPastEncodedVMs(stack.deliveryVaaHash);
+        stack.originalEncodedVMs = genericRelayer.getPastEncodedVMs(setup.sourceChainId, stack.sequence);
 
-        stack.originalDeliveryVAA = genericRelayer.getPastDeliveryVAA(stack.deliveryVaaHash);
+        stack.originalDeliveryVAA = genericRelayer.getPastDeliveryVAA(setup.sourceChainId, stack.sequence);
 
         stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
             stack.redeliveryVM, stack.originalEncodedVMs, stack.originalDeliveryVAA, payable(setup.target.relayer)
@@ -908,7 +908,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,
@@ -1117,7 +1117,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,
@@ -1163,7 +1163,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.sourceChainId,
             multisendIndex: 0,
@@ -1230,7 +1230,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,
@@ -1274,7 +1274,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,
@@ -1640,7 +1640,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,
@@ -1678,7 +1678,7 @@ contract WormholeRelayerTests is Test {
 
         stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
             sourceChain: setup.sourceChainId,
-            sourceTxHash: stack.deliveryVaaHash,
+            sourceTxHash: 0,
             deliveryVAASequence: stack.sequence,
             targetChain: setup.targetChainId,
             multisendIndex: 0,

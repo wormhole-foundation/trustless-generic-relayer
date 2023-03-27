@@ -17,6 +17,7 @@ contract MockGenericRelayer {
     IWormhole relayerWormhole;
     WormholeSimulator relayerWormholeSimulator;
     IWormholeRelayerInstructionParser parser;
+    uint256 transactionIndex;
 
     address private constant VM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
 
@@ -38,14 +39,15 @@ contract MockGenericRelayer {
         relayerWormhole = IWormhole(_wormhole);
         relayerWormholeSimulator = WormholeSimulator(_wormholeSimulator);
         parser = IWormholeRelayerInstructionParser(wormholeRelayer);
+        transactionIndex = 0;
     }
 
-    function getPastEncodedVMs(bytes32 vaaHash) public view returns (bytes[] memory) {
-        return pastEncodedVMs[vaaHash];
+    function getPastEncodedVMs(uint16 chainId, uint64 deliveryVAASequence) public view returns (bytes[] memory) {
+        return pastEncodedVMs[keccak256(abi.encodePacked(chainId, deliveryVAASequence))];
     }
 
-    function getPastDeliveryVAA(bytes32 vaaHash) public view returns (bytes memory) {
-        return pastEncodedDeliveryVAA[vaaHash];
+    function getPastDeliveryVAA(uint16 chainId, uint64 deliveryVAASequence) public view returns (bytes memory) {
+        return pastEncodedDeliveryVAA[keccak256(abi.encodePacked(chainId, deliveryVAASequence))];
     }
 
     function setWormholeRelayerContract(uint16 chainId, address contractAddress) public {
@@ -102,8 +104,6 @@ contract MockGenericRelayer {
         }
     }
 
-    // TODO: Make the key 'txHash + sequence' instead of 'VAAHASH'
-
     function genericRelay(
         bytes memory encodedDeliveryVAA,
         bytes[] memory encodedVMs,
@@ -142,12 +142,14 @@ contract MockGenericRelayer {
                     }(package);
                 }
             }
-            pastEncodedVMs[parsedDeliveryVAA.hash] = encodedVMsToBeDelivered;
-            pastEncodedDeliveryVAA[parsedDeliveryVAA.hash] = encodedDeliveryVAA;
+            bytes32 key = keccak256(abi.encodePacked(parsedDeliveryVAA.emitterChainId, parsedDeliveryVAA.sequence));
+            pastEncodedVMs[key] = encodedVMsToBeDelivered;
+            pastEncodedDeliveryVAA[key] = encodedDeliveryVAA;
         } else if (payloadId == 2) {
             IWormholeRelayerInstructionParser.RedeliveryByTxHashInstruction memory instruction =
                 parser.decodeRedeliveryInstruction(parsedDeliveryVAA.payload);
-            bytes[] memory originalEncodedVMs = pastEncodedVMs[instruction.sourceTxHash];
+            bytes32 key = keccak256(abi.encodePacked(instruction.sourceChain, instruction.deliveryVAASequence));
+            bytes[] memory originalEncodedVMs = pastEncodedVMs[key];
             uint16 targetChain = instruction.targetChain;
             uint256 budget =
                 instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeFees[targetChain];
@@ -155,7 +157,7 @@ contract MockGenericRelayer {
                 .TargetRedeliveryByTxHashParamsSingle({
                 redeliveryVM: encodedDeliveryVAA,
                 sourceEncodedVMs: originalEncodedVMs,
-                originalEncodedDeliveryVAA: pastEncodedDeliveryVAA[instruction.sourceTxHash],
+                originalEncodedDeliveryVAA: pastEncodedDeliveryVAA[key],
                 relayerRefundAddress: payable(relayers[targetChain])
             });
             vm.prank(relayers[targetChain]);
