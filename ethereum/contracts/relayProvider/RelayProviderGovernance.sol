@@ -30,39 +30,127 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     event ApprovedSenderUpdated(address sender, bool approved);
     event AssetConversionBufferUpdated(uint16 targetChain, uint16 buffer, uint16 bufferDenominator);
 
-    function updateCoreRelayer(address payable newAddress) public onlyOwner {
+    function updateCoreRelayer(address payable newAddress) external onlyOwner {
+        updateCoreRelayerImpl(newAddress);
+    }
+
+    function updateCoreRelayerImpl(address payable newAddress) internal {
         setCoreRelayer(newAddress);
         emit CoreRelayerUpdated(newAddress);
     }
 
-    function updateApprovedSender(address sender, bool approved) public onlyOwner {
+    function updateApprovedSender(address sender, bool approved) external onlyOwner {
+        updateApprovedSenderImpl(sender, approved);
+    }
+
+    function updateApprovedSenders(RelayProviderStructs.SenderApprovalUpdate[] memory updates) external onlyOwner {
+        uint256 updatesLength = updates.length;
+        for (uint256 i = 0; i < updatesLength;) {
+            RelayProviderStructs.SenderApprovalUpdate memory update = updates[i];
+            updateApprovedSenderImpl(update.sender, update.approved);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updateApprovedSenderImpl(address sender, bool approved) internal {
         setApprovedSender(sender, approved);
         emit ApprovedSenderUpdated(sender, approved);
     }
 
-    function updateRewardAddress(address payable newAddress) public onlyOwner {
+    function updateRewardAddress(address payable newAddress) external onlyOwner {
+        updateRewardAddressImpl(newAddress);
+    }
+
+    function updateRewardAddressImpl(address payable newAddress) internal {
         setRewardAddress(newAddress);
         emit RewardAddressUpdated(newAddress);
     }
 
-    function updateDeliveryAddress(uint16 targetChain, bytes32 newAddress) public onlyOwner {
+    function updateDeliveryAddress(uint16 targetChain, bytes32 newAddress) external onlyOwner {
+        updateDeliveryAddressImpl(targetChain, newAddress);
+    }
+
+    function updateDeliveryAddresses(RelayProviderStructs.DeliveryAddressUpdate[] memory updates) external onlyOwner {
+        uint256 updatesLength = updates.length;
+        for (uint256 i = 0; i < updatesLength;) {
+            RelayProviderStructs.DeliveryAddressUpdate memory update = updates[i];
+            updateDeliveryAddressImpl(update.chainId, update.newAddress);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updateDeliveryAddressImpl(uint16 targetChain, bytes32 newAddress) internal {
         setDeliveryAddress(targetChain, newAddress);
         emit DeliveryAddressUpdated(targetChain, newAddress);
     }
 
-    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {
+    function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) external onlyOwner {
+        updateDeliverGasOverheadImpl(chainId, newGasOverhead);
+    }
+
+    function updateDeliverGasOverheads(RelayProviderStructs.DeliverGasOverheadUpdate[] memory overheadUpdates)
+        external
+        onlyOwner
+    {
+        uint256 updatesLength = overheadUpdates.length;
+        for (uint256 i = 0; i < updatesLength;) {
+            RelayProviderStructs.DeliverGasOverheadUpdate memory update = overheadUpdates[i];
+            updateDeliverGasOverheadImpl(update.chainId, update.newGasOverhead);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updateDeliverGasOverheadImpl(uint16 chainId, uint32 newGasOverhead) internal {
         uint32 currentGasOverhead = deliverGasOverhead(chainId);
         setDeliverGasOverhead(chainId, newGasOverhead);
         emit DeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
     }
 
-    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public onlyOwner {
+    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) external onlyOwner {
+        updateWormholeFeeImpl(chainId, newWormholeFee);
+    }
+
+    function updateWormholeFees(RelayProviderStructs.WormholeFeeUpdate[] memory feeUpdates) external onlyOwner {
+        uint256 feesLength = feeUpdates.length;
+        for (uint256 i = 0; i < feesLength;) {
+            RelayProviderStructs.WormholeFeeUpdate memory update = feeUpdates[i];
+            updateWormholeFeeImpl(update.chainId, update.newWormholeFee);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updateWormholeFeeImpl(uint16 chainId, uint32 newWormholeFee) internal {
         setWormholeFee(chainId, newWormholeFee);
     }
 
     function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
-        public
+        external
         onlyOwner
+    {
+        updatePriceImpl(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
+    }
+
+    function updatePrices(RelayProviderStructs.UpdatePrice[] memory updates) external onlyOwner {
+        uint256 pricesLength = updates.length;
+        for (uint256 i = 0; i < pricesLength;) {
+            RelayProviderStructs.UpdatePrice memory update = updates[i];
+            updatePriceImpl(update.chainId, update.gasPrice, update.nativeCurrencyPrice);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updatePriceImpl(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)
+        internal
     {
         if (updateChainId == 0) {
             revert ChainIdIsZero();
@@ -77,26 +165,98 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         setPriceInfo(updateChainId, updateGasPrice, updateNativeCurrencyPrice);
     }
 
-    function updatePrices(RelayProviderStructs.UpdatePrice[] memory updates) public onlyOwner {
-        uint256 pricesLen = updates.length;
-        for (uint256 i = 0; i < pricesLen;) {
-            updatePrice(updates[i].chainId, updates[i].gasPrice, updates[i].nativeCurrencyPrice);
+    function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) external onlyOwner {
+        updateMaximumBudgetImpl(targetChainId, maximumTotalBudget);
+    }
+
+    function updateMaximumBudgets(RelayProviderStructs.MaximumBudgetUpdate[] memory updates) external onlyOwner {
+        uint256 updatesLength = updates.length;
+        for (uint256 i = 0; i < updatesLength;) {
+            RelayProviderStructs.MaximumBudgetUpdate memory update = updates[i];
+            updateMaximumBudgetImpl(update.chainId, update.maximumTotalBudget);
             unchecked {
                 i += 1;
             }
         }
     }
 
-    function updateMaximumBudget(uint16 targetChainId, uint256 maximumTotalBudget) public onlyOwner {
+    function updateMaximumBudgetImpl(uint16 targetChainId, uint256 maximumTotalBudget) internal {
         setMaximumBudget(targetChainId, maximumTotalBudget);
     }
 
     function updateAssetConversionBuffer(uint16 targetChain, uint16 buffer, uint16 bufferDenominator)
-        public
+        external
         onlyOwner
     {
+        updateAssetConversionBufferImpl(targetChain, buffer, bufferDenominator);
+    }
+
+    function updateAssetConversionBuffers(RelayProviderStructs.AssetConversionBufferUpdate[] memory updates)
+        external
+        onlyOwner
+    {
+        uint256 updatesLength = updates.length;
+        for (uint256 i = 0; i < updatesLength;) {
+            RelayProviderStructs.AssetConversionBufferUpdate memory update = updates[i];
+            updateAssetConversionBufferImpl(update.chainId, update.buffer, update.bufferDenominator);
+            unchecked {
+                i += 1;
+            }
+        }
+    }
+
+    function updateAssetConversionBufferImpl(uint16 targetChain, uint16 buffer, uint16 bufferDenominator) internal {
         setAssetConversionBuffer(targetChain, buffer, bufferDenominator);
         emit AssetConversionBufferUpdated(targetChain, buffer, bufferDenominator);
+    }
+
+    function updateConfig(
+        RelayProviderStructs.Update[] memory updates,
+        RelayProviderStructs.SenderApprovalUpdate[] memory senderUpdates,
+        RelayProviderStructs.CoreConfig memory coreConfig
+    ) external onlyOwner {
+        uint256 updatesLength = updates.length;
+        for (uint256 i = 0; i < updatesLength;) {
+            RelayProviderStructs.Update memory update = updates[i];
+            if (update.updatePrice) {
+                updatePriceImpl(update.chainId, update.gasPrice, update.nativeCurrencyPrice);
+            }
+            if (update.updateDeliveryAddress) {
+                updateDeliveryAddressImpl(update.chainId, update.newAddress);
+            }
+            if (update.updateWormholeFee) {
+                updateWormholeFeeImpl(update.chainId, update.newWormholeFee);
+            }
+            if (update.updateDeliverGasOverhead) {
+                updateDeliverGasOverheadImpl(update.chainId, update.newGasOverhead);
+            }
+            if (update.updateMaximumBudget) {
+                updateMaximumBudgetImpl(update.chainId, update.maximumTotalBudget);
+            }
+            if (update.updateAssetConversionBuffer) {
+                updateAssetConversionBufferImpl(update.chainId, update.buffer, update.bufferDenominator);
+            }
+            unchecked {
+                i += 1;
+            }
+        }
+
+        uint256 senderUpdatesLength = senderUpdates.length;
+        for (uint256 i = 0; i < senderUpdatesLength;) {
+            RelayProviderStructs.SenderApprovalUpdate memory update = senderUpdates[i];
+            updateApprovedSenderImpl(update.sender, update.approved);
+            unchecked {
+                i += 1;
+            }
+        }
+
+        if (coreConfig.updateCoreRelayer) {
+            updateCoreRelayerImpl(coreConfig.coreRelayer);
+        }
+
+        if (coreConfig.updateRewardAddress) {
+            updateRewardAddressImpl(coreConfig.rewardAddress);
+        }
     }
 
     /// @dev upgrade serves to upgrade contract implementations
