@@ -39,7 +39,7 @@ abstract contract RelayProviderStructs {
         /**
          * Wormhole address of the relay provider in the ´chainId´ chain.
          */
-        bytes32 newAddress;
+        bytes32 deliveryAddress;
     }
 
     struct MaximumBudgetUpdate {
@@ -124,7 +124,7 @@ abstract contract RelayProviderStructs {
         /**
          * Wormhole address of the relay provider in the ´chainId´ chain.
          */
-        bytes32 newAddress;
+        bytes32 deliveryAddress;
         // MaximumBudgetUpdate
         /**
          * Maximum total budget for a delivery in ´chainId´ chain.

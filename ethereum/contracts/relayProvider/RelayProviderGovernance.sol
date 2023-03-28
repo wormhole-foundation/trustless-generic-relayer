@@ -76,7 +76,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         uint256 updatesLength = updates.length;
         for (uint256 i = 0; i < updatesLength;) {
             RelayProviderStructs.DeliveryAddressUpdate memory update = updates[i];
-            updateDeliveryAddressImpl(update.chainId, update.newAddress);
+            updateDeliveryAddressImpl(update.chainId, update.deliveryAddress);
             unchecked {
                 i += 1;
             }
@@ -222,7 +222,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
                 updatePriceImpl(update.chainId, update.gasPrice, update.nativeCurrencyPrice);
             }
             if (update.updateDeliveryAddress) {
-                updateDeliveryAddressImpl(update.chainId, update.newAddress);
+                updateDeliveryAddressImpl(update.chainId, update.deliveryAddress);
             }
             if (update.updateWormholeFee) {
                 updateWormholeFeeImpl(update.chainId, update.newWormholeFee);
