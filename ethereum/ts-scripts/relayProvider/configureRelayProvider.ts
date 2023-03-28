@@ -1,13 +1,17 @@
-import type { ChainId } from "@certusone/wormhole-sdk"
+import { ChainId, tryNativeToHexString } from "@certusone/wormhole-sdk"
 import type { BigNumberish } from "ethers"
 import {
   init,
   loadChains,
   ChainInfo,
   loadScriptConfig,
+  getCoreRelayerAddress,
   getRelayProvider,
+  getRelayProviderAddress,
 } from "../helpers/env"
 import { wait } from "../helpers/utils"
+
+import type { RelayProviderStructs } from "../../../sdk/src"
 
 /**
  * Meant for `config.pricingInfo`
@@ -44,8 +48,19 @@ async function run() {
 
 async function configureChainsRelayProvider(chain: ChainInfo) {
   console.log("about to perform configurations for chain " + chain.chainId)
-
   const relayProvider = getRelayProvider(chain)
+  const coreRelayer = getCoreRelayerAddress(chain)
+
+  for (const remoteChain of chains) {
+    console.log(`Cross registering with chain ${remoteChain.chainId}...`)
+    const targetChainProviderAddress = getRelayProviderAddress(remoteChain)
+    const remoteRelayProvider =
+      "0x" + tryNativeToHexString(targetChainProviderAddress, "ethereum")
+    await relayProvider
+      .updateDeliveryAddress(remoteChain.chainId, remoteRelayProvider)
+      .then(wait)
+  }
+
   const thisChainsConfigInfo = config.addresses.find(
     (x: any) => x.chainId == chain.chainId
   )
@@ -60,47 +75,68 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
     throw new Error("Failed to find approvedSenders info for chain " + chain.chainId)
   }
 
-  console.log("Set address info...")
-  await relayProvider.updateRewardAddress(thisChainsConfigInfo.rewardAddress).then(wait)
-  for (const { address, approved } of thisChainsConfigInfo.approvedSenders) {
-    console.log(`Setting approved sender: ${address}, approved: ${approved}`)
-    await relayProvider.updateApprovedSender(address, approved).then(wait)
+  const coreConfig: RelayProviderStructs.CoreConfigStruct = {
+    updateCoreRelayer: true,
+    updateRewardAddress: true,
+    coreRelayer,
+    rewardAddress: thisChainsConfigInfo.rewardAddress,
   }
+  const senderUpdates: RelayProviderStructs.SenderApprovalUpdateStruct[] =
+    thisChainsConfigInfo.approvedSenders.map(
+      ({ address, approved }: { address: any; approved: any }) => {
+        return {
+          sender: address,
+          approved,
+        }
+      }
+    )
+  const updates: RelayProviderStructs.UpdateStruct[] = []
 
   console.log("Set gas and native prices...")
 
   // Batch update prices
-  const pricingUpdates: UpdatePrice[] = (config.pricingInfo as PricingInfo[]).map((info) => {
-    return {
-      chainId: info.chainId,
-      gasPrice: info.updatePriceGas,
-      nativeCurrencyPrice: info.updatePriceNative,
+  const pricingUpdates: UpdatePrice[] = (config.pricingInfo as PricingInfo[]).map(
+    (info) => {
+      return {
+        chainId: info.chainId,
+        gasPrice: info.updatePriceGas,
+        nativeCurrencyPrice: info.updatePriceNative,
+      }
     }
-  })
+  )
   await relayProvider.updatePrices(pricingUpdates).then(wait)
 
   // Set the rest of the relay provider configuration
   for (const targetChain of chains) {
-    const targetChainPriceUpdate = config.pricingInfo.find(
+    const targetChainPriceUpdate = (config.pricingInfo as PricingInfo[]).find(
       (x: any) => x.chainId == targetChain.chainId
     )
     if (!targetChainPriceUpdate) {
       throw new Error("Failed to find pricingInfo for chain " + targetChain.chainId)
     }
-    //delivery addresses are not done by this script, but rather the register chains script.
-    await relayProvider
-      .updateDeliverGasOverhead(
-        targetChain.chainId,
-        targetChainPriceUpdate.deliverGasOverhead
-      )
-      .then(wait)
-    await relayProvider
-      .updateMaximumBudget(targetChain.chainId, targetChainPriceUpdate.maximumBudget)
-      .then(wait)
-    await relayProvider
-      .updateAssetConversionBuffer(targetChain.chainId, 5, 100)
-      .then(wait)
+    const targetChainProviderAddress = getRelayProviderAddress(targetChain)
+    const remoteRelayProvider =
+      "0x" + tryNativeToHexString(targetChainProviderAddress, "ethereum")
+    const update = {
+      chainId: targetChain.chainId,
+      updateAssetConversionBuffer: true,
+      updateWormholeFee: false,
+      updateDeliverGasOverhead: true,
+      updatePrice: true,
+      updateDeliveryAddress: true,
+      updateMaximumBudget: true,
+      buffer: 5,
+      bufferDenominator: 100,
+      newWormholeFee: 0,
+      newGasOverhead: targetChainPriceUpdate.deliverGasOverhead,
+      gasPrice: targetChainPriceUpdate.updatePriceGas,
+      nativeCurrencyPrice: targetChainPriceUpdate.updatePriceNative,
+      deliveryAddress: remoteRelayProvider,
+      maximumTotalBudget: targetChainPriceUpdate.maximumBudget,
+    }
+    updates.push(update)
   }
+  await relayProvider.updateConfig(updates, senderUpdates, coreConfig).then(wait)
 
   console.log("done with registrations on " + chain.chainId)
 }
