@@ -7,6 +7,19 @@ export enum RelayerPayloadId {
   // DeliveryStatus = 3,
 }
 
+export enum DeliveryStatus {
+  WaitingForVAA = "Waiting for VAA",
+  PendingDelivery = "Pending Delivery",
+  DeliverySuccess = "Delivery Success",
+  ReceiverFailure = "Receiver Failure",
+  InvalidRedelivery = "Invalid Redelivery",
+  ForwardRequestSuccess = "Forward Request Success",
+  ForwardRequestFailure = "Forward Request Failure",
+  ThisShouldNeverHappen = "This should never happen. Contact Support.",
+  DeliveryDidntHappenWithinRange = "Delivery didn't happen within given block range",
+}
+
+
 export interface DeliveryInstructionsContainer {
   payloadId: number // 1
   sufficientlyFunded: boolean
@@ -50,7 +63,7 @@ export interface MessageInfo {
   vaaHash: Buffer
 }
 
-export function parsePayloadType(
+export function parseWormholeRelayerPayloadType(
   stringPayload: string | Buffer | Uint8Array
 ): RelayerPayloadId {
   const payload =
@@ -61,7 +74,7 @@ export function parsePayloadType(
   return payload[0]
 }
 
-export function parseDeliveryInstructionsContainer(
+export function parseWormholeRelayerSend(
   bytes: Buffer
 ): DeliveryInstructionsContainer {
   let idx = 0
@@ -124,7 +137,7 @@ export function parseDeliveryInstructionsContainer(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
-    const executionParameters = parseExecutionParameters(bytes, idx)
+    const executionParameters = parseWormholeRelayerExecutionParameters(bytes, idx)
     idx += 37
     instructions.push(
       // dumb typechain format
@@ -146,7 +159,7 @@ export function parseDeliveryInstructionsContainer(
   }
 }
 
-export function parseRedeliveryByTxHashInstruction(
+export function parseWormholeRelayerResend(
   bytes: Buffer
 ): RedeliveryByTxHashInstruction {
   let idx = 0
@@ -173,14 +186,13 @@ export function parseRedeliveryByTxHashInstruction(
   const multisendIndex = bytes.readUint8(idx)
   idx += 1
 
-  // note: confirmed that BigNumber.from(<Buffer>) assumes big endian
   const newMaximumRefundTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
 
   const newReceiverValueTarget = BigNumber.from(bytes.slice(idx, idx + 32))
   idx += 32
 
-  const executionParameters = parseExecutionParameters(bytes, idx)
+  const executionParameters = parseWormholeRelayerExecutionParameters(bytes, idx)
   idx += 37
   return {
     payloadId,
@@ -195,7 +207,7 @@ export function parseRedeliveryByTxHashInstruction(
   }
 }
 
-function parseExecutionParameters(bytes: Buffer, idx: number = 0): ExecutionParameters {
+function parseWormholeRelayerExecutionParameters(bytes: Buffer, idx: number = 0): ExecutionParameters {
   const version = bytes.readUInt8(idx)
   idx += 1
   const gasLimit = bytes.readUint32BE(idx)
