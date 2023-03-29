@@ -47,19 +47,9 @@ async function run() {
 }
 
 async function configureChainsRelayProvider(chain: ChainInfo) {
-  console.log("about to perform configurations for chain " + chain.chainId)
+  console.log("about to perform RelayProvider configurations for chain " + chain.chainId)
   const relayProvider = getRelayProvider(chain)
   const coreRelayer = getCoreRelayerAddress(chain)
-
-  for (const remoteChain of chains) {
-    console.log(`Cross registering with chain ${remoteChain.chainId}...`)
-    const targetChainProviderAddress = getRelayProviderAddress(remoteChain)
-    const remoteRelayProvider =
-      "0x" + tryNativeToHexString(targetChainProviderAddress, "ethereum")
-    await relayProvider
-      .updateDeliveryAddress(remoteChain.chainId, remoteRelayProvider)
-      .then(wait)
-  }
 
   const thisChainsConfigInfo = config.addresses.find(
     (x: any) => x.chainId == chain.chainId
@@ -91,20 +81,6 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
       }
     )
   const updates: RelayProviderStructs.UpdateStruct[] = []
-
-  console.log("Set gas and native prices...")
-
-  // Batch update prices
-  const pricingUpdates: UpdatePrice[] = (config.pricingInfo as PricingInfo[]).map(
-    (info) => {
-      return {
-        chainId: info.chainId,
-        gasPrice: info.updatePriceGas,
-        nativeCurrencyPrice: info.updatePriceNative,
-      }
-    }
-  )
-  await relayProvider.updatePrices(pricingUpdates).then(wait)
 
   // Set the rest of the relay provider configuration
   for (const targetChain of chains) {
@@ -138,7 +114,7 @@ async function configureChainsRelayProvider(chain: ChainInfo) {
   }
   await relayProvider.updateConfig(updates, senderUpdates, coreConfig).then(wait)
 
-  console.log("done with registrations on " + chain.chainId)
+  console.log("done with RelayProvider configuration on " + chain.chainId)
 }
 
 run().then(() => console.log("Done! " + processName))
