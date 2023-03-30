@@ -26,9 +26,6 @@ async function registerChainsCoreRelayer(chain: ChainInfo) {
   console.log("registerChainsCoreRelayer " + chain.chainId)
 
   const coreRelayer = getCoreRelayer(chain)
-  await coreRelayer
-    .setDefaultRelayProvider(createDefaultRelayProviderVAA(chain))
-    .then(wait)
   for (let i = 0; i < chains.length; i++) {
     await coreRelayer
       .registerCoreRelayerContract(createRegisterChainVAA(chains[i]))
