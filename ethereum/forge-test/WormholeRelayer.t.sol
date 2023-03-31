@@ -622,44 +622,6 @@ contract WormholeRelayerTests is Test {
         deliveryVaaHash = getDeliveryVAAHash();
     }
 
-    function testResend(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        // estimate the cost based on the intialized values
-        uint256 payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        (bytes32 deliveryVaaHash, uint64 sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        uint256 newMaxTransactionFeeFee = setup.source.coreRelayer.quoteReceiverValue(
-            setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
-        );
-
-        IWormholeRelayer.ResendByTx memory redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: deliveryVaaHash,
-            deliveryVAASequence: sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: uint8(0),
-            newMaxTransactionFee: payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: newMaxTransactionFeeFee,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-
-        vm.deal(address(this), payment + newMaxTransactionFeeFee);
-
-        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
-            redeliveryRequest, address(setup.source.relayProvider)
-        );
-
-        genericRelayer.relay(setup.sourceChainId);
-
-        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
-    }
-
     function testQuoteReceiverValueIsEnough(
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
@@ -670,33 +632,20 @@ contract WormholeRelayerTests is Test {
         vm.recordLogs();
 
         // estimate the cost based on the intialized values
-        uint256 payment = setup.source.coreRelayer.quoteGasResend(
+        uint256 payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
+        ) + 3 * setup.source.wormhole.messageFee();
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
-        (bytes32 deliveryVaaHash, uint64 sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        uint256 newMaxTransactionFeeFee = setup.source.coreRelayer.quoteReceiverValue(
+        uint256 newReceiverValueSource = setup.source.coreRelayer.quoteReceiverValue(
             setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
         );
 
-        IWormholeRelayer.ResendByTx memory redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: deliveryVaaHash,
-            deliveryVAASequence: sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: newMaxTransactionFeeFee,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
+        vm.deal(address(this), payment + newReceiverValueSource);
 
-        vm.deal(address(this), payment + newMaxTransactionFeeFee);
-
-        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee}(
-            redeliveryRequest, address(setup.source.relayProvider)
+        setup.source.integration.sendMessageGeneral{value: payment + newReceiverValueSource}(
+            message, setup.targetChainId, address(setup.target.integration), address(0x0), newReceiverValueSource
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -716,33 +665,20 @@ contract WormholeRelayerTests is Test {
         vm.recordLogs();
 
         // estimate the cost based on the intialized values
-        uint256 payment = setup.source.coreRelayer.quoteGasResend(
+        uint256 payment = setup.source.coreRelayer.quoteGas(
             setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        (bytes32 deliveryVaaHash, uint64 sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
+        ) + 3 * setup.source.wormhole.messageFee();
 
         uint256 oldBalance = address(setup.target.integration).balance;
 
-        uint256 newMaxTransactionFeeFee = setup.source.coreRelayer.quoteReceiverValue(
+        uint256 newReceiverValueSource = setup.source.coreRelayer.quoteReceiverValue(
             setup.targetChainId, feeParams.receiverValueTarget, address(setup.source.relayProvider)
         );
 
-        IWormholeRelayer.ResendByTx memory redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: deliveryVaaHash,
-            deliveryVAASequence: sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: newMaxTransactionFeeFee - 1,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
+        vm.deal(address(this), payment + newReceiverValueSource - 1);
 
-        vm.deal(address(this), payment + newMaxTransactionFeeFee - 1);
-
-        setup.source.coreRelayer.resend{value: payment + newMaxTransactionFeeFee - 1}(
-            redeliveryRequest, address(setup.source.relayProvider)
+        setup.source.integration.sendMessageGeneral{value: payment + newReceiverValueSource - 1}(
+            message, setup.targetChainId, address(setup.target.integration), address(0x0), newReceiverValueSource - 1
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -792,24 +728,6 @@ contract WormholeRelayerTests is Test {
         assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(secondMessage));
     }
 
-    /**
-     * Redelivery  9-17
-     */
-    struct RedeliveryStack {
-        bytes32 deliveryVaaHash;
-        uint64 sequence;
-        uint256 payment;
-        Vm.Log[] entries;
-        bytes redeliveryVM;
-        IWormhole.VM parsed;
-        uint256 budget;
-        IWormholeRelayer.ResendByTx redeliveryRequest;
-        bytes[] originalEncodedVMs;
-        bytes originalDeliveryVAA;
-        IDelivery.TargetRedeliveryByTxHashParamsSingle package;
-        CoreRelayer.RedeliveryByTxHashInstruction instruction;
-    }
-
     function invalidateVM(bytes memory message, WormholeSimulator simulator) internal {
         change(message, message.length - 1);
         simulator.invalidateVM(message);
@@ -821,56 +739,6 @@ contract WormholeRelayerTests is Test {
         } else {
             message[index] = 0x02;
         }
-    }
-
-    function prepareRedeliveryStack(
-        RedeliveryStack memory stack,
-        bytes memory message,
-        StandardSetupTwoChains memory setup,
-        GasParameters memory gasParams
-    ) internal {
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-
-        vm.deal(address(this), stack.payment);
-
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-
-        stack.entries = vm.getRecordedLogs();
-
-        stack.redeliveryVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
-            stack.entries[0], setup.sourceChainId, address(setup.source.coreRelayer)
-        );
-
-        stack.originalEncodedVMs = genericRelayer.getPastEncodedVMs(setup.sourceChainId, stack.sequence);
-
-        stack.originalDeliveryVAA = genericRelayer.getPastDeliveryVAA(setup.sourceChainId, stack.sequence);
-
-        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
-            stack.redeliveryVM, stack.originalEncodedVMs, stack.originalDeliveryVAA, payable(setup.target.relayer)
-        );
-
-        stack.parsed = relayerWormhole.parseVM(stack.redeliveryVM);
-        stack.instruction = setup.target.coreRelayerFull.decodeRedeliveryInstruction(stack.parsed.payload);
-
-        stack.budget = stack.instruction.newMaximumRefundTarget + stack.instruction.newReceiverValueTarget
-            + setup.target.wormhole.messageFee();
     }
 
     event Delivery(
@@ -887,416 +755,6 @@ contract WormholeRelayerTests is Test {
         FORWARD_REQUEST_FAILURE,
         FORWARD_REQUEST_SUCCESS,
         INVALID_REDELIVERY
-    }
-
-    function testRevertResendMsgValueTooLow(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-        vm.deal(address(this), stack.payment);
-        vm.expectRevert(abi.encodeWithSignature("MsgValueTooLow()"));
-        setup.source.coreRelayer.resend{value: stack.payment - 1}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-    }
-
-    function testRevertRedeliveryInvalidOriginalDeliveryVaa(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        bytes memory fakeVM = abi.encodePacked(stack.originalDeliveryVAA);
-        invalidateVM(fakeVM, setup.target.wormholeSimulator);
-        stack.originalDeliveryVAA = fakeVM;
-
-        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
-            stack.redeliveryVM, stack.originalEncodedVMs, stack.originalDeliveryVAA, payable(setup.target.relayer)
-        );
-
-        vm.deal(setup.target.relayer, stack.budget);
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidDeliveryVaa(string)", ""));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-    }
-
-    function testRevertRedeliveryInvalidEmitterInOriginalDeliveryVaa(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        stack.originalDeliveryVAA = stack.originalEncodedVMs[0];
-
-        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
-            stack.redeliveryVM, stack.originalEncodedVMs, stack.originalDeliveryVAA, payable(setup.target.relayer)
-        );
-
-        vm.deal(setup.target.relayer, stack.budget);
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidEmitterInOriginalDeliveryVM()"));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-    }
-
-    function testRevertRedeliveryInvalidRedeliveryVaa(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        bytes memory fakeVM = abi.encodePacked(stack.redeliveryVM);
-        invalidateVM(fakeVM, setup.target.wormholeSimulator);
-
-        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
-            fakeVM, stack.originalEncodedVMs, stack.originalDeliveryVAA, payable(setup.target.relayer)
-        );
-
-        vm.deal(setup.target.relayer, stack.budget);
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidRedeliveryVM(string)", ""));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-    }
-
-    function testRevertRedeliveryInvalidEmitterInRedeliveryVM(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        bytes memory fakeVM = relayerWormholeSimulator.fetchSignedMessageFromLogs(
-            stack.entries[0], setup.sourceChainId, address(setup.source.integration)
-        );
-
-        stack.package = IDelivery.TargetRedeliveryByTxHashParamsSingle(
-            fakeVM, stack.originalEncodedVMs, stack.originalDeliveryVAA, payable(setup.target.relayer)
-        );
-
-        vm.deal(setup.target.relayer, stack.budget);
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InvalidEmitterInRedeliveryVM()"));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-    }
-
-    function testRevertRedeliveryUnexpectedRelayer(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        vm.deal(address(this), stack.budget);
-        vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-    }
-
-    function testRevertRedeliveryTargetChainIsNotThisChain(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        vm.deal(setup.target.relayer, stack.budget);
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("TargetChainIsNotThisChain(uint16)", setup.targetChainId));
-        map[setup.differentChainId].coreRelayerFull.redeliverSingle{value: stack.budget}(stack.package);
-    }
-
-    function testRevertRedeliveryInsufficientRelayerFunds(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        prepareRedeliveryStack(stack, message, setup, gasParams);
-
-        vm.deal(setup.target.relayer, stack.budget);
-        vm.prank(setup.target.relayer);
-        vm.expectRevert(abi.encodeWithSignature("InsufficientRelayerFunds()"));
-        setup.target.coreRelayerFull.redeliverSingle{value: stack.budget - 1}(stack.package);
-    }
-
-    function testEmitInvalidRedeliveryOriginalAndNewProviderDeliveryAddressesDiffer(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        setup.source.relayProvider.updateDeliveryAddress(
-            setup.targetChainId, setup.source.coreRelayer.toWormholeFormat(address(0x1))
-        );
-        address originalTargetRelayer = setup.target.relayer;
-        setup.target.relayer = address(0x1);
-        genericRelayer.setProviderDeliveryAddress(setup.targetChainId, address(0x1));
-        vm.deal(setup.target.relayer, type(uint256).max / 2);
-
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        setup.target.relayer = originalTargetRelayer;
-        setup.source.relayProvider.updateDeliveryAddress(
-            setup.targetChainId, setup.source.coreRelayer.toWormholeFormat(setup.target.relayer)
-        );
-        genericRelayer.setProviderDeliveryAddress(setup.targetChainId, setup.target.relayer);
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-
-        vm.deal(address(this), stack.payment);
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-
-        vm.expectEmit(true, true, true, true, address(setup.target.coreRelayer));
-        emit Delivery({
-            recipientContract: address(setup.target.integration),
-            sourceChain: setup.sourceChainId,
-            sequence: 0,
-            deliveryVaaHash: stack.deliveryVaaHash,
-            status: DeliveryStatus.INVALID_REDELIVERY
-        });
-        genericRelayer.relay(setup.sourceChainId);
-    }
-
-    function testEmitInvalidRedeliveryOriginalTargetChainIsThisChain(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.sourceChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        vm.assume(setup.sourceChainId != setup.targetChainId);
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.sourceChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-
-        vm.deal(address(this), stack.payment);
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-
-        vm.expectEmit(true, true, true, true, address(setup.source.coreRelayer));
-        emit Delivery({
-            recipientContract: address(setup.target.integration),
-            sourceChain: setup.sourceChainId,
-            sequence: 0,
-            deliveryVaaHash: stack.deliveryVaaHash,
-            status: DeliveryStatus.INVALID_REDELIVERY
-        });
-        genericRelayer.relay(setup.sourceChainId);
-    }
-
-    function testEmitInvalidRedeliveryReceiverValueTargetLessThanOriginal(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        uint256 paymentNotEnough = setup.source.coreRelayer.quoteGas(
-            setup.targetChainId, 10, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee() * 3;
-
-        uint256 receiverValue =
-            setup.source.coreRelayer.quoteReceiverValue(setup.targetChainId, 100, address(setup.source.relayProvider));
-
-        vm.deal(address(this), paymentNotEnough + receiverValue);
-        uint64 sequence = setup.source.integration.sendMessageGeneral{value: paymentNotEnough + receiverValue}(
-            message,
-            setup.targetChainId,
-            address(setup.target.integration),
-            address(setup.target.refundAddress),
-            receiverValue
-        );
-
-        genericRelayer.relay(setup.sourceChainId);
-
-        assertTrue(
-            (keccak256(setup.target.integration.getMessage()) != keccak256(message))
-                || (keccak256(message) == keccak256(bytes("")))
-        );
-
-        stack.deliveryVaaHash = getDeliveryVAAHash();
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, 200000, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-
-        vm.deal(address(this), stack.payment);
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-
-        vm.expectEmit(true, true, true, true, address(setup.target.coreRelayer));
-        emit Delivery({
-            recipientContract: address(setup.target.integration),
-            sourceChain: setup.sourceChainId,
-            sequence: 0,
-            deliveryVaaHash: stack.deliveryVaaHash,
-            status: DeliveryStatus.INVALID_REDELIVERY
-        });
-        genericRelayer.relay(setup.sourceChainId);
-    }
-
-    function testEmitInvalidRedeliveryGasLimitTargetLessThanOriginal(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, 9, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-
-        vm.deal(address(this), stack.payment);
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-
-        vm.expectEmit(true, true, true, true, address(setup.target.coreRelayer));
-        emit Delivery({
-            recipientContract: address(setup.target.integration),
-            sourceChain: setup.sourceChainId,
-            sequence: 0,
-            deliveryVaaHash: stack.deliveryVaaHash,
-            status: DeliveryStatus.INVALID_REDELIVERY
-        });
-        genericRelayer.relay(setup.sourceChainId);
     }
 
     struct DeliveryStack {
@@ -1619,77 +1077,6 @@ contract WormholeRelayerTests is Test {
         vm.expectRevert(abi.encodeWithSignature("FundsTooMuch(uint8)", 0));
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + 3 * wormholeFee}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
-        );
-    }
-
-    function testRevertResendMaxTransactionFeeNotEnough(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        stack.payment = setup.source.coreRelayer.quoteGas(setup.targetChainId, 1, address(setup.source.relayProvider))
-            - 1 + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-        vm.deal(address(this), stack.payment);
-        vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough(uint8)", 0));
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
-        );
-    }
-
-    function testRevertResendFundsTooMuch(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        RedeliveryStack memory stack;
-
-        (stack.deliveryVaaHash, stack.sequence) = sendWithoutEnoughMaxTransactionFee(message, setup);
-
-        setup.source.relayProvider.updateMaximumBudget(
-            setup.targetChainId, uint256(gasParams.targetGasLimit - 1) * gasParams.targetGasPrice
-        );
-
-        stack.payment = setup.source.coreRelayer.quoteGasResend(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + setup.source.wormhole.messageFee();
-
-        stack.redeliveryRequest = IWormholeRelayer.ResendByTx({
-            sourceChain: setup.sourceChainId,
-            sourceTxHash: 0,
-            deliveryVAASequence: stack.sequence,
-            targetChain: setup.targetChainId,
-            multisendIndex: 0,
-            newMaxTransactionFee: stack.payment - setup.source.wormhole.messageFee(),
-            newReceiverValue: 0,
-            newRelayParameters: setup.source.coreRelayer.getDefaultRelayParams()
-        });
-        vm.deal(address(this), stack.payment);
-        vm.expectRevert(abi.encodeWithSignature("FundsTooMuch(uint8)", 0));
-        setup.source.coreRelayer.resend{value: stack.payment}(
-            stack.redeliveryRequest, address(setup.source.relayProvider)
         );
     }
 

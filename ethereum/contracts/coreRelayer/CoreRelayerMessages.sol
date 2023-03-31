@@ -129,86 +129,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    /**
-     * @notice Check if for a redelivery instruction,
-     * - the total amount of target chain currency needed for execution of this instruction is within the maximum budget,
-     *   i.e. (maximumRefundTarget + receiverValueTarget) <= (the relayProvider's maximum budget for the target chain)
-     * - the gasLimit is greater than 0
-     * @param instruction A RedeliveryByTxHashInstruction
-     * @param relayProvider The relayProvider whos maximum budget we are checking against
-     */
-    function checkRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction, IRelayProvider relayProvider)
-        internal
-        view
-    {
-        if (instruction.executionParameters.gasLimit == 0) {
-            revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
-        }
-        if (
-            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
-                > relayProvider.quoteMaximumBudget(instruction.targetChain)
-        ) {
-            revert IWormholeRelayer.FundsTooMuch(0);
-        }
-    }
-
-    /**
-     * @notice This function converts a ResendByTx struct into a RedeliveryByTxHashInstruction struct that
-     * describes to the relayer exactly how to relay for the ResendByTx.
-     * Specifically, the RedeliveryByTxHashInstruction struct that contains nine fields:
-     * 1) sourceChain, 2) sourceTxHash, 3) sourceNonce, 4) targetChain, 5) deliveryIndex, 6) multisendIndex (all which are part of the ResendByTxHash struct),
-     * 7) newMaximumRefundTarget: The new maximum amount that can be refunded to 'refundAddress' (e.g. if the call to 'receiveWormholeMessages' takes 0 gas),
-     * 8) newReceiverValueTarget: The new amount that will be passed into 'receiveWormholeMessages' as value, in target chain currency
-     * 9) executionParameters: a struct with information about execution, specifically:
-     *    executionParameters.gasLimit: The maximum amount of gas 'receiveWormholeMessages' is allowed to use
-     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this ResendByTx request
-     * The latter 3 fields are calculated using the relayProvider's getters
-     * @param resend A ResendByTx struct
-     * @param relayProvider The relay provider chosen for this ResendByTx
-     * @return instruction A DeliveryInstruction
-     */
-    function convertResendToRedeliveryInstruction(
-        IWormholeRelayer.ResendByTx memory resend,
-        IRelayProvider relayProvider
-    ) internal view returns (RedeliveryByTxHashInstruction memory instruction) {
-        instruction.payloadId = 2;
-        instruction.sourceChain = resend.sourceChain;
-        instruction.sourceTxHash = resend.sourceTxHash;
-        instruction.deliveryVAASequence = resend.deliveryVAASequence;
-        instruction.targetChain = resend.targetChain;
-        instruction.multisendIndex = resend.multisendIndex;
-        instruction.newMaximumRefundTarget =
-            calculateTargetRedeliveryMaximumRefund(resend.targetChain, resend.newMaxTransactionFee, relayProvider);
-        instruction.newReceiverValueTarget =
-            convertReceiverValueAmount(resend.newReceiverValue, resend.targetChain, relayProvider);
-        instruction.executionParameters = ExecutionParameters({
-            version: 1,
-            gasLimit: calculateTargetGasRedeliveryAmount(resend.targetChain, resend.newMaxTransactionFee, relayProvider),
-            providerDeliveryAddress: relayProvider.getDeliveryAddress(resend.targetChain)
-        });
-    }
-
-    // encode a 'RedeliveryByTxHashInstruction' into bytes
-    function encodeRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction)
-        internal
-        pure
-        returns (bytes memory encoded)
-    {
-        encoded = abi.encodePacked(
-            instruction.payloadId,
-            instruction.sourceChain,
-            instruction.sourceTxHash,
-            instruction.deliveryVAASequence,
-            instruction.targetChain,
-            instruction.multisendIndex,
-            instruction.newMaximumRefundTarget,
-            instruction.newReceiverValueTarget,
-            instruction.executionParameters.version,
-            instruction.executionParameters.gasLimit,
-            instruction.executionParameters.providerDeliveryAddress
-        );
-    }
-
     // encode a 'DeliveryInstructionsContainer' into bytes
     function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
         internal
@@ -307,53 +227,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     ) internal view returns (uint256 maximumRefund) {
         maximumRefund = calculateTargetDeliveryMaximumRefundHelper(
             targetChain, maxTransactionFee, provider.quoteDeliveryOverhead(targetChain), provider
-        );
-    }
-
-    /**
-     * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the gas limit of the redelivery transaction
-     * should be
-     *
-     * It does this by calculating (maxTransactionFee - redeliveryOverhead)/gasPrice
-     * where 'redeliveryOverhead' is the relayProvider's base fee for redelivering to targetChain (in units of source chain currency)
-     * and 'gasPrice' is the relayProvider's fee per unit of target chain gas (in units of source chain currency)
-     *
-     * @param targetChain target chain
-     * @param maxTransactionFee uint256
-     * @param provider IRelayProvider
-     * @return gasAmount
-     */
-    function calculateTargetGasRedeliveryAmount(uint16 targetChain, uint256 maxTransactionFee, IRelayProvider provider)
-        internal
-        view
-        returns (uint32 gasAmount)
-    {
-        gasAmount = calculateTargetGasDeliveryAmountHelper(
-            targetChain, maxTransactionFee, provider.quoteRedeliveryOverhead(targetChain), provider
-        );
-    }
-
-    /**
-     * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the maximum refund of the redelivery transaction
-     * should be, in terms of target chain currency
-     *
-     * The maximum refund is the amount that would be refunded to refundAddress if the call to 'receiveWormholeMessages' takes 0 gas
-     *
-     * It does this by calculating (maxTransactionFee - redeliveryOverhead) and converting (using the relay provider's prices) to target chain currency
-     * (where 'redeliveryOverhead' is the relayProvider's base fee for redelivering to targetChain [in units of source chain currency])
-     *
-     * @param targetChain target chain
-     * @param maxTransactionFee uint256
-     * @param provider IRelayProvider
-     * @return maximumRefund uint256
-     */
-    function calculateTargetRedeliveryMaximumRefund(
-        uint16 targetChain,
-        uint256 maxTransactionFee,
-        IRelayProvider provider
-    ) internal view returns (uint256 maximumRefund) {
-        maximumRefund = calculateTargetDeliveryMaximumRefundHelper(
-            targetChain, maxTransactionFee, provider.quoteRedeliveryOverhead(targetChain), provider
         );
     }
 
@@ -471,51 +344,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         targetAmount = assetConversionHelper(
             chainId(), sourceAmount, targetChain, denominator, uint256(0) + denominator + buffer, false, provider
         );
-    }
-
-    // decode a 'RedeliveryByTxHashInstruction' from bytes
-    function decodeRedeliveryInstruction(bytes memory encoded)
-        public
-        pure
-        returns (RedeliveryByTxHashInstruction memory instruction)
-    {
-        uint256 index = 0;
-
-        instruction.payloadId = encoded.toUint8(index);
-        if (instruction.payloadId != 2) {
-            revert InvalidPayloadId(instruction.payloadId);
-        }
-        index += 1;
-
-        instruction.sourceChain = encoded.toUint16(index);
-        index += 2;
-
-        instruction.sourceTxHash = encoded.toBytes32(index);
-        index += 32;
-
-        instruction.deliveryVAASequence = encoded.toUint64(index);
-        index += 8;
-
-        instruction.targetChain = encoded.toUint16(index);
-        index += 2;
-
-        instruction.multisendIndex = encoded.toUint8(index);
-        index += 1;
-
-        instruction.newMaximumRefundTarget = encoded.toUint256(index);
-        index += 32;
-
-        instruction.newReceiverValueTarget = encoded.toUint256(index);
-        index += 32;
-
-        instruction.executionParameters.version = encoded.toUint8(index);
-        index += 1;
-
-        instruction.executionParameters.gasLimit = encoded.toUint32(index);
-        index += 4;
-
-        instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
-        index += 32;
     }
 
     // decode a 'DeliveryInstruction' from bytes
