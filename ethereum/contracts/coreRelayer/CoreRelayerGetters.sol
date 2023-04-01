@@ -57,6 +57,10 @@ contract CoreRelayerGetters is CoreRelayerState {
         return _state.forwardInstruction;
     }
 
+    function getWormholeRelayerCallerAddress() public view returns (address) {
+        return _state.forwardWrapper;
+    }
+
     function isContractLocked() internal view returns (bool) {
         return _state.contractLock;
     }

@@ -127,25 +127,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             setContractLock(true);
             setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
 
-            uint256 preGas = gasleft();
-
-            // Calls the 'receiveWormholeMessages' endpoint on the contract 'internalInstruction.targetAddress'
-            // (with the gas limit and value specified in internalInstruction, and 'encodedVMs' as the input)
-            (callToTargetContractSucceeded,) = fromWormholeFormat(internalInstruction.targetAddress).call{
-                gas: internalInstruction.executionParameters.gasLimit,
-                value: internalInstruction.receiverValueTarget
-            }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
-
-            uint256 postGas = gasleft();
-
-            // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
-            uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
-                ? internalInstruction.executionParameters.gasLimit
-                : (preGas - postGas);
-
-            // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
-            transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
-                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+        
 
             // unlock the contract
             setContractLock(false);

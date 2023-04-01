@@ -59,6 +59,10 @@ contract CoreRelayerSetters is CoreRelayerState, Context {
         _state.targetAddress = targetAddress;
     }
 
+    function setForwardWrapper(address newForwardWrapperAddress) internal {
+        _state.forwardWrapper = newForwardWrapperAddress;
+    }
+
     function setEvmChainId(uint256 evmChainId) internal {
         if (evmChainId != block.chainid) {
             revert InvalidEvmChainId();
