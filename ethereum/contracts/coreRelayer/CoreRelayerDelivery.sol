@@ -113,51 +113,60 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         DeliveryVAAInfo memory vaaInfo
     ) internal {
         // lock the contract to prevent reentrancy
-        if (isContractLocked()) {
-            revert IDelivery.ReentrantCall();
-        }
-
-        setContractLock(true);
-        setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
-
-        uint256 preGas = gasleft();
-
-        // Calls the 'receiveWormholeMessages' endpoint on the contract 'internalInstruction.targetAddress'
-        // (with the gas limit and value specified in internalInstruction, and 'encodedVMs' as the input)
-        (bool callToTargetContractSucceeded,) = fromWormholeFormat(internalInstruction.targetAddress).call{
-            gas: internalInstruction.executionParameters.gasLimit,
-            value: internalInstruction.receiverValueTarget
-        }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
-
-        uint256 postGas = gasleft();
-
-        // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
-        uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
-            ? internalInstruction.executionParameters.gasLimit
-            : (preGas - postGas);
-
-        // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
-        uint256 transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
-            * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
-
-        // unlock the contract
-        setContractLock(false);
-
-        // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
+        uint256 transactionFeeRefundAmount = internalInstruction.maximumRefundTarget;
+        bool callToTargetContractSucceeded = true;
+        bool forwardIsFunded = false;
         ForwardInstruction memory forwardingRequest = getForwardInstruction();
         DeliveryStatus status;
 
-        // Represents whether or not (amount user passed into forward as msg.value) + (remaining maxTransactionFee) is enough to fund the forward
-        bool forwardIsFunded = false;
+        if(internalInstruction.targetAddress != 0x0) {
+            if (isContractLocked()) {
+                revert IDelivery.ReentrantCall();
+            }
 
-        if (forwardingRequest.isValid) {
-            // If the user made a forward/multichainForward request, then try to execute it
-            forwardIsFunded = emitForward(transactionFeeRefundAmount, forwardingRequest);
-            status = forwardIsFunded ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
+            setContractLock(true);
+            setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
+
+            uint256 preGas = gasleft();
+
+            // Calls the 'receiveWormholeMessages' endpoint on the contract 'internalInstruction.targetAddress'
+            // (with the gas limit and value specified in internalInstruction, and 'encodedVMs' as the input)
+            (callToTargetContractSucceeded,) = fromWormholeFormat(internalInstruction.targetAddress).call{
+                gas: internalInstruction.executionParameters.gasLimit,
+                value: internalInstruction.receiverValueTarget
+            }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
+
+            uint256 postGas = gasleft();
+
+            // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
+            uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
+                ? internalInstruction.executionParameters.gasLimit
+                : (preGas - postGas);
+
+            // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
+            transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
+                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+
+            // unlock the contract
+            setContractLock(false);
+
+            // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
+            forwardingRequest = getForwardInstruction();
+
+            // Represents whether or not (amount user passed into forward as msg.value) + (remaining maxTransactionFee) is enough to fund the forward
+            forwardIsFunded = false;
+
+            if (forwardingRequest.isValid) {
+                // If the user made a forward/multichainForward request, then try to execute it
+                forwardIsFunded = emitForward(transactionFeeRefundAmount, forwardingRequest);
+                status = forwardIsFunded ? DeliveryStatus.FORWARD_REQUEST_SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE;
+            } else {
+                status = callToTargetContractSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
+            }
+
         } else {
-            status = callToTargetContractSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.RECEIVER_FAILURE;
         }
-
+        
         // Emit a status update that can be read by a SDK
         emit Delivery({
             recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
