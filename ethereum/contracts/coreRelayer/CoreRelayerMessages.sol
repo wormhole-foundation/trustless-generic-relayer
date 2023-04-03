@@ -134,13 +134,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
-            container.payloadId,
-            uint8(container.messages.length),
-            uint8(container.instructions.length)
+            container.payloadId, container.requesterAddress, uint8(container.messages.length), uint8(container.instructions.length)
         );
         
-        encoded = abi.encodePacked(container.requesterAddress);
-
         for (uint256 i = 0; i < container.messages.length; i++) {
             encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messages[i]));
         }
@@ -371,13 +367,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         instruction.provider = encoded.toBytes32(index);
         index += 32;
-        
+
         instruction.executionParameters.version = encoded.toUint8(index);
         index += 1;
 
         instruction.executionParameters.gasLimit = encoded.toUint32(index);
         index += 4;
-
 
         newIndex = index;
     }
@@ -426,7 +421,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         index += 1;
 
         bytes32 requesterAddress = encoded.toBytes32(index);
-        index +=32;
+        index += 32;
 
         uint8 messagesArrayLen = encoded.toUint8(index);
         index += 1;
@@ -456,7 +451,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         });
     }
 
-     /**
+    /**
      * @notice Helper function that converts an EVM address to wormhole format
      * @param addr (EVM 20-byte address)
      * @return whFormat (32-byte address in Wormhole format)

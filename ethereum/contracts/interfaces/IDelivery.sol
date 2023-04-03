@@ -43,7 +43,6 @@ interface IDelivery {
      */
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable;
 
-    
     error InvalidEmitterInOriginalDeliveryVM(); // The original delivery VAA (original signed wormhole message with delivery instructions) has an invalid sender
     error InvalidVaa(uint8 index, string reason); // The VAA is not valid
     error InvalidDeliveryVaa(string reason); // The Delivery VAA is not valid

@@ -876,31 +876,6 @@ contract WormholeRelayerTests is Test {
         setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
     }
 
-    function testRevertDeliveryUnexpectedRelayer(
-        GasParameters memory gasParams,
-        FeeParameters memory feeParams,
-        bytes memory message
-    ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
-
-        vm.recordLogs();
-
-        DeliveryStack memory stack;
-
-        stack.payment = setup.source.coreRelayer.quoteGas(
-            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
-        ) + 3 * setup.source.wormhole.messageFee();
-
-        setup.source.integration.sendMessageWithRefundAddress{value: stack.payment}(
-            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress
-        );
-
-        prepareDeliveryStack(stack, setup);
-
-        vm.expectRevert(abi.encodeWithSignature("UnexpectedRelayer()"));
-        setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
-    }
-
     function testRevertDeliveryInsufficientRelayerFunds(
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
@@ -1203,7 +1178,6 @@ contract WormholeRelayerTests is Test {
             message, 32, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-    
         vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)

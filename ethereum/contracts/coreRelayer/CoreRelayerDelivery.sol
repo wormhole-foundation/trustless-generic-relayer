@@ -103,14 +103,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         address payable relayerRefundAddress,
         DeliveryVAAInfo memory vaaInfo
     ) internal {
-        // lock the contract to prevent reentrancy
-        uint256 transactionFeeRefundAmount = internalInstruction.maximumRefundTarget;
-        bool callToTargetContractSucceeded = true;
-        bool forwardIsFunded = false;
-        ForwardInstruction memory forwardingRequest = getForwardInstruction();
-        DeliveryStatus status;
-
-        if(internalInstruction.targetAddress != 0x0) {
+        if (internalInstruction.targetAddress != 0x0) {
             if (isContractLocked()) {
                 revert IDelivery.ReentrantCall();
             }
@@ -118,65 +111,66 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             setContractLock(true);
             setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
 
-        uint256 preGas = gasleft();
+            uint256 preGas = gasleft();
 
-        (bool callToInstructionExecutorSucceeded, bytes memory data) = getWormholeRelayerCallerAddress().call{
-            value: internalInstruction.receiverValueTarget
-        }(abi.encodeCall(IForwardWrapper.executeInstruction, (internalInstruction, encodedVMs)));
+            (bool callToInstructionExecutorSucceeded, bytes memory data) = getWormholeRelayerCallerAddress().call{
+                value: internalInstruction.receiverValueTarget
+            }(abi.encodeCall(IForwardWrapper.executeInstruction, (internalInstruction, encodedVMs)));
 
-        uint256 postGas = gasleft();
+            uint256 postGas = gasleft();
 
-        uint256 transactionFeeRefundAmount;
-        bool callToTargetContractSucceeded = true;
-        if (callToInstructionExecutorSucceeded) {
-            (callToTargetContractSucceeded, transactionFeeRefundAmount) = abi.decode(data, (bool, uint256));
-        } else {
-            // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
-            uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
-                ? internalInstruction.executionParameters.gasLimit
-                : (preGas - postGas);
+            uint256 transactionFeeRefundAmount;
+            bool callToTargetContractSucceeded = true;
+            if (callToInstructionExecutorSucceeded) {
+                (callToTargetContractSucceeded, transactionFeeRefundAmount) = abi.decode(data, (bool, uint256));
+            } else {
+                // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
+                uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
+                    ? internalInstruction.executionParameters.gasLimit
+                    : (preGas - postGas);
 
-            // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
-            transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
-                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+                // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
+                transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
+                    * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+            }
+
+            // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
+            ForwardInstruction memory forwardInstruction = getForwardInstruction();
+
+            //clear forwarding request from storage
+            clearForwardInstruction();
+
+            // unlock the contract
+            setContractLock(false);
+
+            DeliveryStatus status;
+            if (forwardInstruction.isValid) {
+                // If the user made a forward/multichainForward request, then try to execute it
+                emitForward(transactionFeeRefundAmount, forwardInstruction);
+                status = DeliveryStatus.FORWARD_REQUEST_SUCCESS;
+            } else {
+                status = callToTargetContractSucceeded
+                    ? (callToInstructionExecutorSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE)
+                    : DeliveryStatus.RECEIVER_FAILURE;
+            }
+
+            // Emit a status update that can be read by a SDK
+            emit Delivery({
+                recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+                sourceChain: vaaInfo.sourceChain,
+                sequence: vaaInfo.sourceSequence,
+                deliveryVaaHash: vaaInfo.deliveryVaaHash,
+                status: status
+            });
+
+            payRefunds(
+                internalInstruction,
+                relayerRefundAddress,
+                transactionFeeRefundAmount,
+                callToInstructionExecutorSucceeded && callToTargetContractSucceeded,
+                forwardInstruction.isValid
+            );
         }
-
-        // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
-        ForwardInstruction memory forwardInstruction = getForwardInstruction();
-
-        //clear forwarding request from storage
-        clearForwardInstruction();
-
-        // unlock the contract
-        setContractLock(false);
-
-        DeliveryStatus status;
-        if (forwardInstruction.isValid) {
-            // If the user made a forward/multichainForward request, then try to execute it
-            emitForward(transactionFeeRefundAmount, forwardInstruction);
-            status = DeliveryStatus.FORWARD_REQUEST_SUCCESS;
-        } else {
-            status = callToTargetContractSucceeded
-                ? (callToInstructionExecutorSucceeded ? DeliveryStatus.SUCCESS : DeliveryStatus.FORWARD_REQUEST_FAILURE)
-                : DeliveryStatus.RECEIVER_FAILURE;
-        }
-        
-        // Emit a status update that can be read by a SDK
-        emit Delivery({
-            recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
-            sourceChain: vaaInfo.sourceChain,
-            sequence: vaaInfo.sourceSequence,
-            deliveryVaaHash: vaaInfo.deliveryVaaHash,
-            status: status
-        });
-
-        payRefunds(
-            internalInstruction,
-            relayerRefundAddress,
-            transactionFeeRefundAmount,
-            callToInstructionExecutorSucceeded && callToTargetContractSucceeded,
-            forwardInstruction.isValid
-        );
     }
 
     function payRefunds(
@@ -257,7 +251,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         // specifying the the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
         // receiverValue (in this chain's currency), upper bound on gas
         DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
-
 
         // Check that the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefund + instruction.receiverValue] of this chain's currency as msg.value
         if (msg.value < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget) {

@@ -109,7 +109,7 @@ contract MockGenericRelayer {
                 parser.decodeDeliveryInstructionsContainer(parsedDeliveryVAA.payload);
 
             bytes[] memory encodedVMsToBeDelivered = new bytes[](container.messages.length);
-
+                console.log("AA");
             for (uint8 i = 0; i < container.messages.length; i++) {
                 for (uint8 j = 0; j < encodedVMs.length; j++) {
                     if (messageInfoMatchesVAA(container.messages[i], encodedVMs[j])) {
@@ -118,7 +118,7 @@ contract MockGenericRelayer {
                     }
                 }
             }
-
+            console.log("A");
             for (uint8 k = 0; k < container.instructions.length; k++) {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
@@ -129,9 +129,10 @@ contract MockGenericRelayer {
                     multisendIndex: k,
                     relayerRefundAddress: payable(relayers[targetChain])
                 });
-
+                console.log("A..");
                 vm.prank(relayers[targetChain]);
                 IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: budget}(package);
+                console.log("A...DONE");
             }
             bytes32 key = keccak256(abi.encodePacked(parsedDeliveryVAA.emitterChainId, parsedDeliveryVAA.sequence));
             pastEncodedVMs[key] = encodedVMsToBeDelivered;

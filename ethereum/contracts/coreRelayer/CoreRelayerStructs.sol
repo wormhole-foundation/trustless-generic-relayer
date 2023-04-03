@@ -42,5 +42,4 @@ abstract contract CoreRelayerStructs {
         uint64 sourceSequence;
         bytes32 deliveryVaaHash;
     }
-
 }

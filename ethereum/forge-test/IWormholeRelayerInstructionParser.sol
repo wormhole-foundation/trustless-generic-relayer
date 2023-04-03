@@ -18,20 +18,19 @@ interface IWormholeRelayerInstructionParser {
         bytes32 refundAddress;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
+        bytes32 provider;
         ExecutionParameters executionParameters;
     }
 
     struct ExecutionParameters {
         uint8 version;
         uint32 gasLimit;
-        bytes32 providerDeliveryAddress;
     }
 
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         external
         pure
         returns (DeliveryInstructionsContainer memory);
-
 
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
