@@ -18,9 +18,7 @@ const DEVNET = [
 
 const MAINNET: any[] = []
 
-type ENV = "mainnet" | "testnet"
-
-export function getCoreRelayerAddressNative(chainId: ChainId, env: Network): string {
+export function getWormholeRelayerAddress(chainId: ChainId, env: Network): string {
   if (env == "TESTNET") {
     const address = TESTNET.find((x) => x.chainId == chainId)?.coreRelayerAddress
     if (!address) {
@@ -44,12 +42,12 @@ export function getCoreRelayerAddressNative(chainId: ChainId, env: Network): str
   }
 }
 
-export function getCoreRelayer(
+export function getWormholeRelayer(
   chainId: ChainId,
   env: Network,
   provider: ethers.providers.Provider
 ): CoreRelayer {
-  const thisChainsRelayer = getCoreRelayerAddressNative(chainId, env)
+  const thisChainsRelayer = getWormholeRelayerAddress(chainId, env)
   const contract = CoreRelayer__factory.connect(thisChainsRelayer, provider)
   return contract
 }
