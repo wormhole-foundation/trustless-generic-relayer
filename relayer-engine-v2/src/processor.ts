@@ -2,6 +2,7 @@ import * as wh from "@certusone/wormhole-sdk"
 import { Next } from "wormhole-relayer"
 import {
   IDelivery,
+  MessageInfoType,
   parseDeliveryInstructionsContainer,
   parsePayloadType,
   parseRedeliveryByTxHashInstruction,
@@ -33,11 +34,16 @@ async function processDelivery(ctx: GRContext) {
     return
   }
 
+  if (
+    payload.messages.findIndex((m) => m.payloadType !== MessageInfoType.EmitterSequence)
+  ) {
+    throw new Error(`Only supports EmitterSequence MessageInfoType`)
+  }
   const fetchedVaas = await ctx.fetchVaas({
     ids: payload.messages.map((m) => ({
-      emitterAddress: m.emitterAddress,
+      emitterAddress: m.emitterAddress!,
       emitterChain: chainId,
-      sequence: m.sequence.toBigInt(),
+      sequence: m.sequence!.toBigInt(),
     })),
     txHash: ctx.sourceTxHash,
   })
@@ -55,7 +61,7 @@ async function processDelivery(ctx: GRContext) {
 
       const input: IDelivery.TargetDeliveryParametersSingleStruct = {
         encodedVMs: fetchedVaas.map((v) => v.bytes),
-        deliveryVAA: ctx.vaaBytes!,
+        encodedDeliveryVAA: ctx.vaaBytes!,
         multisendIndex: i,
         relayerRefundAddress: wallet.address,
       }
@@ -94,11 +100,20 @@ async function processRedelivery(ctx: GRContext) {
   const deliveryInstructionsContainer = parseDeliveryInstructionsContainer(
     deliveryVAA.payload
   )
+
+  if (
+    deliveryInstructionsContainer.messages.findIndex(
+      (m) => m.payloadType !== MessageInfoType.EmitterSequence
+    )
+  ) {
+    throw new Error(`Only supports EmitterSequence MessageInfoType`)
+  }
+
   const fetchedVaas = await ctx.fetchVaas({
     ids: deliveryInstructionsContainer.messages.map((m) => ({
-      emitterAddress: m.emitterAddress,
+      emitterAddress: m.emitterAddress!,
       emitterChain: chainId,
-      sequence: m.sequence.toBigInt(),
+      sequence: m.sequence!.toBigInt(),
     })),
     txHash: redelivery.sourceTxHash.toString("hex"), // todo: confirm this works
   })
@@ -119,6 +134,7 @@ async function processRedelivery(ctx: GRContext) {
     const budget = newReceiverValueTarget.add(newMaximumRefundTarget).add(100)
     const input: IDelivery.TargetRedeliveryByTxHashParamsSingleStruct = {
       sourceEncodedVMs: [...fetchedVaas.map((v) => v.bytes), deliveryVAA.bytes],
+      originalEncodedDeliveryVAA: deliveryVAA.bytes,
       redeliveryVM: ctx.vaaBytes!,
       relayerRefundAddress: wallet.address,
     }
