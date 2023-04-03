@@ -3,39 +3,31 @@ import { Next } from "wormhole-relayer"
 import {
   IDelivery,
   MessageInfoType,
-  parseDeliveryInstructionsContainer,
-  parsePayloadType,
-  parseRedeliveryByTxHashInstruction,
   RelayerPayloadId,
   RelayProvider__factory,
+  parseWormholeRelayerPayloadType,
+  parseWormholeRelayerSend,
 } from "../pkgs/sdk/src"
 import { EVMChainId } from "@certusone/wormhole-sdk"
 import { GRContext } from "./app"
 
 export async function processGenericRelayerVaa(ctx: GRContext, next: Next) {
-  const payloadId = parsePayloadType(ctx.vaa!.payload)
+  const payloadId = parseWormholeRelayerPayloadType(ctx.vaa!.payload)
   // route payload types
-  switch (payloadId) {
-    case RelayerPayloadId.Delivery:
-      await processDelivery(ctx)
-      break
-    case RelayerPayloadId.Redelivery:
-      await processRedelivery(ctx)
-      break
+  if (payloadId != RelayerPayloadId.Delivery) {
+    ctx.logger.error(`Expected GR Delivery payload type, found ${payloadId}`)
+    throw new Error("Expected GR Delivery payload type")
   }
+  await processDelivery(ctx)
   await next()
 }
 
 async function processDelivery(ctx: GRContext) {
   const chainId = ctx.vaa!.emitterChain as wh.EVMChainId
-  const payload = parseDeliveryInstructionsContainer(ctx.vaa!.payload)
-  if (payload.sufficientlyFunded) {
-    ctx.logger.info("Insufficiently funded delivery request, skipping")
-    return
-  }
+  const payload = parseWormholeRelayerSend(ctx.vaa!.payload)
 
   if (
-    payload.messages.findIndex((m) => m.payloadType !== MessageInfoType.EmitterSequence)
+    payload.messages.findIndex((m) => m.payloadType !== MessageInfoType.EMITTER_SEQUENCE)
   ) {
     throw new Error(`Only supports EmitterSequence MessageInfoType`)
   }
@@ -66,7 +58,8 @@ async function processDelivery(ctx: GRContext) {
         relayerRefundAddress: wallet.address,
       }
 
-      if (!(await relayProvider.approvedSender(wallet.address))) {
+      const isApprovedSender = await relayProvider.approvedSender(wallet.address)
+      if (!isApprovedSender) {
         ctx.logger.warn(
           `Approved sender not set correctly for chain ${chainId}, should be ${wallet.address}`
         )
@@ -85,64 +78,4 @@ async function processDelivery(ctx: GRContext) {
       )
     })
   }
-}
-
-async function processRedelivery(ctx: GRContext) {
-  const chainId = ctx.vaa!.emitterChain as wh.EVMChainId
-  const redelivery = parseRedeliveryByTxHashInstruction(ctx.vaa!.payload)
-
-  const deliveryVAA = await ctx.fetchVaa(
-    chainId,
-    ctx.wormholeRelayer[chainId],
-    // @ts-ignore
-    redelivery.sequence
-  )
-  const deliveryInstructionsContainer = parseDeliveryInstructionsContainer(
-    deliveryVAA.payload
-  )
-
-  if (
-    deliveryInstructionsContainer.messages.findIndex(
-      (m) => m.payloadType !== MessageInfoType.EmitterSequence
-    )
-  ) {
-    throw new Error(`Only supports EmitterSequence MessageInfoType`)
-  }
-
-  const fetchedVaas = await ctx.fetchVaas({
-    ids: deliveryInstructionsContainer.messages.map((m) => ({
-      emitterAddress: m.emitterAddress!,
-      emitterChain: chainId,
-      sequence: m.sequence!.toBigInt(),
-    })),
-    txHash: redelivery.sourceTxHash.toString("hex"), // todo: confirm this works
-  })
-  await ctx.wallets.onEVM(chainId, async ({ wallet }) => {
-    const relayProvider = RelayProvider__factory.connect(
-      ctx.relayProviders[chainId],
-      wallet
-    )
-
-    if (!(await relayProvider.approvedSender(wallet.address))) {
-      ctx.logger.warn(
-        `Approved sender not set correctly for chain ${chainId}, should be ${wallet.address}`
-      )
-      return
-    }
-
-    const { newReceiverValueTarget, newMaximumRefundTarget } = redelivery
-    const budget = newReceiverValueTarget.add(newMaximumRefundTarget).add(100)
-    const input: IDelivery.TargetRedeliveryByTxHashParamsSingleStruct = {
-      sourceEncodedVMs: [...fetchedVaas.map((v) => v.bytes), deliveryVAA.bytes],
-      originalEncodedDeliveryVAA: deliveryVAA.bytes,
-      redeliveryVM: ctx.vaaBytes!,
-      relayerRefundAddress: wallet.address,
-    }
-
-    await relayProvider
-      .redeliverSingle(input, { value: budget, gasLimit: 3000000 })
-      .then((x) => x.wait())
-
-    ctx.logger.info(`Redelivered instruction to chain ${chainId}`)
-  })
 }
