@@ -27,6 +27,8 @@ contract CoreRelayerStorage {
         address defaultRelayProvider;
         // Request which will be forwarded from the current delivery.
         CoreRelayerStructs.ForwardInstruction forwardInstruction;
+        // Wrapper contract to facilitate forwards
+        address forwardWrapper;
         // mapping of initialized implementations
         mapping(address => bool) initializedImplementations;
         // mapping of relayer contracts on other chains

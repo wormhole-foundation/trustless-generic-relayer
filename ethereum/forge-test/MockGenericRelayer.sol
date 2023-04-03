@@ -27,8 +27,6 @@ contract MockGenericRelayer {
 
     mapping(uint16 => address) relayers;
 
-    mapping(uint16 => uint256) wormholeFees;
-
     mapping(bytes32 => bytes[]) pastEncodedVMs;
 
     mapping(bytes32 => bytes) pastEncodedDeliveryVAA;
@@ -56,10 +54,6 @@ contract MockGenericRelayer {
 
     function setProviderDeliveryAddress(uint16 chainId, address deliveryAddress) public {
         relayers[chainId] = deliveryAddress;
-    }
-
-    function setWormholeFee(uint16 chainId, uint256 fee) public {
-        wormholeFees[chainId] = fee;
     }
 
     function relay(uint16 chainId) public {
@@ -115,7 +109,7 @@ contract MockGenericRelayer {
                 parser.decodeDeliveryInstructionsContainer(parsedDeliveryVAA.payload);
 
             bytes[] memory encodedVMsToBeDelivered = new bytes[](container.messages.length);
-
+            console.log("AA");
             for (uint8 i = 0; i < container.messages.length; i++) {
                 for (uint8 j = 0; j < encodedVMs.length; j++) {
                     if (messageInfoMatchesVAA(container.messages[i], encodedVMs[j])) {
@@ -124,7 +118,7 @@ contract MockGenericRelayer {
                     }
                 }
             }
-
+            console.log("A");
             for (uint8 k = 0; k < container.instructions.length; k++) {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
@@ -135,16 +129,14 @@ contract MockGenericRelayer {
                     multisendIndex: k,
                     relayerRefundAddress: payable(relayers[targetChain])
                 });
-                
+                console.log("A..");
                 vm.prank(relayers[targetChain]);
-                IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{
-                    value: (budget + wormholeFees[targetChain])
-                }(package);
-                
+                IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: budget}(package);
+                console.log("A...DONE");
             }
             bytes32 key = keccak256(abi.encodePacked(parsedDeliveryVAA.emitterChainId, parsedDeliveryVAA.sequence));
             pastEncodedVMs[key] = encodedVMsToBeDelivered;
             pastEncodedDeliveryVAA[key] = encodedDeliveryVAA;
-        } 
+        }
     }
 }

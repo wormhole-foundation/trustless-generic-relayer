@@ -43,7 +43,6 @@ interface IDelivery {
      */
     function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable;
 
-    
     error InvalidEmitterInOriginalDeliveryVM(); // The original delivery VAA (original signed wormhole message with delivery instructions) has an invalid sender
     error InvalidVaa(uint8 index, string reason); // The VAA is not valid
     error InvalidDeliveryVaa(string reason); // The Delivery VAA is not valid
@@ -54,4 +53,5 @@ interface IDelivery {
     error ReentrantCall(); // A delivery cannot occur during another delivery
     error MessageInfosDoNotMatchVaas(uint8 index); // The VAA at index 'index' does not match the 'index'-th description given on the source chain in the 'messages' field
     error MessageInfosLengthDoesNotMatchVaasLength(); // The VAA array has a different length than the original array of MessageInfo descriptions from the source chain
+    error ForwardNotSufficientlyFunded(); // Should never happen as this should have already been checked for
 }

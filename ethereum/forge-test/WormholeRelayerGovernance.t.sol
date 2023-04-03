@@ -120,7 +120,7 @@ contract WormholeRelayerGovernanceTests is Test {
         IWormholeRelayer wormholeRelayer3 = helpers.setUpCoreRelayer(1, wormhole, address(relayProvider));
 
         helpers.registerCoreRelayerContract(
-            CoreRelayer(address(wormholeRelayer1)),
+            CoreRelayer(payable(address(wormholeRelayer1))),
             wormhole,
             1,
             2,
@@ -128,7 +128,7 @@ contract WormholeRelayerGovernanceTests is Test {
         );
 
         helpers.registerCoreRelayerContract(
-            CoreRelayer(address(wormholeRelayer1)),
+            CoreRelayer(payable(address(wormholeRelayer1))),
             wormhole,
             1,
             3,
@@ -136,17 +136,17 @@ contract WormholeRelayerGovernanceTests is Test {
         );
 
         assertTrue(
-            CoreRelayer(address(wormholeRelayer1)).registeredCoreRelayerContract(2)
+            CoreRelayer(payable(address(wormholeRelayer1))).registeredCoreRelayerContract(2)
                 == wormholeRelayer1.toWormholeFormat(address(wormholeRelayer2))
         );
 
         assertTrue(
-            CoreRelayer(address(wormholeRelayer1)).registeredCoreRelayerContract(3)
+            CoreRelayer(payable(address(wormholeRelayer1))).registeredCoreRelayerContract(3)
                 == wormholeRelayer1.toWormholeFormat(address(wormholeRelayer3))
         );
 
         helpers.registerCoreRelayerContract(
-            CoreRelayer(address(wormholeRelayer1)),
+            CoreRelayer(payable(address(wormholeRelayer1))),
             wormhole,
             1,
             3,
@@ -154,7 +154,7 @@ contract WormholeRelayerGovernanceTests is Test {
         );
 
         assertTrue(
-            CoreRelayer(address(wormholeRelayer1)).registeredCoreRelayerContract(3)
+            CoreRelayer(payable(address(wormholeRelayer1))).registeredCoreRelayerContract(3)
                 == wormholeRelayer1.toWormholeFormat(address(wormholeRelayer2))
         );
     }
