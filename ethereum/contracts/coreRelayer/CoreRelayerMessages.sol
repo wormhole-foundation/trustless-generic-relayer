@@ -47,12 +47,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param sendContainer A MultichainSend struct describing all of the Send requests
      * @return instructionsContainer A DeliveryInstructionsContainer struct
      */
-    function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer)
+    function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer, bytes32 sender)
         internal
         view
         returns (DeliveryInstructionsContainer memory instructionsContainer)
     {
         instructionsContainer.payloadId = 1;
+        instructionsContainer.requesterAddress = sender;
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
         instructionsContainer.messages = sendContainer.messages;
 
@@ -140,6 +141,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             uint8(container.messages.length),
             uint8(container.instructions.length)
         );
+        
+        encoded = abi.encodePacked(container.requesterAddress);
 
         for (uint256 i = 0; i < container.messages.length; i++) {
             encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messages[i]));
@@ -423,8 +426,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             revert InvalidPayloadId(payloadId);
         }
         index += 1;
-        bool sufficientlyFunded = encoded.toUint8(index) == 1;
-        index += 1;
+
+        bytes32 requesterAddress = encoded.toBytes32(index);
+        index +=32;
 
         uint8 messagesArrayLen = encoded.toUint8(index);
         index += 1;
@@ -448,6 +452,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         return DeliveryInstructionsContainer({
             payloadId: payloadId,
+            requesterAddress: requesterAddress,
             messages: messages,
             instructions: instructionArray
         });
