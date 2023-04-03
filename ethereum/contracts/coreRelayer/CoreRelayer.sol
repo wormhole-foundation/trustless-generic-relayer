@@ -264,9 +264,6 @@ contract CoreRelayer is CoreRelayerDelivery {
         // and check that the calculated gas is greater than 0
         checkInstructions(instructionsContainer, IRelayProvider(sendContainer.relayProviderAddress));
 
-        // Mark the container as 'sufficientlyFunded', since the user passed in msg.value to fund all of the requests
-        instructionsContainer.sufficientlyFunded = true;
-
         // Publish a wormhole message indicating to the relay provider (who is watching wormhole messages from this contract)
         // to relay the messages from this transaction (of nonce 'nonce') to the specified chains, each with the calculated amount of gas and receiverValue
         sequence = wormhole.publishMessage{value: wormholeMessageFee}(

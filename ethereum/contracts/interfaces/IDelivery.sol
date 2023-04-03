@@ -92,7 +92,6 @@ interface IDelivery {
     error InvalidVaa(uint8 index, string reason); // The VAA is not valid
     error InvalidDeliveryVaa(string reason); // The Delivery VAA is not valid
     error MismatchingRelayProvidersInRedelivery(); // The relay provider specified for the redelivery is different from the relay provider specified for the original delivery
-    error UnexpectedRelayer(); // msg.sender must be the delivery address of the specified relay provider
     error InvalidEmitter(); // The delivery VAA (signed wormhole message with delivery instructions) has an invalid sender
     error SendNotSufficientlyFunded(); // The container of delivery instructions (for which this current delivery was in) was not fully funded on the source chain
     error InsufficientRelayerFunds(); // The relay provider didn't pass in sufficient funds (msg.value does not cover the necessary budget fees)

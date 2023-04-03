@@ -71,8 +71,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
                 (amountUnderMaximum > convertedExtraAmount) ? convertedExtraAmount : amountUnderMaximum;
         }
 
-        // Publishes the DeliveryInstruction, with a 'sufficientlyFunded' flag indicating whether the forward had enough funds
-        container.sufficientlyFunded = forwardIsFunded;
+        // Publishes the DeliveryInstruction,
         wormhole.publishMessage{value: wormholeMessageFee}(
             0, encodeDeliveryInstructionsContainer(container), relayProvider.getConsistencyLevel()
         );
@@ -257,20 +256,10 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
 
-        // Check that the delivery instruction container in the delivery VAA was fully funded
-        if (!container.sufficientlyFunded) {
-            revert IDelivery.SendNotSufficientlyFunded();
-        }
-
         // Obtain the specific instruction that is intended to be executed in this function
         // specifying the the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
-        // receiverValue (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
+        // receiverValue (in this chain's currency), upper bound on gas
         DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
-
-        // Check that msg.sender is the permissioned address allowed to execute this instruction
-        if (fromWormholeFormat(deliveryInstruction.executionParameters.providerDeliveryAddress) != msg.sender) {
-            revert IDelivery.UnexpectedRelayer();
-        }
 
         uint256 wormholeMessageFee = wormhole.messageFee();
 

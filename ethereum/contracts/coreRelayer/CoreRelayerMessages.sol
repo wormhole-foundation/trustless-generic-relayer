@@ -137,7 +137,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     {
         encoded = abi.encodePacked(
             container.payloadId,
-            uint8(container.sufficientlyFunded ? 1 : 0),
             uint8(container.messages.length),
             uint8(container.instructions.length)
         );
@@ -449,7 +448,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         return DeliveryInstructionsContainer({
             payloadId: payloadId,
-            sufficientlyFunded: sufficientlyFunded,
             messages: messages,
             instructions: instructionArray
         });

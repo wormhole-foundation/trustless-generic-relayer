@@ -8,7 +8,6 @@ import "../interfaces/IWormholeRelayer.sol";
 abstract contract CoreRelayerStructs {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded;
         IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
@@ -26,18 +25,6 @@ abstract contract CoreRelayerStructs {
         uint8 version;
         uint32 gasLimit;
         bytes32 providerDeliveryAddress;
-    }
-
-    struct RedeliveryByTxHashInstruction {
-        uint8 payloadId; //2
-        uint16 sourceChain;
-        bytes32 sourceTxHash;
-        uint64 deliveryVAASequence;
-        uint16 targetChain;
-        uint8 multisendIndex;
-        uint256 newMaximumRefundTarget;
-        uint256 newReceiverValueTarget;
-        ExecutionParameters executionParameters;
     }
 
     struct ForwardInstruction {
