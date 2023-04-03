@@ -3,21 +3,30 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/IWormholeReceiver.sol";
+import "../interfaces/IWormhole.sol";
+import "../interfaces/IRelayProvider.sol";
+import "../interfaces/IForwardInstructionViewer.sol";
 import "./CoreRelayerStructs.sol";
+import "../interfaces/IForwardWrapper.sol";
 
 contract ForwardWrapper {
-    
     IForwardInstructionViewer forwardInstructionViewer;
-    error RequesterNotCoreRelayer();
+    IWormhole wormhole;
 
-    constructor(address _wormholeRelayer) {
+    error RequesterNotCoreRelayer();
+    error ForwardNotSufficientlyFunded(uint256 extraAmountNeeded);
+
+    constructor(address _wormholeRelayer, address _wormhole) {
         forwardInstructionViewer = IForwardInstructionViewer(_wormholeRelayer);
-        locked = false;
+        wormhole = IWormhole(_wormhole);
     }
 
-    function executeInstruction(DeliveryInstruction memory instruction, bytes[] memory encodedVMs) public returns (uint256 leftoverMaxTransactionFee, bool callSuceeded) {
-        
-        if(msg.sender != address(forwardInstructionViewer)) {
+    function executeInstruction(CoreRelayerStructs.DeliveryInstruction memory instruction, bytes[] memory signedVaas)
+        public
+        payable
+        returns (bool callToTargetContractSucceeded, uint256 transactionFeeRefundAmount)
+    {
+        if (msg.sender != address(forwardInstructionViewer)) {
             revert RequesterNotCoreRelayer();
         }
 
@@ -25,10 +34,10 @@ contract ForwardWrapper {
 
         // Calls the 'receiveWormholeMessages' endpoint on the contract 'instruction.targetAddress'
         // (with the gas limit and value specified in instruction, and 'encodedVMs' as the input)
-        (bool callToTargetContractSucceeded,) = fromWormholeFormat(instruction.targetAddress).call{
+        (callToTargetContractSucceeded,) = forwardInstructionViewer.fromWormholeFormat(instruction.targetAddress).call{
             gas: instruction.executionParameters.gasLimit,
             value: instruction.receiverValueTarget
-        }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (encodedVMs, new bytes[](0))));
+        }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (signedVaas, new bytes[](0))));
 
         uint256 postGas = gasleft();
 
@@ -38,13 +47,21 @@ contract ForwardWrapper {
             : (preGas - postGas);
 
         // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
-        uint256 transactionFeeRefundAmount = (instruction.executionParameters.gasLimit - gasUsed)
+        transactionFeeRefundAmount = (instruction.executionParameters.gasLimit - gasUsed)
             * instruction.maximumRefundTarget / instruction.executionParameters.gasLimit;
 
-        ForwardInstruction memory forwardingRequest = forwardInstructionViewer.getForwardInstruction();
+        CoreRelayerStructs.ForwardInstruction memory forwardInstruction =
+            forwardInstructionViewer.getForwardInstruction();
 
+        if (forwardInstruction.isValid) {
+            uint256 feeForForward = transactionFeeRefundAmount + forwardInstruction.msgValue;
+            if (feeForForward < forwardInstruction.totalFee) {
+                revert ForwardNotSufficientlyFunded(forwardInstruction.totalFee - feeForForward);
+            }
+        }
 
-
+        if (!callToTargetContractSucceeded) {
+            msg.sender.call{value: msg.value}("");
+        }
     }
-
 }

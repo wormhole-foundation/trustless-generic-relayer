@@ -26,7 +26,6 @@ contract ForwardTester is IWormholeReceiver {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         genericRelayer = new MockGenericRelayer(_wormhole, _wormholeSimulator, _wormholeRelayer);
         genericRelayer.setWormholeRelayerContract(wormhole.chainId(), address(wormholeRelayer));
-        genericRelayer.setWormholeFee(wormhole.chainId(), wormhole.messageFee());
     }
 
     enum Action {

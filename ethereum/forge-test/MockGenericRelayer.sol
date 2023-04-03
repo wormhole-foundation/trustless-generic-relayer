@@ -27,8 +27,6 @@ contract MockGenericRelayer {
 
     mapping(uint16 => address) relayers;
 
-    mapping(uint16 => uint256) wormholeFees;
-
     mapping(bytes32 => bytes[]) pastEncodedVMs;
 
     mapping(bytes32 => bytes) pastEncodedDeliveryVAA;
@@ -56,10 +54,6 @@ contract MockGenericRelayer {
 
     function setProviderDeliveryAddress(uint16 chainId, address deliveryAddress) public {
         relayers[chainId] = deliveryAddress;
-    }
-
-    function setWormholeFee(uint16 chainId, uint256 fee) public {
-        wormholeFees[chainId] = fee;
     }
 
     function relay(uint16 chainId) public {
@@ -135,16 +129,13 @@ contract MockGenericRelayer {
                     multisendIndex: k,
                     relayerRefundAddress: payable(relayers[targetChain])
                 });
-                
+
                 vm.prank(relayers[targetChain]);
-                IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{
-                    value: (budget + wormholeFees[targetChain])
-                }(package);
-                
+                IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: budget}(package);
             }
             bytes32 key = keccak256(abi.encodePacked(parsedDeliveryVAA.emitterChainId, parsedDeliveryVAA.sequence));
             pastEncodedVMs[key] = encodedVMsToBeDelivered;
             pastEncodedDeliveryVAA[key] = encodedDeliveryVAA;
-        } 
+        }
     }
 }

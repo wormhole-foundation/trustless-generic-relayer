@@ -129,7 +129,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
     // encode a 'DeliveryInstructionsContainer' into bytes
     function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
-        internal
+        public
         pure
         returns (bytes memory encoded)
     {
