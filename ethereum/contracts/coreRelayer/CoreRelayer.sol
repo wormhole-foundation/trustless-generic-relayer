@@ -257,7 +257,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
         // and calculate how much value the relay provider will pass into 'request.targetAddress'
         DeliveryInstructionsContainer memory instructionsContainer =
-            convertMultichainSendToDeliveryInstructionsContainer(sendContainer, toWormholeFormat(msg.sender));
+            convertMultichainSendToDeliveryInstructionsContainer(sendContainer);
 
         // For each 'Send' request,
         // Check that the total amount of value the relay provider needs to use for this send is <= the relayProvider's maximum budget for 'targetChain'
@@ -310,7 +310,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
         // and calculate how much value the relay provider will pass into 'request.targetAddress'
         DeliveryInstructionsContainer memory instructionsContainer =
-            convertMultichainSendToDeliveryInstructionsContainer(sendContainer, toWormholeFormat(msg.sender));
+            convertMultichainSendToDeliveryInstructionsContainer(sendContainer);
 
         // For each 'Send' request,
         // Check that the total amount of value the relay provider needs to use for this send is <= the relayProvider's maximum budget for 'targetChain'

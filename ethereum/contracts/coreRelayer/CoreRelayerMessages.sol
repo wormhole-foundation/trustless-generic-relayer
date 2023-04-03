@@ -47,13 +47,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param sendContainer A MultichainSend struct describing all of the Send requests
      * @return instructionsContainer A DeliveryInstructionsContainer struct
      */
-    function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer, bytes32 sender)
+    function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer)
         internal
         view
         returns (DeliveryInstructionsContainer memory instructionsContainer)
     {
         instructionsContainer.payloadId = 1;
-        instructionsContainer.requesterAddress = sender;
+        instructionsContainer.requesterAddress = toWormholeFormat(msg.sender);
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
         instructionsContainer.messages = sendContainer.messages;
 
@@ -89,10 +89,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.targetAddress = send.targetAddress;
         instruction.refundAddress = send.refundAddress;
 
-        //TODO make sure to check the relay provider for this error
-        if (false) {
-            revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
-        }
         instruction.maximumRefundTarget =
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
         instruction.receiverValueTarget =
@@ -458,5 +454,23 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             messages: messages,
             instructions: instructionArray
         });
+    }
+
+     /**
+     * @notice Helper function that converts an EVM address to wormhole format
+     * @param addr (EVM 20-byte address)
+     * @return whFormat (32-byte address in Wormhole format)
+     */
+    function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
+        return bytes32(uint256(uint160(addr)));
+    }
+
+    /**
+     * @notice Helper function that converts an Wormhole format (32-byte) address to the EVM 'address' 20-byte format
+     * @param whFormatAddress (32-byte address in Wormhole format)
+     * @return addr (EVM 20-byte address)
+     */
+    function fromWormholeFormat(bytes32 whFormatAddress) public pure returns (address addr) {
+        return address(uint160(uint256(whFormatAddress)));
     }
 }
