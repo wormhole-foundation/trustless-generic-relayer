@@ -134,9 +134,12 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
-            container.payloadId, container.requesterAddress, uint8(container.messages.length), uint8(container.instructions.length)
+            container.payloadId,
+            container.requesterAddress,
+            uint8(container.messages.length),
+            uint8(container.instructions.length)
         );
-        
+
         for (uint256 i = 0; i < container.messages.length; i++) {
             encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messages[i]));
         }

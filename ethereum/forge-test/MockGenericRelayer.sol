@@ -109,7 +109,7 @@ contract MockGenericRelayer {
                 parser.decodeDeliveryInstructionsContainer(parsedDeliveryVAA.payload);
 
             bytes[] memory encodedVMsToBeDelivered = new bytes[](container.messages.length);
-                console.log("AA");
+            console.log("AA");
             for (uint8 i = 0; i < container.messages.length; i++) {
                 for (uint8 j = 0; j < encodedVMs.length; j++) {
                     if (messageInfoMatchesVAA(container.messages[i], encodedVMs[j])) {
