@@ -28,10 +28,6 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.coreRelayer = coreRelayer;
     }
 
-    function setApprovedSender(address sender, bool approved) internal {
-        _state.approvedSenders[sender] = approved;
-    }
-
     function setDeliverGasOverhead(uint16 chainId, uint32 deliverGasOverhead) internal {
         _state.deliverGasOverhead[chainId] = deliverGasOverhead;
     }
@@ -44,9 +40,6 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.rewardAddress = rewardAddress;
     }
 
-    function setDeliveryAddress(uint16 chainId, bytes32 whFormatDeliveryAddress) internal {
-        _state.deliveryAddressMap[chainId] = whFormatDeliveryAddress;
-    }
 
     function setMaximumBudget(uint16 targetChainId, uint256 amount) internal {
         _state.maximumBudget[targetChainId] = amount;

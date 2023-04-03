@@ -88,18 +88,19 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.targetChain = send.targetChain;
         instruction.targetAddress = send.targetAddress;
         instruction.refundAddress = send.refundAddress;
-        bytes32 deliveryAddress = relayProvider.getDeliveryAddress(send.targetChain);
-        if (deliveryAddress == bytes32(0x0)) {
+
+        //TODO make sure to check the relay provider for this error
+        if (false) {
             revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
         }
         instruction.maximumRefundTarget =
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
         instruction.receiverValueTarget =
             convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
+        instruction.provider = toWormholeFormat(address(relayProvider));
         instruction.executionParameters = ExecutionParameters({
             version: 1,
-            gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider),
-            providerDeliveryAddress: deliveryAddress
+            gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
         });
     }
 
@@ -179,9 +180,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.refundAddress,
             instruction.maximumRefundTarget,
             instruction.receiverValueTarget,
+            instruction.provider,
             instruction.executionParameters.version,
-            instruction.executionParameters.gasLimit,
-            instruction.executionParameters.providerDeliveryAddress
+            instruction.executionParameters.gasLimit
         );
     }
 
@@ -372,14 +373,15 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.receiverValueTarget = encoded.toUint256(index);
         index += 32;
 
+        instruction.provider = encoded.toBytes32(index);
+        index += 32;
+        
         instruction.executionParameters.version = encoded.toUint8(index);
         index += 1;
 
         instruction.executionParameters.gasLimit = encoded.toUint32(index);
         index += 4;
 
-        instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
-        index += 32;
 
         newIndex = index;
     }

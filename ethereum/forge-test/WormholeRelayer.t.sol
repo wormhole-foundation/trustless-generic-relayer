@@ -207,7 +207,6 @@ contract WormholeRelayerTests is Test {
         uint256 maxBudget = type(uint256).max;
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
-                map[i].relayProvider.updateDeliveryAddress(j, bytes32(uint256(uint160(map[j].relayer))));
                 map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
                 helpers.registerCoreRelayerContract(
@@ -753,8 +752,7 @@ contract WormholeRelayerTests is Test {
         SUCCESS,
         RECEIVER_FAILURE,
         FORWARD_REQUEST_FAILURE,
-        FORWARD_REQUEST_SUCCESS,
-        INVALID_REDELIVERY
+        FORWARD_REQUEST_SUCCESS
     }
 
     struct DeliveryStack {
@@ -1241,9 +1239,7 @@ contract WormholeRelayerTests is Test {
             message, 32, address(setup.target.integration), address(setup.target.refundAddress)
         );
 
-        setup.source.relayProvider.updateDeliveryAddress(
-            setup.targetChainId, setup.source.relayProvider.getDeliveryAddress(32)
-        );
+    
         vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
             message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)

@@ -26,12 +26,12 @@ contract ForwardTester is IWormholeReceiver {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         genericRelayer = new MockGenericRelayer(_wormhole, _wormholeSimulator, _wormholeRelayer);
         genericRelayer.setWormholeRelayerContract(wormhole.chainId(), address(wormholeRelayer));
-        genericRelayer.setProviderDeliveryAddress(
-            wormhole.chainId(),
-            wormholeRelayer.fromWormholeFormat(
-                IRelayProvider(wormholeRelayer.getDefaultRelayProvider()).getDeliveryAddress(wormhole.chainId())
-            )
-        );
+        // genericRelayer.setProviderDeliveryAddress( //TODO fix
+        //     wormhole.chainId(),
+        //     wormholeRelayer.fromWormholeFormat(
+        //         IRelayProvider(wormholeRelayer.getDefaultRelayProvider()).getDeliveryAddress(wormhole.chainId())
+        //     )
+        // );
         genericRelayer.setWormholeFee(wormhole.chainId(), wormhole.messageFee());
     }
 

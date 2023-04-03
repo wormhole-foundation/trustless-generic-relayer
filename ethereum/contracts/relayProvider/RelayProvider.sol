@@ -11,23 +11,11 @@ import "../interfaces/IDelivery.sol";
 contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     error CallerNotApproved(address msgSender);
 
-    modifier onlyApprovedSender() {
-        if (!approvedSender(_msgSender())) {
-            revert CallerNotApproved(_msgSender());
-        }
-        _;
-    }
-
     //Returns the delivery overhead fee required to deliver a message to targetChain, denominated in this chain's wei.
     function quoteDeliveryOverhead(uint16 targetChain) public view override returns (uint256 nativePriceQuote) {
         uint256 targetFees =
             uint256(1) * deliverGasOverhead(targetChain) * gasPrice(targetChain) + wormholeFee(targetChain);
         return quoteAssetConversion(targetChain, targetFees, chainId());
-    }
-
-    //Returns the redelivery overhead fee required to deliver a message to targetChain, denominated in this chain's wei.
-    function quoteRedeliveryOverhead(uint16 targetChain) public view override returns (uint256 nativePriceQuote) {
-        return quoteDeliveryOverhead(targetChain);
     }
 
     //Returns the price of purchasing 1 unit of gas on targetChain, denominated in this chain's wei.
@@ -43,11 +31,6 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     //Returns the maximum budget that is allowed for a delivery on target chain, denominated in the targetChain's wei.
     function quoteMaximumBudget(uint16 targetChain) public view override returns (uint256 maximumTargetBudget) {
         return maximumBudget(targetChain);
-    }
-
-    //Returns the address (in wormhole format) which is allowed to deliver VAAs for this provider on targetChain
-    function getDeliveryAddress(uint16 targetChain) public view override returns (bytes32 whAddress) {
-        return deliveryAddress(targetChain);
     }
 
     //Returns the address on this chain that rewards should be sent to
@@ -88,26 +71,5 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
 
         // round up
         return (sourceAmount * srcNativeCurrencyPrice + dstNativeCurrencyPrice - 1) / dstNativeCurrencyPrice;
-    }
-
-    //Internal delivery proxies
-    function redeliverSingle(IDelivery.TargetRedeliveryByTxHashParamsSingle memory targetParams)
-        public
-        payable
-        onlyApprovedSender
-    {
-        IDelivery cr = IDelivery(coreRelayer());
-        targetParams.relayerRefundAddress = payable(msg.sender);
-        cr.redeliverSingle{value: msg.value}(targetParams);
-    }
-
-    function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams)
-        public
-        payable
-        onlyApprovedSender
-    {
-        IDelivery cr = IDelivery(coreRelayer());
-        targetParams.relayerRefundAddress = payable(msg.sender);
-        cr.deliverSingle{value: msg.value}(targetParams);
     }
 }

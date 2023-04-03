@@ -13,8 +13,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         SUCCESS,
         RECEIVER_FAILURE,
         FORWARD_REQUEST_FAILURE,
-        FORWARD_REQUEST_SUCCESS,
-        INVALID_REDELIVERY
+        FORWARD_REQUEST_SUCCESS
     }
 
     event Delivery(
@@ -335,24 +334,6 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         } else {
             return false;
         }
-    }
-
-    /**
-     * @notice Helper function that converts an EVM address to wormhole format
-     * @param addr (EVM 20-byte address)
-     * @return whFormat (32-byte address in Wormhole format)
-     */
-    function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
-        return bytes32(uint256(uint160(addr)));
-    }
-
-    /**
-     * @notice Helper function that converts an Wormhole format (32-byte) address to the EVM 'address' 20-byte format
-     * @param whFormatAddress (32-byte address in Wormhole format)
-     * @return addr (EVM 20-byte address)
-     */
-    function fromWormholeFormat(bytes32 whFormatAddress) public pure returns (address addr) {
-        return address(uint160(uint256(whFormatAddress)));
     }
 
     function pay(address payable receiver, uint256 amount) internal returns (bool success) {

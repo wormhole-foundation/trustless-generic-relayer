@@ -7,7 +7,7 @@ import "../contracts/interfaces/IWormholeRelayer.sol";
 interface IWormholeRelayerInstructionParser {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded;
+        bytes32 requesterAddress;
         IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
@@ -27,27 +27,11 @@ interface IWormholeRelayerInstructionParser {
         bytes32 providerDeliveryAddress;
     }
 
-    struct RedeliveryByTxHashInstruction {
-        uint8 payloadId; //2
-        uint16 sourceChain;
-        bytes32 sourceTxHash;
-        uint64 deliveryVAASequence;
-        uint16 targetChain;
-        uint8 multisendIndex;
-        uint256 newMaximumRefundTarget;
-        uint256 newReceiverValueTarget;
-        ExecutionParameters executionParameters;
-    }
-
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         external
         pure
         returns (DeliveryInstructionsContainer memory);
 
-    function decodeRedeliveryInstruction(bytes memory encoded)
-        external
-        pure
-        returns (RedeliveryByTxHashInstruction memory instruction);
 
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 

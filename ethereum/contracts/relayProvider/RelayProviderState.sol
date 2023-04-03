@@ -38,10 +38,6 @@ contract RelayProviderStorage {
         mapping(uint16 => uint32) wormholeFee;
         // The maximum budget that is allowed for a delivery on target chain, denominated in the targetChain's wei.
         mapping(uint16 => uint256) maximumBudget;
-        // Dictionary of wormhole chain id -> wormhole address for the relayer provider contract in target chain.
-        mapping(uint16 => bytes32) deliveryAddressMap;
-        // Set of relayer addresses used to deliver or redeliver wormhole messages.
-        mapping(address => bool) approvedSenders;
         // Dictionary of wormhole chain id -> assetConversion
         mapping(uint16 => AssetConversion) assetConversion;
         // Reward address for the relayer. The CoreRelayer contract transfers the reward for relaying messages here.

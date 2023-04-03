@@ -35,19 +35,9 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         emit CoreRelayerUpdated(newAddress);
     }
 
-    function updateApprovedSender(address sender, bool approved) public onlyOwner {
-        setApprovedSender(sender, approved);
-        emit ApprovedSenderUpdated(sender, approved);
-    }
-
     function updateRewardAddress(address payable newAddress) public onlyOwner {
         setRewardAddress(newAddress);
         emit RewardAddressUpdated(newAddress);
-    }
-
-    function updateDeliveryAddress(uint16 targetChain, bytes32 newAddress) public onlyOwner {
-        setDeliveryAddress(targetChain, newAddress);
-        emit DeliveryAddressUpdated(targetChain, newAddress);
     }
 
     function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {

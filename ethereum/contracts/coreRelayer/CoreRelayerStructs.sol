@@ -19,13 +19,13 @@ abstract contract CoreRelayerStructs {
         bytes32 refundAddress;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
+        bytes32 provider;
         ExecutionParameters executionParameters;
     }
 
     struct ExecutionParameters {
         uint8 version;
         uint32 gasLimit;
-        bytes32 providerDeliveryAddress;
     }
 
     struct ForwardInstruction {
@@ -41,5 +41,23 @@ abstract contract CoreRelayerStructs {
         uint16 sourceChain;
         uint64 sourceSequence;
         bytes32 deliveryVaaHash;
+    }
+
+    /**
+     * @notice Helper function that converts an EVM address to wormhole format
+     * @param addr (EVM 20-byte address)
+     * @return whFormat (32-byte address in Wormhole format)
+     */
+    function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
+        return bytes32(uint256(uint160(addr)));
+    }
+
+    /**
+     * @notice Helper function that converts an Wormhole format (32-byte) address to the EVM 'address' 20-byte format
+     * @param whFormatAddress (32-byte address in Wormhole format)
+     * @return addr (EVM 20-byte address)
+     */
+    function fromWormholeFormat(bytes32 whFormatAddress) public pure returns (address addr) {
+        return address(uint160(uint256(whFormatAddress)));
     }
 }

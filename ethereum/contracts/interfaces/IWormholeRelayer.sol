@@ -277,41 +277,6 @@ interface IWormholeRelayer {
     function multichainForward(MultichainSend memory sendContainer) external payable;
 
     /**
-     * @notice This 'ResendByTx' struct represents a request to resend an array of messages that have been previously requested to be sent
-     *  Specifically, if a user in transaction 'txHash' on chain 'sourceChain' emits many wormhole messages and then
-     *  makes a call to 'send' requesting these messages to be sent to 'targetAddress' on 'targetChain' (which returns a sequence number of 'deliveryVAASequence'),
-     *  then the user can request a redelivery of these wormhole messages any time in the future through a call to 'resend' using this struct
-     *
-     *  @custom:member sourceChain The chain (that the original Send was initiated from (or equivalent, the chain that the original wormhole messages were emitted from).
-     *  Important note: This does not need to be the current chain. A resend can be requested from any chain.
-     *  @custom:member sourceTxHash The transaction hash of the original source chain transaction that contained the original wormhole messages and the original 'Send' request
-     *  @custom:member deliveryVAASequence The wormhole sequence number for the original delivery VAA
-     *  @custom:member targetChain The chain that the encoded+signed Wormhole messages (VAAs) were originally delivered to (and will be redelivered to), in Wormhole Chain ID format
-     *  @custom:member deliveryIndex If all the originally emitted wormhole messages are ordered, *including* the wormhole message emitted from the original Send request,
-     *  this is the (0-indexed) index of the wormhole message emitted from the original Send request. So, if originally the 'send' request was made after the publishing of x wormhole messages,
-     *  deliveryIndex here would be 'x'.
-     *  @custom:member multisendIndex If the 'send' (or forward) function was used in the original transaction, this should be 0. Otherwise if the multichainSend (or multichainForward) function was used,
-     *  then this should be the index of the specific Send request in the requests array that you wish to be redelivered
-     *  @custom:member newMaxTransactionFee The new maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
-     *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
-     *  Any unused value out of this fee will be refunded to 'refundAddress'
-     *  This must pay for at least as much gas as was paid for in the original request
-     *  @custom:member receiverValue The amount (denominated in source chain currency) that will be converted to target chain currency and passed into the receiveWormholeMessage endpoint as value.
-     *  This must pay for at least as much receiver value as was paid for in the original request
-     *  @custom:member newRelayParameters This should be 'getDefaultRelayParameters()'
-     */
-    struct ResendByTx {
-        uint16 sourceChain;
-        bytes32 sourceTxHash;
-        uint64 deliveryVAASequence;
-        uint16 targetChain;
-        uint8 multisendIndex;
-        uint256 newMaxTransactionFee;
-        uint256 newReceiverValue;
-        bytes newRelayParameters;
-    }
-
-    /**
      * @notice quoteGas tells you how much maxTransactionFee (denominated in current (source) chain currency) must be in order to fund a call to
      * receiveWormholeMessages on a contract on chain 'targetChain' that uses 'gasLimit' units of gas
      *

@@ -135,33 +135,16 @@ contract MockGenericRelayer {
                     multisendIndex: k,
                     relayerRefundAddress: payable(relayers[targetChain])
                 });
-                if (container.sufficientlyFunded) {
-                    vm.prank(relayers[targetChain]);
-                    IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{
-                        value: (budget + wormholeFees[targetChain])
-                    }(package);
-                }
+                
+                vm.prank(relayers[targetChain]);
+                IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{
+                    value: (budget + wormholeFees[targetChain])
+                }(package);
+                
             }
             bytes32 key = keccak256(abi.encodePacked(parsedDeliveryVAA.emitterChainId, parsedDeliveryVAA.sequence));
             pastEncodedVMs[key] = encodedVMsToBeDelivered;
             pastEncodedDeliveryVAA[key] = encodedDeliveryVAA;
-        } else if (payloadId == 2) {
-            IWormholeRelayerInstructionParser.RedeliveryByTxHashInstruction memory instruction =
-                parser.decodeRedeliveryInstruction(parsedDeliveryVAA.payload);
-            bytes32 key = keccak256(abi.encodePacked(instruction.sourceChain, instruction.deliveryVAASequence));
-            bytes[] memory originalEncodedVMs = pastEncodedVMs[key];
-            uint16 targetChain = instruction.targetChain;
-            uint256 budget =
-                instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget + wormholeFees[targetChain];
-            IDelivery.TargetRedeliveryByTxHashParamsSingle memory package = IDelivery
-                .TargetRedeliveryByTxHashParamsSingle({
-                redeliveryVM: encodedDeliveryVAA,
-                sourceEncodedVMs: originalEncodedVMs,
-                originalEncodedDeliveryVAA: pastEncodedDeliveryVAA[key],
-                relayerRefundAddress: payable(relayers[targetChain])
-            });
-            vm.prank(relayers[targetChain]);
-            IDelivery(wormholeRelayerContracts[targetChain]).redeliverSingle{value: budget}(package);
-        }
+        } 
     }
 }
