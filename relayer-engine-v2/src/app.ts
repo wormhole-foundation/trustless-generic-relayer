@@ -15,7 +15,7 @@ import * as deepCopy from "clone"
 
 export type GRContext = StandardRelayerContext & {
   relayProviders: Record<EVMChainId, string>
-  wormholeRelayer: Record<EVMChainId, string>
+  wormholeRelayers: Record<EVMChainId, string>
 }
 
 type Opts = {
@@ -38,7 +38,7 @@ type ContractsJson = {
 
 async function main() {
   let opts = yargs(process.argv.slice(2)).argv as unknown as Opts
-  const contracts = await loadContractsJson()
+  const contracts = await loadContractsJson(opts.flag)
 
   const app = new StandardRelayerApp<GRContext>(flagToEnvironment(opts.flag), {
     name: "GenericRelayer",
@@ -61,7 +61,7 @@ async function main() {
   // Set up middleware
   app.use(async (ctx: GRContext, next: Next) => {
     ctx.relayProviders = deepCopy(relayProviders)
-    ctx.wormholeRelayer = deepCopy(wormholeRelayers)
+    ctx.wormholeRelayers = deepCopy(wormholeRelayers)
     next()
   })
 
@@ -98,9 +98,9 @@ function flagToEnvironment(flag: Flag): Environment {
   }
 }
 
-async function loadContractsJson(): Promise<ContractsJson> {
+async function loadContractsJson(flag: Flag): Promise<ContractsJson> {
   return JSON.parse(
-    await fs.readFile(`../ethereum/ts-scripts/config/testnet/contracts.json`, {
+    await fs.readFile(`../ethereum/ts-scripts/config/${flag}/contracts.json`, {
       encoding: "utf-8",
     })
   ) as ContractsJson

@@ -32,9 +32,8 @@ async function registerChainsRelayProvider(chain: ChainInfo) {
 
   for (let i = 0; i < chains.length; i++) {
     console.log(`Cross registering with chain ${chains[i].chainId}...`)
-    const targetChainProviderAddress = getRelayProviderAddress(chains[i])
-    const whAddress = "0x" + tryNativeToHexString(targetChainProviderAddress, "ethereum")
-    await relayProvider.updateDeliveryAddress(chains[i].chainId, whAddress).then(wait)
+    console.log(`Cross registering with chain ${chains[i].chainId}...`)
+    await relayProvider.updateSupportedChain(chains[i].chainId, true).then(wait)
   }
 
   console.log("done with registrations on " + chain.chainId)

@@ -4,7 +4,7 @@ import {
   IDelivery,
   MessageInfoType,
   RelayerPayloadId,
-  RelayProvider__factory,
+  CoreRelayer__factory,
   parseWormholeRelayerPayloadType,
   parseWormholeRelayerSend,
 } from "../pkgs/sdk/src"
@@ -46,29 +46,21 @@ async function processDelivery(ctx: GRContext) {
     const budget = ix.receiverValueTarget.add(ix.maximumRefundTarget).add(100)
 
     await ctx.wallets.onEVM(chainId, async ({ wallet }) => {
-      const relayProvider = RelayProvider__factory.connect(
-        ctx.relayProviders[chainId],
+      const coreRelayer = CoreRelayer__factory.connect(
+        ctx.wormholeRelayers[chainId],
         wallet
       )
 
-      const input: IDelivery.TargetDeliveryParametersSingleStruct = {
+      const input: IDelivery.TargetDeliveryParametersStruct = {
         encodedVMs: fetchedVaas.map((v) => v.bytes),
         encodedDeliveryVAA: ctx.vaaBytes!,
         multisendIndex: i,
         relayerRefundAddress: wallet.address,
       }
 
-      const isApprovedSender = await relayProvider.approvedSender(wallet.address)
-      if (!isApprovedSender) {
-        ctx.logger.warn(
-          `Approved sender not set correctly for chain ${chainId}, should be ${wallet.address}`
-        )
-        return
-      }
-
-      await relayProvider
+      await coreRelayer
         // @ts-ignore
-        .deliverSingle(input, { value: budget, gasLimit: 3000000 })
+        .deliver(input, { value: budget, gasLimit: 3000000 })
         .then((x) => x.wait())
 
       ctx.logger.info(

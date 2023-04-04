@@ -1,4 +1,4 @@
-export type { CoreRelayer, CoreRelayerStructs } from "./ethers-contracts/CoreRelayer"
+export type { CoreRelayer } from "./ethers-contracts/CoreRelayer"
 export { CoreRelayer__factory } from "./ethers-contracts/factories/CoreRelayer__factory"
 export type { MockRelayerIntegration } from "./ethers-contracts/MockRelayerIntegration"
 export { MockRelayerIntegration__factory } from "./ethers-contracts/factories/MockRelayerIntegration__factory"
