@@ -2,15 +2,17 @@
 
 pragma solidity ^0.8.0;
 
-import "../coreRelayer/CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 
 interface IForwardInstructionViewer {
-    function getForwardInstruction() external view returns (CoreRelayerStructs.ForwardInstruction memory);
-
-    function encodeDeliveryInstructionsContainer(CoreRelayerStructs.DeliveryInstructionsContainer memory container)
+    function getForwardInstruction()
         external
-        pure
-        returns (bytes memory encoded);
+        view
+        returns (IWormholeRelayerInternalStructs.ForwardInstruction memory);
+
+    function encodeDeliveryInstructionsContainer(
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container
+    ) external pure returns (bytes memory encoded);
 
     /**
      * @notice Helper function that converts an Wormhole format (32-byte) address to the EVM 'address' 20-byte format

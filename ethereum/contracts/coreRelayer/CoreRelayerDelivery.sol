@@ -7,7 +7,7 @@ import "../interfaces/IWormholeReceiver.sol";
 import "../interfaces/IDelivery.sol";
 import "../interfaces/IForwardWrapper.sol";
 import "./CoreRelayerGovernance.sol";
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 
 contract CoreRelayerDelivery is CoreRelayerGovernance {
     enum DeliveryStatus {
@@ -36,8 +36,11 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      * @param forwardInstruction A struct containing information about the user's forward/multichainForward request
      *
      */
-    function emitForward(uint256 transactionFeeRefundAmount, ForwardInstruction memory forwardInstruction) internal {
-        DeliveryInstructionsContainer memory container =
+    function emitForward(
+        uint256 transactionFeeRefundAmount,
+        IWormholeRelayerInternalStructs.ForwardInstruction memory forwardInstruction
+    ) internal {
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container =
             decodeDeliveryInstructionsContainer(forwardInstruction.container);
 
         // Add any additional funds which were passed in to the forward as msg.value
@@ -98,10 +101,10 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      *      - deliveryVaaHash hash of delivery VAA
      */
     function _executeDelivery(
-        DeliveryInstruction memory internalInstruction,
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory internalInstruction,
         bytes[] memory encodedVMs,
         address payable relayerRefundAddress,
-        DeliveryVAAInfo memory vaaInfo
+        IWormholeRelayerInternalStructs.DeliveryVAAInfo memory vaaInfo
     ) internal {
         if (internalInstruction.targetAddress != 0x0) {
             if (isContractLocked()) {
@@ -135,7 +138,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             }
 
             // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
-            ForwardInstruction memory forwardInstruction = getForwardInstruction();
+            IWormholeRelayerInternalStructs.ForwardInstruction memory forwardInstruction = getForwardInstruction();
 
             //clear forwarding request from storage
             clearForwardInstruction();
@@ -174,7 +177,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
     }
 
     function payRefunds(
-        DeliveryInstruction memory internalInstruction,
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory internalInstruction,
         address payable relayerRefundAddress,
         uint256 transactionFeeRefundAmount,
         bool receiverValueWasPaid,
@@ -245,12 +248,14 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             revert IDelivery.InvalidEmitter();
         }
 
-        DeliveryInstructionsContainer memory container = decodeDeliveryInstructionsContainer(deliveryVM.payload);
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container =
+            decodeDeliveryInstructionsContainer(deliveryVM.payload);
 
         // Obtain the specific instruction that is intended to be executed in this function
         // specifying the the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
         // receiverValue (in this chain's currency), upper bound on gas
-        DeliveryInstruction memory deliveryInstruction = container.instructions[targetParams.multisendIndex];
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory deliveryInstruction =
+            container.instructions[targetParams.multisendIndex];
 
         // Check that the relay provider passed in at least [(one wormhole message fee) + instruction.maximumRefund + instruction.receiverValue] of this chain's currency as msg.value
         if (msg.value < deliveryInstruction.maximumRefundTarget + deliveryInstruction.receiverValueTarget) {
@@ -269,7 +274,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             deliveryInstruction,
             targetParams.encodedVMs,
             targetParams.relayerRefundAddress,
-            DeliveryVAAInfo({
+            IWormholeRelayerInternalStructs.DeliveryVAAInfo({
                 sourceChain: deliveryVM.emitterChainId,
                 sourceSequence: deliveryVM.sequence,
                 deliveryVaaHash: deliveryVM.hash

@@ -12,12 +12,12 @@ import {RelayProviderStructs} from "../contracts/relayProvider/RelayProviderStru
 import {IWormholeRelayer} from "../contracts/interfaces/IWormholeRelayer.sol";
 import {IDelivery} from "../contracts/interfaces/IDelivery.sol";
 import {CoreRelayer} from "../contracts/coreRelayer/CoreRelayer.sol";
-import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
+import {IWormholeRelayerInternalStructs} from "../contracts/interfaces/IWormholeRelayerInternalStructs.sol";
 import {CoreRelayerSetup} from "../contracts/coreRelayer/CoreRelayerSetup.sol";
 import {CoreRelayerImplementation} from "../contracts/coreRelayer/CoreRelayerImplementation.sol";
 import {CoreRelayerProxy} from "../contracts/coreRelayer/CoreRelayerProxy.sol";
 import {CoreRelayerMessages} from "../contracts/coreRelayer/CoreRelayerMessages.sol";
-import {CoreRelayerStructs} from "../contracts/coreRelayer/CoreRelayerStructs.sol";
+import {IWormholeRelayerInternalStructs} from "../contracts/interfaces/IWormholeRelayerInternalStructs.sol";
 import {CoreRelayerGovernance} from "../contracts/coreRelayer/CoreRelayerGovernance.sol";
 import {MockGenericRelayer} from "./MockGenericRelayer.sol";
 import {MockWormhole} from "../contracts/mock/MockWormhole.sol";
@@ -766,7 +766,7 @@ contract WormholeRelayerTests is Test {
         IWormhole.VM parsed;
         uint256 budget;
         IDelivery.TargetDeliveryParametersSingle package;
-        CoreRelayer.DeliveryInstruction instruction;
+        IWormholeRelayerInternalStructs.DeliveryInstruction instruction;
     }
 
     function prepareDeliveryStack(DeliveryStack memory stack, StandardSetupTwoChains memory setup) internal {

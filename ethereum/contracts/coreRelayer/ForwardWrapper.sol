@@ -6,7 +6,7 @@ import "../interfaces/IWormholeReceiver.sol";
 import "../interfaces/IWormhole.sol";
 import "../interfaces/IRelayProvider.sol";
 import "../interfaces/IForwardInstructionViewer.sol";
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "../interfaces/IForwardWrapper.sol";
 
 contract ForwardWrapper {
@@ -21,11 +21,10 @@ contract ForwardWrapper {
         wormhole = IWormhole(_wormhole);
     }
 
-    function executeInstruction(CoreRelayerStructs.DeliveryInstruction memory instruction, bytes[] memory signedVaas)
-        public
-        payable
-        returns (bool callToTargetContractSucceeded, uint256 transactionFeeRefundAmount)
-    {
+    function executeInstruction(
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
+        bytes[] memory signedVaas
+    ) public payable returns (bool callToTargetContractSucceeded, uint256 transactionFeeRefundAmount) {
         if (msg.sender != address(forwardInstructionViewer)) {
             revert RequesterNotCoreRelayer();
         }
@@ -50,7 +49,7 @@ contract ForwardWrapper {
         transactionFeeRefundAmount = (instruction.executionParameters.gasLimit - gasUsed)
             * instruction.maximumRefundTarget / instruction.executionParameters.gasLimit;
 
-        CoreRelayerStructs.ForwardInstruction memory forwardInstruction =
+        IWormholeRelayerInternalStructs.ForwardInstruction memory forwardInstruction =
             forwardInstructionViewer.getForwardInstruction();
 
         if (forwardInstruction.isValid) {

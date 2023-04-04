@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IWormholeRelayer.sol";
 import "./CoreRelayerDelivery.sol";
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 
 contract CoreRelayer is CoreRelayerDelivery {
     /**
@@ -256,7 +256,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         // For each 'Send' request,
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
         // and calculate how much value the relay provider will pass into 'request.targetAddress'
-        DeliveryInstructionsContainer memory instructionsContainer =
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory instructionsContainer =
             convertMultichainSendToDeliveryInstructionsContainer(sendContainer);
 
         // For each 'Send' request,
@@ -309,7 +309,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         // For each 'Send' request,
         // calculate how much gas the relay provider can pay for on 'request.targetChain' using 'request.newTransactionFee',
         // and calculate how much value the relay provider will pass into 'request.targetAddress'
-        DeliveryInstructionsContainer memory instructionsContainer =
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory instructionsContainer =
             convertMultichainSendToDeliveryInstructionsContainer(sendContainer);
 
         // For each 'Send' request,
@@ -320,7 +320,7 @@ contract CoreRelayer is CoreRelayerDelivery {
         // Save information about the forward in state, so it can be processed after the execution of 'receiveWormholeMessages',
         // because we will then know how much of the 'maxTransactionFee' of the current delivery is still available for use in this forward
         setForwardInstruction(
-            ForwardInstruction({
+            IWormholeRelayerInternalStructs.ForwardInstruction({
                 container: encodeDeliveryInstructionsContainer(instructionsContainer),
                 msgValue: msg.value,
                 totalFee: totalFee,

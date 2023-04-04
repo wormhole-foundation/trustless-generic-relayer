@@ -6,10 +6,10 @@ pragma solidity ^0.8.0;
 import "../libraries/external/BytesLib.sol";
 
 import "./CoreRelayerGetters.sol";
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "../interfaces/IWormholeRelayer.sol";
 
-contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
+contract CoreRelayerMessages is CoreRelayerGetters {
     using BytesLib for bytes;
 
     error InvalidPayloadId(uint8 payloadId);
@@ -50,7 +50,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer)
         internal
         view
-        returns (DeliveryInstructionsContainer memory instructionsContainer)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory instructionsContainer)
     {
         instructionsContainer.payloadId = 1;
         instructionsContainer.senderAddress = toWormholeFormat(msg.sender);
@@ -59,7 +59,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instructionsContainer.messages = sendContainer.messages;
 
         uint256 length = sendContainer.requests.length;
-        instructionsContainer.instructions = new DeliveryInstruction[](length);
+        instructionsContainer.instructions = new IWormholeRelayerInternalStructs.DeliveryInstruction[](length);
         for (uint256 i = 0; i < length; i++) {
             instructionsContainer.instructions[i] =
                 convertSendToDeliveryInstruction(sendContainer.requests[i], relayProvider);
@@ -84,7 +84,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function convertSendToDeliveryInstruction(IWormholeRelayer.Send memory send, IRelayProvider relayProvider)
         internal
         view
-        returns (DeliveryInstruction memory instruction)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction)
     {
         instruction.targetChain = send.targetChain;
         instruction.targetAddress = send.targetAddress;
@@ -94,7 +94,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
         instruction.receiverValueTarget =
             convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
-        instruction.executionParameters = ExecutionParameters({
+        instruction.executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
             version: 1,
             gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
         });
@@ -108,13 +108,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param container A DeliveryInstructionsContainer
      * @param relayProvider The relayProvider whos maximum budget we are checking against
      */
-    function checkInstructions(DeliveryInstructionsContainer memory container, IRelayProvider relayProvider)
-        internal
-        view
-    {
+    function checkInstructions(
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container,
+        IRelayProvider relayProvider
+    ) internal view {
         uint256 length = container.instructions.length;
         for (uint8 i = 0; i < length; i++) {
-            DeliveryInstruction memory instruction = container.instructions[i];
+            IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction = container.instructions[i];
             if (instruction.executionParameters.gasLimit == 0) {
                 revert IWormholeRelayer.MaxTransactionFeeNotEnough(i);
             }
@@ -127,12 +127,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    // encode a 'DeliveryInstructionsContainer' into bytes
-    function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
-        public
-        pure
-        returns (bytes memory encoded)
-    {
+    // encode a 'IWormholeRelayerInternalStructs.DeliveryInstructionsContainer' into bytes
+    function encodeDeliveryInstructionsContainer(
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container
+    ) public pure returns (bytes memory encoded) {
         encoded = abi.encodePacked(
             container.payloadId,
             container.senderAddress,
@@ -165,7 +163,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     // encode a 'DeliveryInstruction' into bytes
-    function encodeDeliveryInstruction(DeliveryInstruction memory instruction)
+    function encodeDeliveryInstruction(IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction)
         internal
         pure
         returns (bytes memory encoded)
@@ -348,7 +346,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function decodeDeliveryInstruction(bytes memory encoded, uint256 index)
         public
         pure
-        returns (DeliveryInstruction memory instruction, uint256 newIndex)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction, uint256 newIndex)
     {
         // target chain of the delivery instruction
         instruction.targetChain = encoded.toUint16(index);
@@ -410,7 +408,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         public
         pure
-        returns (DeliveryInstructionsContainer memory)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory)
     {
         uint256 index = 0;
 
@@ -437,7 +435,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             (messages[i], index) = decodeMessageInfo(encoded, index);
         }
 
-        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](instructionsArrayLen);
+        IWormholeRelayerInternalStructs.DeliveryInstruction[] memory instructionArray =
+            new IWormholeRelayerInternalStructs.DeliveryInstruction[](instructionsArrayLen);
         for (uint8 i = 0; i < instructionsArrayLen; i++) {
             (instructionArray[i], index) = decodeDeliveryInstruction(encoded, index);
         }
@@ -446,7 +445,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             revert InvalidDeliveryInstructionsPayload(encoded.length);
         }
 
-        return DeliveryInstructionsContainer({
+        return IWormholeRelayerInternalStructs.DeliveryInstructionsContainer({
             payloadId: payloadId,
             senderAddress: senderAddress,
             relayProviderAddress: relayProviderAddress,

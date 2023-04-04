@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import "../coreRelayer/CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 
 interface IForwardWrapper {
-    function executeInstruction(CoreRelayerStructs.DeliveryInstruction memory instruction, bytes[] memory signedVaas)
-        external
-        payable
-        returns (bool callToTargetContractSucceeded, uint256 transactionFeeRefundAmount);
+    function executeInstruction(
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
+        bytes[] memory signedVaas
+    ) external payable returns (bool callToTargetContractSucceeded, uint256 transactionFeeRefundAmount);
 }

@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 
 contract CoreRelayerStorage {
     struct Provider {
@@ -26,7 +26,7 @@ contract CoreRelayerStorage {
         // address of the default relay provider on this chain
         address defaultRelayProvider;
         // Request which will be forwarded from the current delivery.
-        CoreRelayerStructs.ForwardInstruction forwardInstruction;
+        IWormholeRelayerInternalStructs.ForwardInstruction forwardInstruction;
         // Wrapper contract to facilitate forwards
         address forwardWrapper;
         // mapping of initialized implementations
