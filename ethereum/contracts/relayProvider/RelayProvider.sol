@@ -13,8 +13,7 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
 
     //Returns the delivery overhead fee required to deliver a message to targetChain, denominated in this chain's wei.
     function quoteDeliveryOverhead(uint16 targetChain) public view override returns (uint256 nativePriceQuote) {
-        uint256 targetFees =
-            uint256(1) * deliverGasOverhead(targetChain) * gasPrice(targetChain) + wormholeFee(targetChain);
+        uint256 targetFees = uint256(1) * deliverGasOverhead(targetChain) * gasPrice(targetChain);
         return quoteAssetConversion(targetChain, targetFees, chainId());
     }
 
@@ -41,6 +40,10 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
     //returns the consistency level that should be put on delivery VAAs
     function getConsistencyLevel() public pure override returns (uint8 consistencyLevel) {
         return 200; //REVISE consider adding state variable for this
+    }
+
+    function isChainSupported(uint16 targetChainId) public view override returns (bool supported) {
+        return _state.supportedChains[targetChainId];
     }
 
     //Returns a buffer amount, and a buffer denominator, whereby the bufferAmount / bufferDenominator will be reduced from

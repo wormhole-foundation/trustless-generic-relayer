@@ -19,4 +19,6 @@ interface IRelayProvider {
     function getRewardAddress() external view returns (address payable rewardAddress);
 
     function getConsistencyLevel() external view returns (uint8 consistencyLevel);
+
+    function isChainSupported(uint16 targetChainId) external view returns (bool supported);
 }

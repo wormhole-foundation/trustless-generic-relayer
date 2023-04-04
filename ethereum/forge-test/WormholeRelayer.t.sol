@@ -154,17 +154,6 @@ contract WormholeRelayerTests is Test {
 
         s.source.wormholeSimulator.setMessageFee(feeParams.wormholeFeeOnSource);
         s.target.wormholeSimulator.setMessageFee(feeParams.wormholeFeeOnTarget);
-
-        uint32 wormholeFeeOnTargetInSourceCurrency = uint32(
-            feeParams.wormholeFeeOnTarget * s.source.relayProvider.quoteAssetPrice(s.targetChainId)
-                / s.source.relayProvider.quoteAssetPrice(s.sourceChainId) + 1
-        );
-        s.source.relayProvider.updateWormholeFee(s.targetChainId, wormholeFeeOnTargetInSourceCurrency);
-        uint32 wormholeFeeOnSourceInTargetCurrency = uint32(
-            feeParams.wormholeFeeOnSource * s.target.relayProvider.quoteAssetPrice(s.sourceChainId)
-                / s.target.relayProvider.quoteAssetPrice(s.targetChainId) + 1
-        );
-        s.target.relayProvider.updateWormholeFee(s.sourceChainId, wormholeFeeOnSourceInTargetCurrency);
     }
 
     struct Contracts {
@@ -204,6 +193,7 @@ contract WormholeRelayerTests is Test {
         uint256 maxBudget = type(uint256).max;
         for (uint16 i = 1; i <= numChains; i++) {
             for (uint16 j = 1; j <= numChains; j++) {
+                map[i].relayProvider.updateSupportedChain(j, true);
                 map[i].relayProvider.updateAssetConversionBuffer(j, 500, 10000);
                 map[i].relayProvider.updateRewardAddress(map[i].rewardAddress);
                 helpers.registerCoreRelayerContract(
@@ -1176,11 +1166,6 @@ contract WormholeRelayerTests is Test {
         vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
             message, 32, address(setup.target.integration), address(setup.target.refundAddress)
-        );
-
-        vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
-        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
         );
     }
 

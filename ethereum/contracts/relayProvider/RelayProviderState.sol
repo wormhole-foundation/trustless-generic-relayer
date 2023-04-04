@@ -30,12 +30,12 @@ contract RelayProviderStorage {
         address payable coreRelayer;
         // Dictionary of implementation contract -> initialized flag
         mapping(address => bool) initializedImplementations;
+        // Supported chains to deliver to
+        mapping(uint16 => bool) supportedChains;
         // Dictionary of wormhole chain id -> price data
         mapping(uint16 => PriceData) data;
         // The delivery overhead gas required to deliver a message to targetChain, denominated in targetChain's gas.
         mapping(uint16 => uint32) deliverGasOverhead;
-        // The wormhole fee to deliver a message to targetChain, denominated in targetChain's wei.
-        mapping(uint16 => uint32) wormholeFee;
         // The maximum budget that is allowed for a delivery on target chain, denominated in the targetChain's wei.
         mapping(uint16 => uint256) maximumBudget;
         // Dictionary of wormhole chain id -> assetConversion

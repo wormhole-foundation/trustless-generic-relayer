@@ -44,10 +44,6 @@ contract RelayProviderGetters is RelayProviderState {
         return _state.maximumBudget[targetChainId];
     }
 
-    function wormholeFee(uint16 targetChainId) public view returns (uint32) {
-        return _state.wormholeFee[targetChainId];
-    }
-
     function rewardAddress() public view returns (address payable) {
         return _state.rewardAddress;
     }

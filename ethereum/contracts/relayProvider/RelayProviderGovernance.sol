@@ -22,6 +22,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     error CallerMustBeOwner();
 
     event ContractUpgraded(address indexed oldContract, address indexed newContract);
+    event ChainSupportUpdated(uint16 targetChainId, bool isSupported);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event RewardAddressUpdated(address indexed newAddress);
     event DeliveryAddressUpdated(uint16 indexed targetChainId, bytes32 indexed newAddress);
@@ -35,6 +36,11 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         emit CoreRelayerUpdated(newAddress);
     }
 
+    function updateSupportedChain(uint16 targetChainId, bool isSupported) public onlyOwner {
+        setChainSupported(targetChainId, isSupported);
+        emit ChainSupportUpdated(targetChainId, isSupported);
+    }
+
     function updateRewardAddress(address payable newAddress) public onlyOwner {
         setRewardAddress(newAddress);
         emit RewardAddressUpdated(newAddress);
@@ -44,10 +50,6 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
         uint32 currentGasOverhead = deliverGasOverhead(chainId);
         setDeliverGasOverhead(chainId, newGasOverhead);
         emit DeliverGasOverheadUpdated(currentGasOverhead, newGasOverhead);
-    }
-
-    function updateWormholeFee(uint16 chainId, uint32 newWormholeFee) public onlyOwner {
-        setWormholeFee(chainId, newWormholeFee);
     }
 
     function updatePrice(uint16 updateChainId, uint128 updateGasPrice, uint128 updateNativeCurrencyPrice)

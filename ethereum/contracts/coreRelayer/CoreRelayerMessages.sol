@@ -299,6 +299,9 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         bool roundUp,
         IRelayProvider provider
     ) internal view returns (uint256 targetAmount) {
+        if (!provider.isChainSupported(targetChain)) {
+            revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
+        }
         uint256 srcNativeCurrencyPrice = provider.quoteAssetPrice(sourceChain);
         if (srcNativeCurrencyPrice == 0) {
             revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();

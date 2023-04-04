@@ -28,12 +28,12 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.coreRelayer = coreRelayer;
     }
 
-    function setDeliverGasOverhead(uint16 chainId, uint32 deliverGasOverhead) internal {
-        _state.deliverGasOverhead[chainId] = deliverGasOverhead;
+    function setChainSupported(uint16 targetChainId, bool isSupported) internal {
+        _state.supportedChains[targetChainId] = isSupported;
     }
 
-    function setWormholeFee(uint16 chainId, uint32 wormholeFee) internal {
-        _state.wormholeFee[chainId] = wormholeFee;
+    function setDeliverGasOverhead(uint16 chainId, uint32 deliverGasOverhead) internal {
+        _state.deliverGasOverhead[chainId] = deliverGasOverhead;
     }
 
     function setRewardAddress(address payable rewardAddress) internal {
