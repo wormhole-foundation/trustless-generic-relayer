@@ -53,7 +53,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         returns (DeliveryInstructionsContainer memory instructionsContainer)
     {
         instructionsContainer.payloadId = 1;
-        instructionsContainer.requesterAddress = toWormholeFormat(msg.sender);
+        instructionsContainer.senderAddress = toWormholeFormat(msg.sender);
+        instructionsContainer.relayProviderAddress = toWormholeFormat(sendContainer.relayProviderAddress);
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
         instructionsContainer.messages = sendContainer.messages;
 
@@ -93,7 +94,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
         instruction.receiverValueTarget =
             convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
-        instruction.provider = toWormholeFormat(address(relayProvider));
         instruction.executionParameters = ExecutionParameters({
             version: 1,
             gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
@@ -135,7 +135,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     {
         encoded = abi.encodePacked(
             container.payloadId,
-            container.requesterAddress,
+            container.senderAddress,
+            container.relayProviderAddress,
             uint8(container.messages.length),
             uint8(container.instructions.length)
         );
@@ -175,7 +176,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             instruction.refundAddress,
             instruction.maximumRefundTarget,
             instruction.receiverValueTarget,
-            instruction.provider,
             instruction.executionParameters.version,
             instruction.executionParameters.gasLimit
         );
@@ -368,9 +368,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.receiverValueTarget = encoded.toUint256(index);
         index += 32;
 
-        instruction.provider = encoded.toBytes32(index);
-        index += 32;
-
         instruction.executionParameters.version = encoded.toUint8(index);
         index += 1;
 
@@ -423,7 +420,10 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
         index += 1;
 
-        bytes32 requesterAddress = encoded.toBytes32(index);
+        bytes32 senderAddress = encoded.toBytes32(index);
+        index += 32;
+
+        bytes32 relayProviderAddress = encoded.toBytes32(index);
         index += 32;
 
         uint8 messagesArrayLen = encoded.toUint8(index);
@@ -448,7 +448,8 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
 
         return DeliveryInstructionsContainer({
             payloadId: payloadId,
-            requesterAddress: requesterAddress,
+            senderAddress: senderAddress,
+            relayProviderAddress: relayProviderAddress,
             messages: messages,
             instructions: instructionArray
         });

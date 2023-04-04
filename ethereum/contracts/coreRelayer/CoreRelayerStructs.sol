@@ -8,7 +8,8 @@ import "../interfaces/IWormholeRelayer.sol";
 abstract contract CoreRelayerStructs {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bytes32 requesterAddress;
+        bytes32 senderAddress;
+        bytes32 relayProviderAddress;
         IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
@@ -19,7 +20,6 @@ abstract contract CoreRelayerStructs {
         bytes32 refundAddress;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
-        bytes32 provider;
         ExecutionParameters executionParameters;
     }
 
