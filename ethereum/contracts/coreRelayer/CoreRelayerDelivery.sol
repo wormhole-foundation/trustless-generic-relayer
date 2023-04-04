@@ -1,4 +1,3 @@
-// contracts/Bridge.sol
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
@@ -211,7 +210,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
     }
 
     /**
-     * @notice The relay provider calls 'deliverSingle' to relay messages as described by one delivery instruction
+     * @notice The relay provider calls 'deliver' to relay messages as described by one delivery instruction
      *
      * The instruction specifies the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
      * receiver value (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
@@ -231,7 +230,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      *
      * @param targetParams struct containing the signed wormhole messages and encoded delivery instruction container (and other information)
      */
-    function deliverSingle(IDelivery.TargetDeliveryParametersSingle memory targetParams) public payable {
+    function deliver(IDelivery.TargetDeliveryParameters memory targetParams) public payable {
         IWormhole wormhole = wormhole();
 
         // Obtain the delivery VAA

@@ -765,7 +765,7 @@ contract WormholeRelayerTests is Test {
         bytes[] encodedVMs;
         IWormhole.VM parsed;
         uint256 budget;
-        IDelivery.TargetDeliveryParametersSingle package;
+        IDelivery.TargetDeliveryParameters package;
         IWormholeRelayerInternalStructs.DeliveryInstruction instruction;
     }
 
@@ -788,7 +788,7 @@ contract WormholeRelayerTests is Test {
         stack.encodedVMs[0] = stack.actualVM1;
         stack.encodedVMs[1] = stack.actualVM2;
 
-        stack.package = IDelivery.TargetDeliveryParametersSingle({
+        stack.package = IDelivery.TargetDeliveryParameters({
             encodedVMs: stack.encodedVMs,
             encodedDeliveryVAA: stack.deliveryVM,
             multisendIndex: 0,
@@ -829,7 +829,7 @@ contract WormholeRelayerTests is Test {
 
         stack.deliveryVM = fakeVM;
 
-        stack.package = IDelivery.TargetDeliveryParametersSingle({
+        stack.package = IDelivery.TargetDeliveryParameters({
             encodedVMs: stack.encodedVMs,
             encodedDeliveryVAA: stack.deliveryVM,
             multisendIndex: 0,
@@ -838,7 +838,7 @@ contract WormholeRelayerTests is Test {
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("InvalidDeliveryVaa(string)", ""));
-        setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
+        setup.target.coreRelayerFull.deliver{value: stack.budget}(stack.package);
     }
 
     function testRevertDeliveryInvalidEmitter(
@@ -864,7 +864,7 @@ contract WormholeRelayerTests is Test {
 
         stack.deliveryVM = stack.encodedVMs[0];
 
-        stack.package = IDelivery.TargetDeliveryParametersSingle({
+        stack.package = IDelivery.TargetDeliveryParameters({
             encodedVMs: stack.encodedVMs,
             encodedDeliveryVAA: stack.deliveryVM,
             multisendIndex: 0,
@@ -873,7 +873,7 @@ contract WormholeRelayerTests is Test {
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("InvalidEmitter()"));
-        setup.target.coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
+        setup.target.coreRelayerFull.deliver{value: stack.budget}(stack.package);
     }
 
     function testRevertDeliveryInsufficientRelayerFunds(
@@ -899,7 +899,7 @@ contract WormholeRelayerTests is Test {
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("InsufficientRelayerFunds()"));
-        setup.target.coreRelayerFull.deliverSingle{value: stack.budget - 1}(stack.package);
+        setup.target.coreRelayerFull.deliver{value: stack.budget - 1}(stack.package);
     }
 
     function testRevertDeliveryTargetChainIsNotThisChain(
@@ -925,7 +925,7 @@ contract WormholeRelayerTests is Test {
 
         vm.prank(setup.target.relayer);
         vm.expectRevert(abi.encodeWithSignature("TargetChainIsNotThisChain(uint16)", 2));
-        map[setup.differentChainId].coreRelayerFull.deliverSingle{value: stack.budget}(stack.package);
+        map[setup.differentChainId].coreRelayerFull.deliver{value: stack.budget}(stack.package);
     }
 
     struct SendStackTooDeep {

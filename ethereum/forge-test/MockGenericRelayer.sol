@@ -123,7 +123,7 @@ contract MockGenericRelayer {
                 uint256 budget =
                     container.instructions[k].maximumRefundTarget + container.instructions[k].receiverValueTarget;
                 uint16 targetChain = container.instructions[k].targetChain;
-                IDelivery.TargetDeliveryParametersSingle memory package = IDelivery.TargetDeliveryParametersSingle({
+                IDelivery.TargetDeliveryParameters memory package = IDelivery.TargetDeliveryParameters({
                     encodedVMs: encodedVMsToBeDelivered,
                     encodedDeliveryVAA: encodedDeliveryVAA,
                     multisendIndex: k,
@@ -131,7 +131,7 @@ contract MockGenericRelayer {
                 });
                 console.log("A..");
                 vm.prank(relayers[targetChain]);
-                IDelivery(wormholeRelayerContracts[targetChain]).deliverSingle{value: budget}(package);
+                IDelivery(wormholeRelayerContracts[targetChain]).deliver{value: budget}(package);
                 console.log("A...DONE");
             }
             bytes32 key = keccak256(abi.encodePacked(parsedDeliveryVAA.emitterChainId, parsedDeliveryVAA.sequence));

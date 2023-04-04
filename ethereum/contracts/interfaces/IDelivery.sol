@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 interface IDelivery {
     /**
-     * @notice TargetDeliveryParametersSingle is the struct that the relay provider passes into 'deliverSingle'
+     * @notice TargetDeliveryParameters is the struct that the relay provider passes into 'deliver'
      * containing an array of the signed wormhole messages that are to be relayed
      *
      * @custom:member encodedVMs An array of signed wormhole messages (all from the same source chain transaction)
@@ -13,7 +13,7 @@ interface IDelivery {
      * This 'multisendIndex' indicates which of those delivery instructions should be executed (specifically, the instruction deliveryInstructionsContainer.instructions[multisendIndex])
      * @custom:member relayerRefundAddress The address to which any refunds to the relay provider should be sent
      */
-    struct TargetDeliveryParametersSingle {
+    struct TargetDeliveryParameters {
         bytes[] encodedVMs;
         bytes encodedDeliveryVAA;
         uint8 multisendIndex;
@@ -21,7 +21,7 @@ interface IDelivery {
     }
 
     /**
-     * @notice The relay provider calls 'deliverSingle' to relay messages as described by one delivery instruction
+     * @notice The relay provider calls 'deliver' to relay messages as described by one delivery instruction
      *
      * The instruction specifies the target chain (must be this chain), target address, refund address, maximum refund (in this chain's currency),
      * receiver value (in this chain's currency), upper bound on gas, and the permissioned address allowed to execute this instruction
@@ -41,7 +41,7 @@ interface IDelivery {
      *
      * @param targetParams struct containing the signed wormhole messages and encoded delivery instruction container (and other information)
      */
-    function deliverSingle(TargetDeliveryParametersSingle memory targetParams) external payable;
+    function deliver(TargetDeliveryParameters memory targetParams) external payable;
 
     error InvalidEmitterInOriginalDeliveryVM(); // The original delivery VAA (original signed wormhole message with delivery instructions) has an invalid sender
     error InvalidVaa(uint8 index, string reason); // The VAA is not valid
