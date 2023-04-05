@@ -267,8 +267,9 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         IRelayProvider provider
     ) internal view returns (uint256 maximumRefund) {
         if (maxTransactionFee >= overhead) {
+            (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
             uint256 remainder = maxTransactionFee - overhead;
-            maximumRefund = assetConversionHelper(chainId(), remainder, targetChain, 1, 1, false, provider);
+            maximumRefund = assetConversionHelper(chainId(), remainder, targetChain, denominator, uint256(0) + denominator + buffer, false, provider);
         } else {
             maximumRefund = 0;
         }
