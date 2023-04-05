@@ -66,7 +66,7 @@ contract XmintSpoke is IWormholeReceiver {
     }
 
     //This function receives messages back from the Hub contract and distributes the tokens to the user.
-    function receiveWormholeMessages(bytes[] memory vaas, bytes[] memory additionalData) public payable override {
+    function receiveWormholeMessages(bytes[] memory vaas) public payable override {
         //Complete the token bridge transfer
         ITokenBridge.TransferWithPayload memory transferResult =
             token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));

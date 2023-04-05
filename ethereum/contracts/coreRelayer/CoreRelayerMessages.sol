@@ -55,7 +55,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         instructionsContainer.senderAddress = toWormholeFormat(msg.sender);
         instructionsContainer.relayProviderAddress = toWormholeFormat(sendContainer.relayProviderAddress);
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
-        instructionsContainer.messages = sendContainer.messages;
+        instructionsContainer.messageInfos = sendContainer.messageInfos;
 
         uint256 length = sendContainer.requests.length;
         instructionsContainer.instructions = new IWormholeRelayerInternalStructs.DeliveryInstruction[](length);
@@ -134,12 +134,12 @@ contract CoreRelayerMessages is CoreRelayerGetters {
             container.payloadId,
             container.senderAddress,
             container.relayProviderAddress,
-            uint8(container.messages.length),
+            uint8(container.messageInfos.length),
             uint8(container.instructions.length)
         );
 
-        for (uint256 i = 0; i < container.messages.length; i++) {
-            encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messages[i]));
+        for (uint256 i = 0; i < container.messageInfos.length; i++) {
+            encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messageInfos[i]));
         }
 
         for (uint256 i = 0; i < container.instructions.length; i++) {
@@ -432,9 +432,9 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         uint8 instructionsArrayLen = encoded.toUint8(index);
         index += 1;
 
-        IWormholeRelayer.MessageInfo[] memory messages = new IWormholeRelayer.MessageInfo[](messagesArrayLen);
+        IWormholeRelayer.MessageInfo[] memory messageInfos = new IWormholeRelayer.MessageInfo[](messagesArrayLen);
         for (uint8 i = 0; i < messagesArrayLen; i++) {
-            (messages[i], index) = decodeMessageInfo(encoded, index);
+            (messageInfos[i], index) = decodeMessageInfo(encoded, index);
         }
 
         IWormholeRelayerInternalStructs.DeliveryInstruction[] memory instructionArray =
@@ -451,7 +451,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
             payloadId: payloadId,
             senderAddress: senderAddress,
             relayProviderAddress: relayProviderAddress,
-            messages: messages,
+            messageInfos: messageInfos,
             instructions: instructionArray
         });
     }

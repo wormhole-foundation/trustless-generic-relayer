@@ -30,7 +30,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
     }
 
     // This is the function which receives all messages from the remote contracts.
-    function receiveWormholeMessages(bytes[] memory vaas, bytes[] memory additionalData) public payable override {
+    function receiveWormholeMessages(bytes[] memory vaas) public payable override {
         // Do nothing. The attacker doesn't care about this message; he sends it himself.
     }
 

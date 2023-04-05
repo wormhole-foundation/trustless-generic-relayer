@@ -9,7 +9,7 @@ interface IWormholeRelayerInternalStructs {
         uint8 payloadId; //1
         bytes32 senderAddress;
         bytes32 relayProviderAddress;
-        IWormholeRelayer.MessageInfo[] messages;
+        IWormholeRelayer.MessageInfo[] messageInfos;
         DeliveryInstruction[] instructions;
     }
 

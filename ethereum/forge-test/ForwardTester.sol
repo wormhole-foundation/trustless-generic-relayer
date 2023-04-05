@@ -38,7 +38,7 @@ contract ForwardTester is IWormholeReceiver {
         WorksCorrectly
     }
 
-    function receiveWormholeMessages(bytes[] memory vaas, bytes[] memory additionalData) public payable override {
+    function receiveWormholeMessages(bytes[] memory vaas) public payable override {
         (IWormhole.VM memory vaa, bool valid, string memory reason) = wormhole.parseAndVerifyVM(vaas[0]);
         require(valid, reason);
 

@@ -267,7 +267,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
 
         // Check that the relayed signed VAAs match the descriptions in container.messages (the VAA hashes match, or the emitter address, sequence number pair matches, depending on the description given)
-        checkMessageInfosWithVAAs(container.messages, targetParams.encodedVMs);
+        checkMessageInfosWithVAAs(container.messageInfos, targetParams.encodedVMs);
 
         _executeDelivery(
             deliveryInstruction,

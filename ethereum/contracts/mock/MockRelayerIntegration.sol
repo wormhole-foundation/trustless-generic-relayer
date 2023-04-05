@@ -161,7 +161,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({
             requests: requests,
             relayProviderAddress: relayer.getDefaultRelayProvider(),
-            messages: messageInfos
+            messageInfos: messageInfos
         });
         sequence = relayer.multichainSend{value: (msg.value - wormhole.messageFee() * (1 + messages.length))}(container);
     }
@@ -187,7 +187,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         );
     }
 
-    function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
+    function receiveWormholeMessages(bytes[] memory wormholeObservations) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
         bytes[] memory messages = new bytes[](numObservations - 1);
@@ -235,7 +235,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({
                 requests: sendRequests,
                 relayProviderAddress: relayer.getDefaultRelayProvider(),
-                messages: messageInfos
+                messageInfos: messageInfos
             });
 
             relayer.multichainForward(container);
