@@ -58,10 +58,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         // in order to use all of the funds
 
         uint256 amountUnderMaximum = relayProvider.quoteMaximumBudget(container.instructions[0].targetChain)
-            - (
-                      container.instructions[0].maximumRefundTarget
-                    + container.instructions[0].receiverValueTarget
-            );
+            - (container.instructions[0].maximumRefundTarget + container.instructions[0].receiverValueTarget);
         uint256 convertedExtraAmount = calculateTargetDeliveryMaximumRefundHelper(
             container.instructions[0].targetChain, fundsForForward - forwardInstruction.totalFee, 0, relayProvider
         );
