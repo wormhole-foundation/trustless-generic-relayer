@@ -59,11 +59,11 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         uint256 amountUnderMaximum = relayProvider.quoteMaximumBudget(container.instructions[0].targetChain)
             - (
-                wormholeMessageFee + container.instructions[0].maximumRefundTarget
+                      container.instructions[0].maximumRefundTarget
                     + container.instructions[0].receiverValueTarget
             );
-        uint256 convertedExtraAmount = calculateTargetDeliveryMaximumRefund(
-            container.instructions[0].targetChain, fundsForForward - forwardInstruction.totalFee, relayProvider
+        uint256 convertedExtraAmount = calculateTargetDeliveryMaximumRefundHelper(
+            container.instructions[0].targetChain, fundsForForward - forwardInstruction.totalFee, 0, relayProvider
         );
         container.instructions[0].maximumRefundTarget +=
             (amountUnderMaximum > convertedExtraAmount) ? convertedExtraAmount : amountUnderMaximum;
