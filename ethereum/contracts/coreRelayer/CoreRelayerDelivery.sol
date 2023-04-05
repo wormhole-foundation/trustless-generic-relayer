@@ -8,6 +8,7 @@ import "../interfaces/IForwardWrapper.sol";
 import "./CoreRelayerGovernance.sol";
 import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "./CoreRelayerMessages.sol";
+import "./CoreRelayer.sol";
 
 contract CoreRelayerDelivery is CoreRelayerGovernance {
     enum DeliveryStatus {
@@ -187,7 +188,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         uint256 refundToRefundAddress =
             receiverValueRefundAmount + (forwardingRequestExists ? 0 : transactionFeeRefundAmount);
 
-        if(internalInstruction.refundChain == chain()){
+        if(internalInstruction.refundChain == chainId()){
             // Whether or not the refund succeeded
             bool refundPaidToRefundAddress =
                 pay(payable(fromWormholeFormat(internalInstruction.refundAddress)), refundToRefundAddress);
@@ -203,23 +204,29 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
                 + (refundPaidToRefundAddress ? 0 : refundToRefundAddress);
             pay(relayerRefundAddress, relayerRefundAmount);
         } else {
-            //TODO use the same relay provider as this request, not the default one.
-            sendRemoteRefund(internalInstruction.refundAddress, internalInstruction.refundChain, refundToRefundAddress, getDefaultRelayProvider(), relayerRefundAddress);
+            //TODO use the same relay provider as this request, not the default one, and then unimport CoreRelayer contract
+            address providerAddress = defaultRelayProvider();
+            IRelayProvider relayProvider = IRelayProvider(providerAddress);
+            sendRemoteRefund(internalInstruction.refundAddress, internalInstruction.refundChain, refundToRefundAddress, relayProvider, relayerRefundAddress);
         }
 
     }
 
     function sendRemoteRefund(bytes32 refundAddress, uint16 targetChain, uint256 refundAmountNative, IRelayProvider provider, address payable relayerRefundAddress) internal {
         uint256 relayerRefundAmount = 0;
-        uint256 deliveryAmountTarget = convertReceiverValueAmount(chain(), targetChain);
+        uint256 amountMinusFee = refundAmountNative - wormhole().messageFee();
+        //The receiver value calculation is equivalent to the refund calc for this case.
+        uint256 deliveryAmountTarget = convertReceiverValueAmount(amountMinusFee, targetChain, provider);
         uint256 maximum = provider.quoteMaximumBudget(targetChain);
         //make sure the provider supports the target chain, & the refund amount must be greater than the delivery overhead
-        if(!provider.isChainSupported(targetChain) || provider.quoteDeliveryOverhead(targetChain) >= refundAmountNative){
+        if(!provider.isChainSupported(targetChain) || provider.quoteDeliveryOverhead(targetChain) >= amountMinusFee){
             relayerRefundAmount = refundAmountNative;
         
         //if the amount is higher than the provider's maximum, then only send the maximum
         } else if (maximum < deliveryAmountTarget) {
-            relayerRefundAmount = maximum - deliveryAmountTarget;
+            //This is what the relay provider quotes as the maximum budget for the target chain, but converted into this chain's currency
+            uint256 maximumBudgetNative = assetConversionHelper(targetChain, maximum, chainId(), 1, 1, false, provider);
+            relayerRefundAmount = amountMinusFee - maximumBudgetNative;
             deliveryAmountTarget = maximum;
         }
 
@@ -234,23 +241,24 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         instructionsContainer.payloadId = 1;
         instructionsContainer.senderAddress = toWormholeFormat(address(this));
         instructionsContainer.relayProviderAddress = toWormholeFormat(address(provider));
-        instructionsContainer.messageInfos = [];
+        instructionsContainer.messageInfos = new IWormholeRelayer.MessageInfo[](0);
 
         instructionsContainer.instructions = new IWormholeRelayerInternalStructs.DeliveryInstruction[](1);
 
-        instructionsContainer.instructions[0] = targetChain;
+        instructionsContainer.instructions[0].targetChain = targetChain;
         instructionsContainer.instructions[0].targetAddress = 0x0;
         instructionsContainer.instructions[0].refundAddress = refundAddress;
 
         instructionsContainer.instructions[0].maximumRefundTarget = refundAmountTarget;
-        instruction.receiverValueTarget = 0;
-        instruction.executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
+        instructionsContainer.instructions[0].receiverValueTarget = 0;
+        instructionsContainer.instructions[0].executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
             version: 1,
             gasLimit: 1
         });
 
-        wormhole().publishMessage{value: wormholeMessageFee}(
-            0, encodeDeliveryInstructionsContainer(instructionsContainer), relayProvider.getConsistencyLevel()
+        IWormhole wormhole = wormhole();
+        wormhole.publishMessage{value: wormhole.messageFee()}(
+            0, encodeDeliveryInstructionsContainer(instructionsContainer), provider.getConsistencyLevel()
         );
     }
 
