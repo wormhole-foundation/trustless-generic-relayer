@@ -50,7 +50,13 @@ contract CoreRelayer is CoreRelayerDelivery {
         });
         sequence = send(
             IWormholeRelayer.Send(
-                targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()
+                targetChain,
+                targetAddress,
+                targetChain,
+                refundAddress,
+                maxTransactionFee,
+                receiverValue,
+                getDefaultRelayParams()
             ),
             messageInfos,
             getDefaultRelayProvider()
@@ -93,7 +99,13 @@ contract CoreRelayer is CoreRelayerDelivery {
     ) external payable returns (uint64 sequence) {
         sequence = send(
             IWormholeRelayer.Send(
-                targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()
+                targetChain,
+                targetAddress,
+                targetChain,
+                refundAddress,
+                maxTransactionFee,
+                receiverValue,
+                getDefaultRelayParams()
             ),
             messageInfos,
             getDefaultRelayProvider()
@@ -176,7 +188,13 @@ contract CoreRelayer is CoreRelayerDelivery {
     ) external payable {
         forward(
             IWormholeRelayer.Send(
-                targetChain, targetAddress, refundAddress, maxTransactionFee, receiverValue, getDefaultRelayParams()
+                targetChain,
+                targetAddress,
+                targetChain,
+                refundAddress,
+                maxTransactionFee,
+                receiverValue,
+                getDefaultRelayParams()
             ),
             messageInfos,
             getDefaultRelayProvider()
@@ -400,20 +418,5 @@ contract CoreRelayer is CoreRelayerDelivery {
      */
     function getDefaultRelayParams() public pure returns (bytes memory relayParams) {
         return new bytes(0);
-    }
-
-    // Helper to put one Send struct into a MultichainSend struct
-    function multichainSendContainer(
-        IWormholeRelayer.Send memory request,
-        address relayProvider,
-        IWormholeRelayer.MessageInfo[] memory messageInfos
-    ) internal pure returns (IWormholeRelayer.MultichainSend memory container) {
-        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
-        requests[0] = request;
-        container = IWormholeRelayer.MultichainSend({
-            relayProviderAddress: relayProvider,
-            requests: requests,
-            messageInfos: messageInfos
-        });
     }
 }

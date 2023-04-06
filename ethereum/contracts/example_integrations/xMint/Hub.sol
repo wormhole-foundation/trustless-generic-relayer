@@ -93,6 +93,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
             targetAddress: trustedContracts[targetChain],
+            refundChain: targetChain,
             refundAddress: intendedRecipient, // All remaining funds will be returned to the user now
             maxTransactionFee: maxTransactionFee,
             receiverValue: receiverValue, // not needed in this case.

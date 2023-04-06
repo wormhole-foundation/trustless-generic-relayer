@@ -103,7 +103,7 @@ contract WormholeRelayerTests is Test {
         vm.assume(feeParams.sourceNativePrice > 0);
         vm.assume(
             feeParams.targetNativePrice
-                < (uint256(2) ** 255)
+                < (uint256(2) ** 239)
                     / (
                         uint256(1) * gasParams.targetGasPrice
                             * (uint256(0) + gasParams.targetGasLimit + gasParams.evmGasOverhead) + feeParams.wormholeFeeOnTarget
@@ -111,22 +111,22 @@ contract WormholeRelayerTests is Test {
         );
         vm.assume(
             feeParams.sourceNativePrice
-                < (uint256(2) ** 255)
+                < (uint256(2) ** 239)
                     / (
                         uint256(1) * gasParams.sourceGasPrice
                             * (uint256(0) + gasParams.targetGasLimit + gasParams.evmGasOverhead) + feeParams.wormholeFeeOnSource
                     )
         );
-        vm.assume(gasParams.sourceGasPrice < (uint256(2) ** 255) / feeParams.sourceNativePrice);
+        vm.assume(gasParams.sourceGasPrice < (uint256(2) ** 239) / feeParams.sourceNativePrice);
         vm.assume(gasParams.targetGasLimit >= minTargetGasLimit);
         vm.assume(
             1
-                < (uint256(2) ** 255) / gasParams.targetGasLimit / gasParams.targetGasPrice
+                < (uint256(2) ** 239) / gasParams.targetGasLimit / gasParams.targetGasPrice
                     / (uint256(0) + feeParams.sourceNativePrice / feeParams.targetNativePrice + 2) / gasParams.targetGasLimit
         );
         vm.assume(
             1
-                < (uint256(2) ** 255) / gasParams.targetGasLimit / gasParams.sourceGasPrice
+                < (uint256(2) ** 239) / gasParams.targetGasLimit / gasParams.sourceGasPrice
                     / (uint256(0) + feeParams.targetNativePrice / feeParams.sourceNativePrice + 2) / gasParams.targetGasLimit
         );
         vm.assume(feeParams.receiverValueTarget < uint256(1) * (uint256(2) ** 239) / feeParams.targetNativePrice);
@@ -405,7 +405,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testForward(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1400000);
 
         uint256 payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
 
@@ -944,6 +944,7 @@ contract WormholeRelayerTests is Test {
         IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send({
             targetChain: setup.targetChainId,
             targetAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
+            refundChain: setup.targetChainId,
             refundAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
             maxTransactionFee: maxTransactionFee,
             receiverValue: 0,
@@ -1002,9 +1003,9 @@ contract WormholeRelayerTests is Test {
         uint256 wormholeFee = setup.source.wormhole.messageFee();
 
         vm.expectRevert(abi.encodeWithSignature("FundsTooMuch(uint8)", 0));
-        setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + 3 * wormholeFee}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
-        );
+        setup.source.integration.sendMessageWithRefundAddress{
+            value: maxTransactionFee * 105 / 100 + 1 + 3 * wormholeFee
+        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
     }
 
     function testRevertMultichainSendEmpty(GasParameters memory gasParams, FeeParameters memory feeParams) public {
@@ -1062,7 +1063,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testForwardTester(GasParameters memory gasParams, FeeParameters memory feeParams) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1400000);
         executeForwardTest(
             ForwardTester.Action.WorksCorrectly, DeliveryStatus.FORWARD_REQUEST_SUCCESS, setup, gasParams, feeParams
         );
@@ -1083,7 +1084,7 @@ contract WormholeRelayerTests is Test {
     function testRevertForwardMultipleForwardsRequested(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
         executeForwardTest(
             ForwardTester.Action.MultipleForwardsRequested, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
         );
@@ -1092,7 +1093,7 @@ contract WormholeRelayerTests is Test {
     function testRevertForwardMultichainSendEmpty(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
 
         executeForwardTest(
             ForwardTester.Action.MultichainSendEmpty, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
@@ -1103,7 +1104,7 @@ contract WormholeRelayerTests is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams
     ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
 
         executeForwardTest(
             ForwardTester.Action.ForwardRequestFromWrongAddress,
@@ -1115,7 +1116,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testRevertDeliveryReentrantCall(GasParameters memory gasParams, FeeParameters memory feeParams) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
         executeForwardTest(
             ForwardTester.Action.ReentrantCall, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
         );
@@ -1124,7 +1125,7 @@ contract WormholeRelayerTests is Test {
     function testRevertForwardMaxTransactionFeeNotEnough(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
 
         executeForwardTest(
             ForwardTester.Action.MaxTransactionFeeNotEnough,
@@ -1136,7 +1137,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testRevertForwardFundsTooMuch(GasParameters memory gasParams, FeeParameters memory feeParams) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
 
         setup.target.relayProvider.updateMaximumBudget(
             setup.sourceChainId, uint256(10000 - 1) * gasParams.sourceGasPrice
@@ -1173,5 +1174,67 @@ contract WormholeRelayerTests is Test {
         assertTrue(map[1].coreRelayer.fromWormholeFormat(msg2) == address(uint160(uint256(msg2))));
         assertTrue(map[1].coreRelayer.toWormholeFormat(msg1) == bytes32(uint256(uint160(msg1))));
         assertTrue(map[1].coreRelayer.fromWormholeFormat(map[1].coreRelayer.toWormholeFormat(msg1)) == msg1);
+    }
+
+    function testEncodeAndDecodeDeliveryInstructions(
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction2,
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        IWormholeRelayer.MessageInfo[] memory messageInfos = new IWormholeRelayer.MessageInfo[](1);
+        messageInfos[0] = IWormholeRelayer.MessageInfo({
+            infoType: IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            emitterAddress: bytes32(""),
+            sequence: 25,
+            vaaHash: bytes32("")
+        });
+
+        IWormholeRelayerInternalStructs.DeliveryInstruction[] memory instructions =
+            new IWormholeRelayerInternalStructs.DeliveryInstruction[](2);
+        instructions[0] = instruction;
+        instructions[1] = instruction2;
+
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container = IWormholeRelayerInternalStructs
+            .DeliveryInstructionsContainer({
+            payloadId: 1,
+            senderAddress: bytes32("234"),
+            relayProviderAddress: bytes32("456"),
+            messageInfos: messageInfos,
+            instructions: instructions
+        });
+
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory newContainer = setup
+            .source
+            .coreRelayerFull
+            .decodeDeliveryInstructionsContainer(
+            setup.source.coreRelayerFull.encodeDeliveryInstructionsContainer(container)
+        );
+        for (uint256 i = 0; i < newContainer.instructions.length; i++) {
+            assertTrue(
+                newContainer.instructions[i].maximumRefundTarget == container.instructions[i].maximumRefundTarget
+            );
+            assertTrue(
+                newContainer.instructions[i].receiverValueTarget == container.instructions[i].receiverValueTarget
+            );
+        }
+    }
+
+    function testEncodeAndDecodeDeliveryInstruction(
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        (IWormholeRelayerInternalStructs.DeliveryInstruction memory newInstruction, uint256 index) = setup
+            .source
+            .coreRelayerFull
+            .decodeDeliveryInstruction(setup.source.coreRelayerFull.encodeDeliveryInstruction(instruction), 0);
+
+        assertTrue(newInstruction.maximumRefundTarget == instruction.maximumRefundTarget);
+        assertTrue(newInstruction.receiverValueTarget == instruction.receiverValueTarget);
     }
 }

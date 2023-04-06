@@ -49,6 +49,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
             targetAddress: attackerRewardAddress,
+            refundChain: targetChain,
             // All remaining funds will be returned to the attacker
             refundAddress: attackerRewardAddress,
             maxTransactionFee: maxTransactionFee,

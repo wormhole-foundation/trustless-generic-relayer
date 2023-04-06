@@ -17,6 +17,7 @@ interface IWormholeRelayerInstructionParser {
         uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
+        uint16 refundChain;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
         ExecutionParameters executionParameters;

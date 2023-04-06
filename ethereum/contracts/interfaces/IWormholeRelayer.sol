@@ -116,6 +116,7 @@ interface IWormholeRelayer {
     struct Send {
         uint16 targetChain;
         bytes32 targetAddress;
+        uint16 refundChain;
         bytes32 refundAddress;
         uint256 maxTransactionFee;
         uint256 receiverValue;

@@ -152,6 +152,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             requests[i] = IWormholeRelayer.Send({
                 targetChain: chains[i],
                 targetAddress: registeredContracts[chains[i]],
+                refundChain: chains[i],
                 refundAddress: registeredContracts[chains[i]],
                 maxTransactionFee: computeBudgets[i],
                 receiverValue: 0,
@@ -176,6 +177,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
+            refundChain: targetChainId,
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
             maxTransactionFee: msg.value - 3 * wormhole.messageFee() - receiverValue,
             receiverValue: receiverValue,
@@ -224,6 +226,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
                 sendRequests[i] = IWormholeRelayer.Send({
                     targetChain: instructions.chains[i],
                     targetAddress: registeredContracts[instructions.chains[i]],
+                    refundChain: instructions.chains[i],
                     refundAddress: registeredContracts[instructions.chains[i]],
                     maxTransactionFee: relayer.quoteGas(
                         instructions.chains[i], instructions.gasLimits[i], relayer.getDefaultRelayProvider()

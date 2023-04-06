@@ -91,6 +91,7 @@ contract XmintSpoke is IWormholeReceiver {
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: hub_contract_chain,
             targetAddress: hub_contract_address,
+            refundChain: hub_contract_chain,
             refundAddress: hub_contract_address, // This will be ignored on the target chain because the intent is to perform a forward
             maxTransactionFee: maxTransactionFee,
             receiverValue: receiverValue, // not needed in this case.

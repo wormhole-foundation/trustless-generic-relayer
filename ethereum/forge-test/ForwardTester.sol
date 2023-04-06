@@ -79,7 +79,7 @@ contract ForwardTester is IWormholeReceiver {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
             wormholeRelayer.forward(
-                vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, empty
+                vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee * 105 / 100 + 1, 0, empty
             );
         } else if (action == Action.ReentrantCall) {
             uint256 maxTransactionFee =

@@ -91,8 +91,10 @@ contract CoreRelayerMessages is CoreRelayerGetters {
 
         instruction.maximumRefundTarget =
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
+
         instruction.receiverValueTarget =
             convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
+
         instruction.executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
             version: 1,
             gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
@@ -163,7 +165,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
 
     // encode a 'DeliveryInstruction' into bytes
     function encodeDeliveryInstruction(IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction)
-        internal
+        public
         pure
         returns (bytes memory encoded)
     {
@@ -269,7 +271,9 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         if (maxTransactionFee >= overhead) {
             (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
             uint256 remainder = maxTransactionFee - overhead;
-            maximumRefund = assetConversionHelper(chainId(), remainder, targetChain, denominator, uint256(0) + denominator + buffer, false, provider);
+            maximumRefund = assetConversionHelper(
+                chainId(), remainder, targetChain, denominator, uint256(0) + denominator + buffer, false, provider
+            );
         } else {
             maximumRefund = 0;
         }
@@ -473,5 +477,20 @@ contract CoreRelayerMessages is CoreRelayerGetters {
      */
     function fromWormholeFormat(bytes32 whFormatAddress) public pure returns (address addr) {
         return address(uint160(uint256(whFormatAddress)));
+    }
+
+    // Helper to put one Send struct into a MultichainSend struct
+    function multichainSendContainer(
+        IWormholeRelayer.Send memory request,
+        address relayProvider,
+        IWormholeRelayer.MessageInfo[] memory messageInfos
+    ) internal pure returns (IWormholeRelayer.MultichainSend memory container) {
+        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
+        requests[0] = request;
+        container = IWormholeRelayer.MultichainSend({
+            relayProviderAddress: relayProvider,
+            requests: requests,
+            messageInfos: messageInfos
+        });
     }
 }
