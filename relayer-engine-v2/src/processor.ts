@@ -12,6 +12,7 @@ import { EVMChainId } from "@certusone/wormhole-sdk"
 import { GRContext } from "./app"
 
 export async function processGenericRelayerVaa(ctx: GRContext, next: Next) {
+  ctx.logger.info(`Processing generic relayer vaa`)
   const payloadId = parseWormholeRelayerPayloadType(ctx.vaa!.payload)
   // route payload types
   if (payloadId != RelayerPayloadId.Delivery) {
@@ -31,6 +32,9 @@ async function processDelivery(ctx: GRContext) {
   ) {
     throw new Error(`Only supports EmitterSequence MessageInfoType`)
   }
+  ctx.logger.info(`Fetching vaas from parsed delivery vaa manifest...`, {
+    manifest: payload.messages,
+  })
   const fetchedVaas = await ctx.fetchVaas({
     ids: payload.messages.map((m) => ({
       emitterAddress: m.emitterAddress!,
@@ -39,11 +43,16 @@ async function processDelivery(ctx: GRContext) {
     })),
     txHash: ctx.sourceTxHash,
   })
+  ctx.logger.debug(`Vaas fetched`)
   for (let i = 0; i < payload.instructions.length; i++) {
     const ix = payload.instructions[i]
+    ctx.logger.debug(
+      `Processing instruction ${i + 1} of ${payload.instructions.length}`,
+      { instruction: ix }
+    )
     // const chainId = assertEvmChainId(ix.targetChain)
     const chainId = ix.targetChain as EVMChainId
-    const budget = ix.receiverValueTarget.add(ix.maximumRefundTarget).add(100)
+    const budget = ix.receiverValueTarget.add(ix.maximumRefundTarget)
 
     await ctx.wallets.onEVM(chainId, async ({ wallet }) => {
       const coreRelayer = CoreRelayer__factory.connect(
@@ -58,8 +67,8 @@ async function processDelivery(ctx: GRContext) {
         relayerRefundAddress: wallet.address,
       }
 
+      ctx.logger.debug("Sending 'deliver' tx...")
       await coreRelayer
-        // @ts-ignore
         .deliver(input, { value: budget, gasLimit: 3000000 })
         .then((x) => x.wait())
 
