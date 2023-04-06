@@ -48,7 +48,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
     }
 
     //This is the function which receives all messages from the remote contracts.
-    function receiveWormholeMessages(bytes[] memory vaas) public payable override {
+    function receiveWormholeMessages(IWormholeReceiver.DeliveryData memory deliveryData, bytes[] memory vaas) public payable override {
         //The first message should be from the token bridge, so attempt to redeem it.
         ITokenBridge.TransferWithPayload memory transferResult =
             token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
@@ -90,6 +90,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
             core_relayer.quoteGas(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
         uint256 receiverValue = 0;
 
+        bytes memory emptyArray;
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
             targetAddress: trustedContracts[targetChain],
@@ -97,6 +98,7 @@ contract XmintHub is ERC20, IWormholeReceiver {
             refundAddress: intendedRecipient, // All remaining funds will be returned to the user now
             maxTransactionFee: maxTransactionFee,
             receiverValue: receiverValue, // not needed in this case.
+            payload: emptyArray,
             relayParameters: core_relayer.getDefaultRelayParams() //no overrides
         });
 

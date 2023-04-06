@@ -90,17 +90,17 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      * - refund anything leftover to the relayer
      *
      * @param internalInstruction instruction to execute
-     * @param encodedVMs list of signed wormhole messages (VAAs)
-     * @param relayerRefundAddress address to send the relayer's refund to
+     * @param deliveryContainer delivery instruction container instruction\
      * @param vaaInfo struct specifying:
      *      - sourceChain chain id that the delivery originated from
      *      - sourceSequence sequence number of the delivery VAA on the source chain
      *      - deliveryVaaHash hash of delivery VAA
+     *      - relayerRefundAddress address that should be paid for relayer refunds
+     *      - encodedVMs list of signed wormhole messages (VAAs)
      */
     function _executeDelivery(
         IWormholeRelayerInternalStructs.DeliveryInstruction memory internalInstruction,
-        bytes[] memory encodedVMs,
-        address payable relayerRefundAddress,
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory deliveryContainer,
         IWormholeRelayerInternalStructs.DeliveryVAAInfo memory vaaInfo
     ) internal {
         if (internalInstruction.targetAddress != 0x0) {
@@ -111,11 +111,18 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             setContractLock(true);
             setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
 
+            IWormholeReceiver.DeliveryData memory deliveryData;
+            deliveryData.sourceAddress = deliveryContainer.senderAddress;
+            deliveryData.sourceChain = vaaInfo.sourceChain;
+            deliveryData.maximumRefund = internalInstruction.maximumRefundTarget;
+            deliveryData.deliveryHash = vaaInfo.deliveryVaaHash;
+            deliveryData.payload = internalInstruction.payload;
+
             uint256 preGas = gasleft();
 
             (bool callToInstructionExecutorSucceeded, bytes memory data) = getWormholeRelayerCallerAddress().call{
                 value: internalInstruction.receiverValueTarget
-            }(abi.encodeCall(IForwardWrapper.executeInstruction, (internalInstruction, encodedVMs)));
+            }(abi.encodeCall(IForwardWrapper.executeInstruction, (internalInstruction, deliveryData, vaaInfo.encodedVMs)));
 
             uint256 postGas = gasleft();
 
@@ -165,7 +172,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
             payRefunds(
                 internalInstruction,
-                relayerRefundAddress,
+                vaaInfo.relayerRefundAddress,
                 transactionFeeRefundAmount,
                 callToInstructionExecutorSucceeded && callToTargetContractSucceeded,
                 forwardInstruction.isValid
@@ -243,10 +250,11 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
                 IWormholeRelayer.Send({
                     targetChain: targetChain,
                     targetAddress: targetAddress,
-                    refundChain: targetChain,
                     refundAddress: targetAddress,
+                    refundChain: targetChain,
                     maxTransactionFee: 0,
                     receiverValue: receiverValue,
+                    payload: bytes(""),
                     relayParameters: bytes("")
                 }),
                 address(provider),
@@ -326,12 +334,13 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         _executeDelivery(
             deliveryInstruction,
-            targetParams.encodedVMs,
-            targetParams.relayerRefundAddress,
+            container,
             IWormholeRelayerInternalStructs.DeliveryVAAInfo({
                 sourceChain: deliveryVM.emitterChainId,
                 sourceSequence: deliveryVM.sequence,
-                deliveryVaaHash: deliveryVM.hash
+                deliveryVaaHash: deliveryVM.hash,
+                relayerRefundAddress:targetParams.relayerRefundAddress,
+                encodedVMs:targetParams.encodedVMs
             })
         );
     }

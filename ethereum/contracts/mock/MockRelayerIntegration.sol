@@ -149,6 +149,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         );
         IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](chains.length);
         for (uint16 i = 0; i < chains.length; i++) {
+            bytes memory emptyArray;
             requests[i] = IWormholeRelayer.Send({
                 targetChain: chains[i],
                 targetAddress: registeredContracts[chains[i]],
@@ -156,6 +157,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
                 refundAddress: registeredContracts[chains[i]],
                 maxTransactionFee: computeBudgets[i],
                 receiverValue: 0,
+                payload: bytes(""),
                 relayParameters: relayer.getDefaultRelayParams()
             });
         }
@@ -174,6 +176,8 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint256 receiverValue,
         IWormholeRelayer.MessageInfo[] memory messageInfos
     ) internal returns (uint64 sequence) {
+        bytes memory emptyArray;
+
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
@@ -181,6 +185,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
             maxTransactionFee: msg.value - 3 * wormhole.messageFee() - receiverValue,
             receiverValue: receiverValue,
+            payload: emptyArray,
             relayParameters: relayer.getDefaultRelayParams()
         });
 
@@ -189,7 +194,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         );
     }
 
-    function receiveWormholeMessages(bytes[] memory wormholeObservations) public payable override {
+    function receiveWormholeMessages(IWormholeReceiver.DeliveryData memory deliveryData, bytes[] memory wormholeObservations) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
         uint256 numObservations = wormholeObservations.length;
         bytes[] memory messages = new bytes[](numObservations - 1);
@@ -223,6 +228,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
             }
             IWormholeRelayer.Send[] memory sendRequests = new IWormholeRelayer.Send[](instructions.chains.length);
             for (uint16 i = 0; i < instructions.chains.length; i++) {
+                bytes memory emptyArray;
                 sendRequests[i] = IWormholeRelayer.Send({
                     targetChain: instructions.chains[i],
                     targetAddress: registeredContracts[instructions.chains[i]],
@@ -232,6 +238,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
                         instructions.chains[i], instructions.gasLimits[i], relayer.getDefaultRelayProvider()
                         ),
                     receiverValue: 0,
+                    payload: emptyArray,
                     relayParameters: relayer.getDefaultRelayParams()
                 });
             }

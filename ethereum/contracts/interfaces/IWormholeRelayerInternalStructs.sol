@@ -8,7 +8,7 @@ interface IWormholeRelayerInternalStructs {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bytes32 senderAddress;
-        bytes32 relayProviderAddress;
+        bytes32 relayProviderAddress; //targetRelayProvider
         IWormholeRelayer.MessageInfo[] messageInfos;
         DeliveryInstruction[] instructions;
     }
@@ -21,6 +21,7 @@ interface IWormholeRelayerInternalStructs {
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
         ExecutionParameters executionParameters;
+        bytes payload;
     }
 
     struct ExecutionParameters {
@@ -41,5 +42,7 @@ interface IWormholeRelayerInternalStructs {
         uint16 sourceChain;
         uint64 sourceSequence;
         bytes32 deliveryVaaHash;
+        bytes[] encodedVMs;
+        address payable relayerRefundAddress;
     }
 }

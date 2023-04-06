@@ -8,6 +8,7 @@ import "../interfaces/IRelayProvider.sol";
 import "../interfaces/IForwardInstructionViewer.sol";
 import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "../interfaces/IForwardWrapper.sol";
+import "../interfaces/IWormholeReceiver.sol";
 
 contract ForwardWrapper {
     IForwardInstructionViewer forwardInstructionViewer;
@@ -23,6 +24,7 @@ contract ForwardWrapper {
 
     function executeInstruction(
         IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
+        IWormholeReceiver.DeliveryData memory data,
         bytes[] memory signedVaas
     ) public payable returns (bool callToTargetContractSucceeded, uint256 transactionFeeRefundAmount) {
         if (msg.sender != address(forwardInstructionViewer)) {
@@ -36,7 +38,7 @@ contract ForwardWrapper {
         (callToTargetContractSucceeded,) = forwardInstructionViewer.fromWormholeFormat(instruction.targetAddress).call{
             gas: instruction.executionParameters.gasLimit,
             value: instruction.receiverValueTarget
-        }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, (signedVaas)));
+        }(abi.encodeCall(IWormholeReceiver.receiveWormholeMessages, ((data), signedVaas)));
 
         uint256 postGas = gasleft();
 

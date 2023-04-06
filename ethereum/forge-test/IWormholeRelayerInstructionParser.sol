@@ -21,6 +21,7 @@ interface IWormholeRelayerInstructionParser {
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
         ExecutionParameters executionParameters;
+        bytes payload;
     }
 
     struct ExecutionParameters {

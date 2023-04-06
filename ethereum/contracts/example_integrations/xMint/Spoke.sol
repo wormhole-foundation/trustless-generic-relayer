@@ -66,7 +66,7 @@ contract XmintSpoke is IWormholeReceiver {
     }
 
     //This function receives messages back from the Hub contract and distributes the tokens to the user.
-    function receiveWormholeMessages(bytes[] memory vaas) public payable override {
+    function receiveWormholeMessages(IWormholeReceiver.DeliveryData memory deliveryData, bytes[] memory vaas) public payable override {
         //Complete the token bridge transfer
         ITokenBridge.TransferWithPayload memory transferResult =
             token_bridge.parseTransferWithPayload(token_bridge.completeTransferWithPayload(vaas[0]));
@@ -88,6 +88,7 @@ contract XmintSpoke is IWormholeReceiver {
             core_relayer.quoteGas(hub_contract_chain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
         uint256 receiverValue = 0;
 
+        bytes memory emptyArray;
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: hub_contract_chain,
             targetAddress: hub_contract_address,
@@ -95,6 +96,7 @@ contract XmintSpoke is IWormholeReceiver {
             refundAddress: hub_contract_address, // This will be ignored on the target chain because the intent is to perform a forward
             maxTransactionFee: maxTransactionFee,
             receiverValue: receiverValue, // not needed in this case.
+            payload: emptyArray,
             relayParameters: core_relayer.getDefaultRelayParams() //no overrides
         });
 

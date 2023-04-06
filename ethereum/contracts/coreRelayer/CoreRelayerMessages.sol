@@ -178,7 +178,9 @@ contract CoreRelayerMessages is CoreRelayerGetters {
             instruction.maximumRefundTarget,
             instruction.receiverValueTarget,
             instruction.executionParameters.version,
-            instruction.executionParameters.gasLimit
+            instruction.executionParameters.gasLimit,
+            uint32(instruction.payload.length),
+            instruction.payload
         );
     }
 
@@ -355,7 +357,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
     function decodeDeliveryInstruction(bytes memory encoded, uint256 index)
         public
         pure
-        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction, uint256 newIndex)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction, uint256 newIndex )
     {
         // target chain of the delivery instruction
         instruction.targetChain = encoded.toUint16(index);
@@ -382,6 +384,12 @@ contract CoreRelayerMessages is CoreRelayerGetters {
 
         instruction.executionParameters.gasLimit = encoded.toUint32(index);
         index += 4;
+
+        uint32 payloadLength = encoded.toUint32(index);
+        index += 4;
+
+        instruction.payload = encoded.slice(index, payloadLength);
+        index+= payloadLength;
 
         newIndex = index;
     }

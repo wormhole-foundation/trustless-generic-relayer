@@ -18,6 +18,7 @@ contract CoreRelayer is CoreRelayerDelivery {
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
@@ -36,8 +37,10 @@ contract CoreRelayer is CoreRelayerDelivery {
         uint16 targetChain,
         bytes32 targetAddress,
         bytes32 refundAddress,
+        uint16 refundChain,
         uint256 maxTransactionFee,
         uint256 receiverValue,
+        bytes memory payload,
         address wormholeMessageEmitterAddress,
         uint64 wormholeMessageSequenceNumber
     ) public payable returns (uint64 sequence) {
@@ -50,12 +53,13 @@ contract CoreRelayer is CoreRelayerDelivery {
         });
         sequence = send(
             IWormholeRelayer.Send(
-                targetChain,
-                targetAddress,
-                targetChain,
+                targetChain, 
+                targetAddress, 
                 refundAddress,
-                maxTransactionFee,
-                receiverValue,
+                refundChain,
+                maxTransactionFee, 
+                receiverValue, 
+                payload, 
                 getDefaultRelayParams()
             ),
             messageInfos,
@@ -74,6 +78,7 @@ contract CoreRelayer is CoreRelayerDelivery {
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
@@ -93,18 +98,21 @@ contract CoreRelayer is CoreRelayerDelivery {
         uint16 targetChain,
         bytes32 targetAddress,
         bytes32 refundAddress,
+        uint16 refundChain,
         uint256 maxTransactionFee,
         uint256 receiverValue,
+        bytes memory payload,
         IWormholeRelayer.MessageInfo[] memory messageInfos
     ) external payable returns (uint64 sequence) {
         sequence = send(
             IWormholeRelayer.Send(
-                targetChain,
-                targetAddress,
-                targetChain,
-                refundAddress,
-                maxTransactionFee,
-                receiverValue,
+                targetChain, 
+                targetAddress, 
+                refundAddress, 
+                refundChain,
+                maxTransactionFee, 
+                receiverValue, 
+                payload, 
                 getDefaultRelayParams()
             ),
             messageInfos,
@@ -165,7 +173,8 @@ contract CoreRelayer is CoreRelayerDelivery {
      *  @param targetChain The chain that the vaas are delivered to, in Wormhole Chain ID format
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
-     *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
+     *  @param refundAddress The address (in Wormhole 32-byte format) to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
@@ -182,18 +191,21 @@ contract CoreRelayer is CoreRelayerDelivery {
         uint16 targetChain,
         bytes32 targetAddress,
         bytes32 refundAddress,
+        uint16 refundChain,
         uint256 maxTransactionFee,
         uint256 receiverValue,
+        bytes memory payload,
         IWormholeRelayer.MessageInfo[] memory messageInfos
     ) external payable {
         forward(
             IWormholeRelayer.Send(
-                targetChain,
-                targetAddress,
-                targetChain,
-                refundAddress,
-                maxTransactionFee,
-                receiverValue,
+                targetChain, 
+                targetAddress, 
+                refundAddress, 
+                refundChain,
+                maxTransactionFee, 
+                receiverValue, 
+                payload, 
                 getDefaultRelayParams()
             ),
             messageInfos,

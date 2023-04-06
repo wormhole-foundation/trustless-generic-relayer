@@ -434,6 +434,7 @@ contract WormholeRelayerTests is Test {
         uint64 sequence2;
         bytes32 targetAddress;
         bytes encodedFurtherInstructions;
+        bytes payload;
     }
 
     function testForwardRequestFail(GasParameters memory gasParams, FeeParameters memory feeParams) public {
@@ -460,6 +461,7 @@ contract WormholeRelayerTests is Test {
         stack.newMessages = new bytes[](2);
         stack.newMessages[0] = bytes("received!");
         stack.newMessages[1] = abi.encodePacked(uint8(0));
+        stack.payload = bytes("");
         MockRelayerIntegration.FurtherInstructions memory instructions = MockRelayerIntegration.FurtherInstructions({
             keepSending: true,
             newMessages: stack.newMessages,
@@ -471,16 +473,7 @@ contract WormholeRelayerTests is Test {
         stack.sequence2 = wormhole.publishMessage{value: stack.wormholeFee}(0, stack.encodedFurtherInstructions, 200);
         stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration));
 
-        setup.source.coreRelayer.send{value: stack.payment + stack.wormholeFee}(
-            setup.targetChainId,
-            stack.targetAddress,
-            stack.targetAddress,
-            stack.payment,
-            0,
-            messageInfoArray(
-                stack.sequence1, address(setup.source.integration), stack.sequence2, address(setup.source.integration)
-            )
-        );
+        sendHelper(setup, stack);
 
         genericRelayer.relay(setup.sourceChainId);
 
@@ -491,6 +484,21 @@ contract WormholeRelayerTests is Test {
         assertTrue(keccak256(setup.target.integration.getMessage()) != keccak256(bytes("hello!")));
 
         assertTrue(status == DeliveryStatus.FORWARD_REQUEST_FAILURE);
+    }
+
+    function sendHelper(StandardSetupTwoChains memory setup, ForwardRequestFailStack memory stack) public {
+        setup.source.coreRelayer.send{value: stack.payment + stack.wormholeFee}(
+            setup.targetChainId,
+            stack.targetAddress,
+            stack.targetAddress,
+            setup.targetChainId,
+            stack.payment,
+            0,
+            stack.payload,
+            messageInfoArray(
+                stack.sequence1, address(setup.source.integration), stack.sequence2, address(setup.source.integration)
+            )
+        );
     }
 
     function testAttackForwardRequestCache(GasParameters memory gasParams, FeeParameters memory feeParams) public {
@@ -941,6 +949,8 @@ contract WormholeRelayerTests is Test {
         uint64 sequence =
             setup.source.wormhole.publishMessage{value: setup.source.wormhole.messageFee()}(1, message, 200);
 
+        bytes memory emptyArray;
+
         IWormholeRelayer.Send memory deliveryRequest = IWormholeRelayer.Send({
             targetChain: setup.targetChainId,
             targetAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.integration)),
@@ -948,6 +958,7 @@ contract WormholeRelayerTests is Test {
             refundAddress: setup.source.coreRelayer.toWormholeFormat(address(setup.target.refundAddress)),
             maxTransactionFee: maxTransactionFee,
             receiverValue: 0,
+            payload: emptyArray,
             relayParameters: setup.source.coreRelayer.getDefaultRelayParams()
         });
 
@@ -1053,8 +1064,10 @@ contract WormholeRelayerTests is Test {
             setup.targetChainId,
             stack.targetAddress,
             stack.targetAddress,
+            setup.targetChainId,
             stack.payment - stack.wormholeFee,
             0,
+            bytes(""),
             messageInfoArray(sequence, address(this))
         );
         genericRelayer.relay(setup.sourceChainId);
@@ -1078,7 +1091,7 @@ contract WormholeRelayerTests is Test {
 
         IWormholeRelayer.MessageInfo[] memory msgInfoArray = messageInfoArray(0, address(this));
         vm.expectRevert(abi.encodeWithSignature("NoDeliveryInProgress()"));
-        setup.source.coreRelayer.forward(setup.targetChainId, targetAddress, targetAddress, 0, 0, msgInfoArray);
+        setup.source.coreRelayer.forward(setup.targetChainId, targetAddress, targetAddress, setup.targetChainId,  0, 0, bytes(""), msgInfoArray);
     }
 
     function testRevertForwardMultipleForwardsRequested(GasParameters memory gasParams, FeeParameters memory feeParams)

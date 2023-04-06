@@ -30,7 +30,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
     }
 
     // This is the function which receives all messages from the remote contracts.
-    function receiveWormholeMessages(bytes[] memory vaas) public payable override {
+    function receiveWormholeMessages(IWormholeReceiver.DeliveryData memory deliveryData, bytes[] memory vaas) public payable override {
         // Do nothing. The attacker doesn't care about this message; he sends it himself.
     }
 
@@ -46,6 +46,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
         uint256 maxTransactionFee =
             core_relayer.quoteGas(targetChain, SAFE_DELIVERY_GAS_CAPTURE, core_relayer.getDefaultRelayProvider());
 
+        bytes memory emptyArray;
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChain,
             targetAddress: attackerRewardAddress,
@@ -54,6 +55,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
             refundAddress: attackerRewardAddress,
             maxTransactionFee: maxTransactionFee,
             receiverValue: 0,
+            payload: emptyArray,
             relayParameters: core_relayer.getDefaultRelayParams()
         });
 
