@@ -14,7 +14,7 @@ contract ForwardWrapper {
     IWormhole wormhole;
 
     error RequesterNotCoreRelayer();
-    error ForwardNotSufficientlyFunded(uint256 extraAmountNeeded);
+    error ForwardNotSufficientlyFunded(uint256 amountOfFunds, uint256 amountOfFundsNeeded);
 
     constructor(address _wormholeRelayer, address _wormhole) {
         forwardInstructionViewer = IForwardInstructionViewer(_wormholeRelayer);
@@ -55,7 +55,7 @@ contract ForwardWrapper {
         if (forwardInstruction.isValid) {
             uint256 feeForForward = transactionFeeRefundAmount + forwardInstruction.msgValue;
             if (feeForForward < forwardInstruction.totalFee) {
-                revert ForwardNotSufficientlyFunded(forwardInstruction.totalFee - feeForForward);
+                revert ForwardNotSufficientlyFunded(feeForForward, forwardInstruction.totalFee);
             }
         }
 

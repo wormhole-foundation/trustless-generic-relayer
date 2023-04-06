@@ -405,9 +405,9 @@ contract WormholeRelayerTests is Test {
     }
 
     function testForward(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1400000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
-        uint256 payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
+        uint256 payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 700000, setup, gasParams, feeParams);
 
         vm.recordLogs();
 
@@ -1045,7 +1045,7 @@ contract WormholeRelayerTests is Test {
         new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer), address(setup.target.wormholeSimulator));
         vm.deal(address(forwardTester), type(uint256).max / 2);
         stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
-        stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
+        stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 700000, setup, gasParams, feeParams);
         stack.wormholeFee = setup.source.wormhole.messageFee();
         uint64 sequence =
             setup.source.wormhole.publishMessage{value: stack.wormholeFee}(1, abi.encodePacked(uint8(test)), 200);
@@ -1063,7 +1063,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testForwardTester(GasParameters memory gasParams, FeeParameters memory feeParams) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1400000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
         executeForwardTest(
             ForwardTester.Action.WorksCorrectly, DeliveryStatus.FORWARD_REQUEST_SUCCESS, setup, gasParams, feeParams
         );
@@ -1084,7 +1084,7 @@ contract WormholeRelayerTests is Test {
     function testRevertForwardMultipleForwardsRequested(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
         executeForwardTest(
             ForwardTester.Action.MultipleForwardsRequested, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
         );
@@ -1093,7 +1093,7 @@ contract WormholeRelayerTests is Test {
     function testRevertForwardMultichainSendEmpty(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         executeForwardTest(
             ForwardTester.Action.MultichainSendEmpty, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
@@ -1104,7 +1104,7 @@ contract WormholeRelayerTests is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams
     ) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         executeForwardTest(
             ForwardTester.Action.ForwardRequestFromWrongAddress,
@@ -1116,7 +1116,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testRevertDeliveryReentrantCall(GasParameters memory gasParams, FeeParameters memory feeParams) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
         executeForwardTest(
             ForwardTester.Action.ReentrantCall, DeliveryStatus.RECEIVER_FAILURE, setup, gasParams, feeParams
         );
@@ -1125,7 +1125,7 @@ contract WormholeRelayerTests is Test {
     function testRevertForwardMaxTransactionFeeNotEnough(GasParameters memory gasParams, FeeParameters memory feeParams)
         public
     {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         executeForwardTest(
             ForwardTester.Action.MaxTransactionFeeNotEnough,
@@ -1137,7 +1137,7 @@ contract WormholeRelayerTests is Test {
     }
 
     function testRevertForwardFundsTooMuch(GasParameters memory gasParams, FeeParameters memory feeParams) public {
-        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1200000);
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
         setup.target.relayProvider.updateMaximumBudget(
             setup.sourceChainId, uint256(10000 - 1) * gasParams.sourceGasPrice
