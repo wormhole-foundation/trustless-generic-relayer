@@ -253,7 +253,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             multichainSendContainer(
                 IWormholeRelayer.Send({
                     targetChain: targetChain,
-                    targetAddress: targetAddress,
+                    targetAddress: bytes32(0x0),
                     refundAddress: targetAddress,
                     refundChain: targetChain,
                     maxTransactionFee: 0,

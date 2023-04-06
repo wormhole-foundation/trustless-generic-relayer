@@ -374,8 +374,10 @@ contract WormholeRelayerTests is Test {
             - feeParams.sourceNativePrice * (refundRelayerBalance - setup.source.relayer.balance);
         assertTrue(setup.source.rewardAddress.balance > rewardAddressBalance, "The cross chain refund went through");
         assertTrue(USDcost - (relayerProfit + refundRelayerProfit) >= 0, "We paid enough");
+        console.log(USDcost);
+        console.log((relayerProfit + refundRelayerProfit));
         assertTrue(
-            USDcost - (relayerProfit + refundRelayerProfit) < feeParams.sourceNativePrice + feeParams.targetNativePrice,
+            USDcost - (relayerProfit + refundRelayerProfit) < feeParams.sourceNativePrice,
             "We paid the least amount necessary"
         );
     }
