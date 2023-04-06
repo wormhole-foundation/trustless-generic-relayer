@@ -12,5 +12,4 @@ interface IWormholeReceiver {
     }
 
     function receiveWormholeMessages(DeliveryData memory deliveryInfo, bytes[] memory signedVaas) external payable;
-
 }

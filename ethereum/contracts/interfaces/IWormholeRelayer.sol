@@ -20,7 +20,7 @@ interface IWormholeRelayer {
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
-     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain.
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
@@ -55,7 +55,7 @@ interface IWormholeRelayer {
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
-     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain.
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
@@ -94,7 +94,7 @@ interface IWormholeRelayer {
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
-     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain.
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'
@@ -218,7 +218,7 @@ interface IWormholeRelayer {
      *  @param targetAddress The address (in Wormhole 32-byte format) on chain 'targetChain' of the contract to which the vaas are delivered.
      *  This contract must implement the IWormholeReceiver interface, which simply requires a 'receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData)' endpoint
      *  @param refundAddress The address (in Wormhole 32-byte format) on chain 'targetChain' to which any leftover funds (that weren't used for target chain gas or passed into targetAddress as value) should be sent
-     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain. 
+     *  @param refundChain The chain where the refund should be sent. If the refundchain is not the targetchain, a new empty delivery will be initiated in order to perform the refund, which is subject to the provider's rates on the target chain.
      *  @param maxTransactionFee The maximum amount (denominated in source chain (this chain) currency) that you wish to spend on funding gas for the target chain.
      *  If more gas is needed on the target chain than is paid for, there will be a Receiver Failure.
      *  Any unused value out of this fee will be refunded to 'refundAddress'

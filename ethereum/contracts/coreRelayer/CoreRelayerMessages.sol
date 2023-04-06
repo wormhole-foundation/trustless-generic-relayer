@@ -357,7 +357,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
     function decodeDeliveryInstruction(bytes memory encoded, uint256 index)
         public
         pure
-        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction, uint256 newIndex )
+        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction, uint256 newIndex)
     {
         // target chain of the delivery instruction
         instruction.targetChain = encoded.toUint16(index);
@@ -389,7 +389,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         index += 4;
 
         instruction.payload = encoded.slice(index, payloadLength);
-        index+= payloadLength;
+        index += payloadLength;
 
         newIndex = index;
     }

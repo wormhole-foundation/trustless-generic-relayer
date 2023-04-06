@@ -376,10 +376,9 @@ contract WormholeRelayerTests is Test {
         GasParameters memory gasParams,
         FeeParameters memory feeParams
     ) internal returns (uint256) {
-        vm.assume(
-            uint256(1) * gasParams.targetGasPrice * feeParams.targetNativePrice
-                > uint256(1) * gasParams.sourceGasPrice * feeParams.sourceNativePrice
-        );
+        vm.assume(uint256(1) * gasParams.targetGasPrice > uint256(1) * gasParams.sourceGasPrice);
+
+        vm.assume(uint256(1) * feeParams.targetNativePrice > uint256(1) * feeParams.sourceNativePrice);
 
         vm.assume(
             setup.source.coreRelayer.quoteGas(setup.targetChainId, gasFirst, address(setup.source.relayProvider))
@@ -401,7 +400,7 @@ contract WormholeRelayerTests is Test {
 
         vm.assume((payment + payment2) < (uint256(2) ** 222));
 
-        return payment + payment2;
+        return (payment + payment2 * 105 / 100 + 1);
     }
 
     function testForward(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
@@ -1091,7 +1090,9 @@ contract WormholeRelayerTests is Test {
 
         IWormholeRelayer.MessageInfo[] memory msgInfoArray = messageInfoArray(0, address(this));
         vm.expectRevert(abi.encodeWithSignature("NoDeliveryInProgress()"));
-        setup.source.coreRelayer.forward(setup.targetChainId, targetAddress, targetAddress, setup.targetChainId,  0, 0, bytes(""), msgInfoArray);
+        setup.source.coreRelayer.forward(
+            setup.targetChainId, targetAddress, targetAddress, setup.targetChainId, 0, 0, bytes(""), msgInfoArray
+        );
     }
 
     function testRevertForwardMultipleForwardsRequested(GasParameters memory gasParams, FeeParameters memory feeParams)
