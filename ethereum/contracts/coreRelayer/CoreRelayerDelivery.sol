@@ -48,7 +48,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         // Checks if enough funds were passed into the forward (should always be true as it was already checked)
         if (fundsForForward < forwardInstruction.totalFee) {
-            revert IDelivery.ForwardNotSufficientlyFunded();
+            revert IDelivery.ForwardNotSufficientlyFunded(fundsForForward, forwardInstruction.totalFee);
         }
 
         IRelayProvider relayProvider = IRelayProvider(forwardInstruction.relayProvider);

@@ -28,7 +28,7 @@ async function processDelivery(ctx: GRContext) {
   const payload = parseWormholeRelayerSend(ctx.vaa!.payload)
 
   if (
-    payload.messages.findIndex((m) => m.payloadType !== MessageInfoType.EMITTER_SEQUENCE)
+    payload.messages.findIndex((m) => m.payloadType !== MessageInfoType.EMITTER_SEQUENCE) != -1
   ) {
     throw new Error(`Only supports EmitterSequence MessageInfoType`)
   }

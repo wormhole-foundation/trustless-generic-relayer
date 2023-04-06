@@ -7,7 +7,8 @@ import {
   StandardRelayerApp,
   StandardRelayerContext,
 } from "wormhole-relayer"
-import { EVMChainId } from "@certusone/wormhole-sdk"
+import {  defaultLogger } from "wormhole-relayer/lib/logging" 
+import { CHAIN_ID_ETH, CHAIN_ID_BSC, EVMChainId } from "@certusone/wormhole-sdk"
 import { rootLogger } from "./log"
 import { processGenericRelayerVaa } from "./processor"
 import { Logger } from "winston"
@@ -39,10 +40,22 @@ type ContractsJson = {
 async function main() {
   let opts = yargs(process.argv.slice(2)).argv as unknown as Opts
   const contracts = await loadContractsJson(opts.flag)
-
+  console.log("hi")
   const app = new StandardRelayerApp<GRContext>(flagToEnvironment(opts.flag), {
     name: "GenericRelayer",
     privateKeys: privateKeys(contracts),
+    spyEndpoint: "localhost:7072",
+    wormholeRpcs: ["http://localhost:7071"],
+    providers: { chains: {
+      [CHAIN_ID_ETH]: {
+        endpoints: ["http://localhost:8545/"]
+      },
+      [CHAIN_ID_BSC]: {
+        endpoints: ["http://localhost:8546/"]
+      },
+    }},
+    logger: defaultLogger,
+    fetchSourceTxhash: false,
     // redis: {},
     // redisCluster: {},
     // redisClusterEndpoints: [],

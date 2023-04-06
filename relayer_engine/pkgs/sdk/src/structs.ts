@@ -125,8 +125,6 @@ export function parseWormholeRelayerSend(bytes: Buffer): DeliveryInstructionsCon
 }
 
 function parseMessageInfo(bytes: Buffer, idx: number): [MessageInfo, number] {
-  const payloadId = bytes.readUint8(idx)
-  idx += 1
   const payloadType = bytes.readUint8(idx) as MessageInfoType
   idx += 1
   if (payloadType == MessageInfoType.EMITTER_SEQUENCE) {
