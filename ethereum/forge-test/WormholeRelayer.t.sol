@@ -299,6 +299,7 @@ contract WormholeRelayerTests is Test {
             message,
             setup.targetChainId,
             address(setup.target.integration),
+            setup.targetChainId,
             address(setup.target.refundAddress),
             receiverValueSource
         );
@@ -328,6 +329,57 @@ contract WormholeRelayerTests is Test {
         );
     }
 
+    function testFundsCorrectForASendCrossChainRefund(
+        GasParameters memory gasParams,
+        FeeParameters memory feeParams,
+        bytes memory message
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        vm.recordLogs();
+
+        uint256 refundAddressBalance = setup.source.refundAddress.balance;
+        uint256 relayerBalance = setup.target.relayer.balance;
+        uint256 rewardAddressBalance = setup.source.rewardAddress.balance;
+        uint256 refundRewardAddressBalance = setup.target.rewardAddress.balance;
+        uint256 refundRelayerBalance = setup.source.relayer.balance;
+        uint256 payment = setup.source.coreRelayer.quoteGas(
+            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
+        ) + uint256(3) * setup.source.wormhole.messageFee();
+
+        setup.source.integration.sendMessageGeneral{value: payment}(
+            message,
+            setup.targetChainId,
+            address(setup.target.integration),
+            setup.sourceChainId,
+            address(setup.source.refundAddress),
+            0
+        );
+
+        genericRelayer.relay(setup.sourceChainId);
+
+        genericRelayer.relay(setup.targetChainId);
+
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+
+        uint256 USDcost = (uint256(payment) - uint256(3) * map[setup.sourceChainId].wormhole.messageFee())
+            * feeParams.sourceNativePrice
+            - (setup.source.refundAddress.balance - refundAddressBalance) * feeParams.sourceNativePrice;
+
+        uint256 relayerProfit = uint256(feeParams.sourceNativePrice)
+            * (setup.source.rewardAddress.balance - rewardAddressBalance)
+            - feeParams.targetNativePrice * (relayerBalance - setup.target.relayer.balance);
+        uint256 refundRelayerProfit = uint256(feeParams.targetNativePrice)
+            * (setup.target.rewardAddress.balance - refundRewardAddressBalance)
+            - feeParams.sourceNativePrice * (refundRelayerBalance - setup.source.relayer.balance);
+        assertTrue(setup.source.rewardAddress.balance > rewardAddressBalance, "The cross chain refund went through");
+        assertTrue(USDcost - (relayerProfit + refundRelayerProfit) >= 0, "We paid enough");
+        assertTrue(
+            USDcost - (relayerProfit + refundRelayerProfit) < feeParams.sourceNativePrice + feeParams.targetNativePrice,
+            "We paid the least amount necessary"
+        );
+    }
+
     function testFundsCorrectForASendIfReceiveWormholeMessagesReverts(
         GasParameters memory gasParams,
         FeeParameters memory feeParams,
@@ -352,6 +404,7 @@ contract WormholeRelayerTests is Test {
             message,
             setup.targetChainId,
             address(setup.target.integration),
+            setup.targetChainId,
             address(setup.target.refundAddress),
             receiverValueSource
         );
@@ -640,7 +693,12 @@ contract WormholeRelayerTests is Test {
         vm.deal(address(this), payment + newReceiverValueSource);
 
         setup.source.integration.sendMessageGeneral{value: payment + newReceiverValueSource}(
-            message, setup.targetChainId, address(setup.target.integration), address(0x0), newReceiverValueSource
+            message,
+            setup.targetChainId,
+            address(setup.target.integration),
+            setup.targetChainId,
+            address(0x0),
+            newReceiverValueSource
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -673,7 +731,12 @@ contract WormholeRelayerTests is Test {
         vm.deal(address(this), payment + newReceiverValueSource - 1);
 
         setup.source.integration.sendMessageGeneral{value: payment + newReceiverValueSource - 1}(
-            message, setup.targetChainId, address(setup.target.integration), address(0x0), newReceiverValueSource - 1
+            message,
+            setup.targetChainId,
+            address(setup.target.integration),
+            setup.targetChainId,
+            address(0x0),
+            newReceiverValueSource - 1
         );
 
         genericRelayer.relay(setup.sourceChainId);

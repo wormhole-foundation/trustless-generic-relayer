@@ -56,7 +56,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         payable
         returns (uint64 sequence)
     {
-        sequence = sendMessageGeneral(_message, targetChainId, destination, destination, 0);
+        sequence = sendMessageGeneral(_message, targetChainId, destination, targetChainId, destination, 0);
     }
 
     function sendMessageWithRefundAddress(
@@ -65,7 +65,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         address destination,
         address refundAddress
     ) public payable returns (uint64 sequence) {
-        sequence = sendMessageGeneral(_message, targetChainId, destination, refundAddress, 0);
+        sequence = sendMessageGeneral(_message, targetChainId, destination, targetChainId, refundAddress, 0);
     }
 
     function messageInfosCreator(uint64 sequence1, uint64 sequence2)
@@ -105,20 +105,28 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint64 sequence0 = wormhole.publishMessage{value: wormhole.messageFee()}(0, _message, 200);
         uint64 sequence1 =
             wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeFurtherInstructions(instructions), 200);
-        sequence = executeSend(targetChainId, destination, refundAddress, 0, messageInfosCreator(sequence0, sequence1));
+        sequence = executeSend(
+            targetChainId, destination, targetChainId, refundAddress, 0, messageInfosCreator(sequence0, sequence1)
+        );
     }
 
     function sendMessageGeneral(
         bytes memory fullMessage,
         uint16 targetChainId,
         address destination,
+        uint16 refundChain,
         address refundAddress,
         uint256 receiverValue
     ) public payable returns (uint64 sequence) {
         uint64 sequence0 = wormhole.publishMessage{value: wormhole.messageFee()}(0, fullMessage, 200);
         uint64 sequence1 = wormhole.publishMessage{value: wormhole.messageFee()}(0, abi.encodePacked(uint8(0)), 200);
         sequence = executeSend(
-            targetChainId, destination, refundAddress, receiverValue, messageInfosCreator(sequence0, sequence1)
+            targetChainId,
+            destination,
+            refundChain,
+            refundAddress,
+            receiverValue,
+            messageInfosCreator(sequence0, sequence1)
         );
     }
 
@@ -172,6 +180,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
     function executeSend(
         uint16 targetChainId,
         address destination,
+        uint16 refundChainId,
         address refundAddress,
         uint256 receiverValue,
         IWormholeRelayer.MessageInfo[] memory messageInfos
@@ -181,7 +190,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
-            refundChain: targetChainId,
+            refundChain: refundChainId,
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
             maxTransactionFee: msg.value - 3 * wormhole.messageFee() - receiverValue,
             receiverValue: receiverValue,
