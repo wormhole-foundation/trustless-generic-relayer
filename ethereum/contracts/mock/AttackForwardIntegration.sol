@@ -20,7 +20,7 @@ contract AttackForwardIntegration is IWormholeReceiver {
 
     // Capture 30k gas for fees
     // This just needs to be enough to pay for the call to the destination address.
-    uint32 SAFE_DELIVERY_GAS_CAPTURE = 50000;
+    uint32 SAFE_DELIVERY_GAS_CAPTURE = 30000;
 
     constructor(IWormhole initWormhole, IWormholeRelayer initCoreRelayer, uint16 chainId, address initAttackerReward) {
         attackerReward = initAttackerReward;

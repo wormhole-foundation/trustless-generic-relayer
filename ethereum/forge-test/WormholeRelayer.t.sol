@@ -406,7 +406,7 @@ contract WormholeRelayerTests is Test {
     function testForward(GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message) public {
         StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
 
-        uint256 payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 700000, setup, gasParams, feeParams);
+        uint256 payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
 
         vm.recordLogs();
 
@@ -1055,7 +1055,7 @@ contract WormholeRelayerTests is Test {
         new ForwardTester(address(setup.target.wormhole), address(setup.target.coreRelayer), address(setup.target.wormholeSimulator));
         vm.deal(address(forwardTester), type(uint256).max / 2);
         stack.targetAddress = setup.source.coreRelayer.toWormholeFormat(address(forwardTester));
-        stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 700000, setup, gasParams, feeParams);
+        stack.payment = assumeAndGetForwardPayment(gasParams.targetGasLimit, 500000, setup, gasParams, feeParams);
         stack.wormholeFee = setup.source.wormhole.messageFee();
         uint64 sequence =
             setup.source.wormhole.publishMessage{value: stack.wormholeFee}(1, abi.encodePacked(uint8(test)), 200);
