@@ -87,6 +87,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
     {
         instruction.targetChain = send.targetChain;
         instruction.targetAddress = send.targetAddress;
+        instruction.refundChain = send.refundChain;
         instruction.refundAddress = send.refundAddress;
 
         instruction.maximumRefundTarget =
@@ -172,6 +173,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         encoded = abi.encodePacked(
             instruction.targetChain,
             instruction.targetAddress,
+            instruction.refundChain,
             instruction.refundAddress,
             instruction.maximumRefundTarget,
             instruction.receiverValueTarget,
@@ -363,6 +365,8 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         instruction.targetAddress = encoded.toBytes32(index);
         index += 32;
 
+        instruction.refundChain = encoded.toUint16(index);
+        index += 2;
         // address to send the refund to
         instruction.refundAddress = encoded.toBytes32(index);
         index += 32;
