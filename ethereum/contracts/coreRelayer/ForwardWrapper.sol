@@ -9,6 +9,7 @@ import "../interfaces/IForwardInstructionViewer.sol";
 import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "../interfaces/IForwardWrapper.sol";
 import "../interfaces/IWormholeReceiver.sol";
+import "../interfaces/IRelayProvider.sol";
 
 contract ForwardWrapper {
     IForwardInstructionViewer forwardInstructionViewer;
@@ -64,5 +65,9 @@ contract ForwardWrapper {
         if (!callToTargetContractSucceeded) {
             msg.sender.call{value: msg.value}("");
         }
+    }
+
+    function safeRelayProviderSupportsChain(IRelayProvider relayProvider, uint16 chainId) view external returns (bool isSupported){
+        return relayProvider.isChainSupported(chainId);
     }
 }

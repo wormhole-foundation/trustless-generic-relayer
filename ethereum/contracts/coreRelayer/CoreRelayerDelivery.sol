@@ -89,23 +89,21 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      *      if the call reverted, refund the 'receiverValue' to internalInstruction.refundAddress
      * - refund anything leftover to the relayer
      *
-     * @param internalInstruction instruction to execute
-     * @param deliveryContainer delivery instruction container instruction\
      * @param vaaInfo struct specifying:
      *      - sourceChain chain id that the delivery originated from
      *      - sourceSequence sequence number of the delivery VAA on the source chain
      *      - deliveryVaaHash hash of delivery VAA
      *      - relayerRefundAddress address that should be paid for relayer refunds
      *      - encodedVMs list of signed wormhole messages (VAAs)
+     *      - deliveryContainer the container with all delivery instructions
+     *      - internalInstruction the specific instruction which is being executed.
      */
     function _executeDelivery(
-        IWormholeRelayerInternalStructs.DeliveryInstruction memory internalInstruction,
-        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory deliveryContainer,
         IWormholeRelayerInternalStructs.DeliveryVAAInfo memory vaaInfo
     ) internal {
-        if (internalInstruction.targetAddress == 0x0) {
+        if (vaaInfo.internalInstruction.targetAddress == 0x0) {
             payRefunds(
-                internalInstruction, vaaInfo.relayerRefundAddress, internalInstruction.maximumRefundTarget, false, false
+                vaaInfo.internalInstruction, vaaInfo.relayerRefundAddress, vaaInfo.internalInstruction.maximumRefundTarget, false, false, vaaInfo.deliveryContainer.relayProviderAddress
             );
             return;
         }
@@ -114,20 +112,20 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         }
 
         setContractLock(true);
-        setLockedTargetAddress(fromWormholeFormat(internalInstruction.targetAddress));
+        setLockedTargetAddress(fromWormholeFormat(vaaInfo.internalInstruction.targetAddress));
 
         IWormholeReceiver.DeliveryData memory deliveryData;
-        deliveryData.sourceAddress = deliveryContainer.senderAddress;
+        deliveryData.sourceAddress = vaaInfo.deliveryContainer.senderAddress;
         deliveryData.sourceChain = vaaInfo.sourceChain;
-        deliveryData.maximumRefund = internalInstruction.maximumRefundTarget;
+        deliveryData.maximumRefund = vaaInfo.internalInstruction.maximumRefundTarget;
         deliveryData.deliveryHash = vaaInfo.deliveryVaaHash;
-        deliveryData.payload = internalInstruction.payload;
+        deliveryData.payload = vaaInfo.internalInstruction.payload;
 
         uint256 preGas = gasleft();
 
         (bool callToInstructionExecutorSucceeded, bytes memory data) = getWormholeRelayerCallerAddress().call{
-            value: internalInstruction.receiverValueTarget
-        }(abi.encodeCall(IForwardWrapper.executeInstruction, (internalInstruction, deliveryData, vaaInfo.encodedVMs)));
+            value: vaaInfo.internalInstruction.receiverValueTarget
+        }(abi.encodeCall(IForwardWrapper.executeInstruction, (vaaInfo.internalInstruction, deliveryData, vaaInfo.encodedVMs)));
 
         uint256 postGas = gasleft();
 
@@ -137,13 +135,13 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             (callToTargetContractSucceeded, transactionFeeRefundAmount) = abi.decode(data, (bool, uint256));
         } else {
             // Calculate the amount of gas used in the call (upperbounding at the gas limit, which shouldn't have been exceeded)
-            uint256 gasUsed = (preGas - postGas) > internalInstruction.executionParameters.gasLimit
-                ? internalInstruction.executionParameters.gasLimit
+            uint256 gasUsed = (preGas - postGas) > vaaInfo.internalInstruction.executionParameters.gasLimit
+                ? vaaInfo.internalInstruction.executionParameters.gasLimit
                 : (preGas - postGas);
 
             // Calculate the amount of maxTransactionFee to refund (multiply the maximum refund by the fraction of gas unused)
-            transactionFeeRefundAmount = (internalInstruction.executionParameters.gasLimit - gasUsed)
-                * internalInstruction.maximumRefundTarget / internalInstruction.executionParameters.gasLimit;
+            transactionFeeRefundAmount = (vaaInfo.internalInstruction.executionParameters.gasLimit - gasUsed)
+                * vaaInfo.internalInstruction.maximumRefundTarget / vaaInfo.internalInstruction.executionParameters.gasLimit;
         }
 
         // Retrieve the forward instruction created during execution of 'receiveWormholeMessages'
@@ -168,7 +166,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
         // Emit a status update that can be read by a SDK
         emit Delivery({
-            recipientContract: fromWormholeFormat(internalInstruction.targetAddress),
+            recipientContract: fromWormholeFormat(vaaInfo.internalInstruction.targetAddress),
             sourceChain: vaaInfo.sourceChain,
             sequence: vaaInfo.sourceSequence,
             deliveryVaaHash: vaaInfo.deliveryVaaHash,
@@ -176,11 +174,12 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         });
 
         payRefunds(
-            internalInstruction,
+            vaaInfo.internalInstruction,
             vaaInfo.relayerRefundAddress,
             transactionFeeRefundAmount,
             callToInstructionExecutorSucceeded && callToTargetContractSucceeded,
-            forwardInstruction.isValid
+            forwardInstruction.isValid,
+            vaaInfo.deliveryContainer.relayProviderAddress
         );
     }
 
@@ -189,7 +188,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         address payable relayerRefundAddress,
         uint256 transactionFeeRefundAmount,
         bool receiverValueWasPaid,
-        bool forwardingRequestExists
+        bool forwardingRequestExists,
+        bytes32 providerAddress
     ) internal {
         // Amount of receiverValue that is refunded to the user (0 if the call to 'receiveWormholeMessages' did not revert, or the full receiverValue otherwise)
         uint256 receiverValueRefundAmount = (receiverValueWasPaid ? 0 : internalInstruction.receiverValueTarget);
@@ -199,7 +199,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             receiverValueRefundAmount + (forwardingRequestExists ? 0 : transactionFeeRefundAmount);
 
         // Whether or not the refund succeeded
-        bool refundPaidToRefundAddress = payRefundToRefundAddress(internalInstruction, refundToRefundAddress);
+        bool refundPaidToRefundAddress = payRefundToRefundAddress(internalInstruction, refundToRefundAddress, providerAddress);
 
         // Refund the relayer (their extra funds) + (the amount that the relayer spent on gas)
         // + (the users refund if that refund didn't succeed)
@@ -213,34 +213,58 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
 
     function payRefundToRefundAddress(
         IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
-        uint256 refundAmount
+        uint256 refundAmount,
+        bytes32 relayerAddress
     ) internal returns (bool refundPaidToRefundAddress) {
         if (instruction.refundChain == chainId()) {
             refundPaidToRefundAddress = pay(payable(fromWormholeFormat(instruction.refundAddress)), refundAmount);
         } else {
-            IWormhole wormhole = wormhole();
-            uint256 wormholeMessageFee = wormhole.messageFee();
+            IRelayProvider provider = IRelayProvider(fromWormholeFormat(relayerAddress));
 
-            IRelayProvider provider = IRelayProvider(defaultRelayProvider());
+            (bool success, bytes memory data) = getWormholeRelayerCallerAddress().call(
+                abi.encodeCall(IForwardWrapper.safeRelayProviderSupportsChain, (provider)));
 
-            uint256 overhead = wormholeMessageFee + provider.quoteDeliveryOverhead(instruction.refundChain);
-
-            if (provider.isChainSupported(instruction.refundChain) && (refundAmount > overhead)) {
-                wormhole.publishMessage{value: wormholeMessageFee}(
-                    0,
-                    encodeDeliveryInstructionsContainer(
-                        getInstructionsForEmptyMessageWithReceiverValue(
-                            instruction.refundChain, instruction.refundAddress, refundAmount - overhead, provider
-                        )
-                    ),
-                    provider.getConsistencyLevel()
-                );
-
-                pay(provider.getRewardAddress(), refundAmount - wormholeMessageFee);
-
-                refundPaidToRefundAddress = true;
+            if(!success){
+                return false;
             }
+
+            success = abi.decode(data, (bool));
+
+            if(!success){
+                return false;
+            }
+            payRefundRemote(instruction, refundAmount, provider);   
         }
+    }
+
+    function payRefundRemote(
+        IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction,
+        uint256 refundAmount,
+        IRelayProvider provider
+    ) internal returns(bool){
+        IWormhole wormhole = wormhole();
+        uint256 wormholeMessageFee = wormhole.messageFee();
+        uint256 overhead = wormholeMessageFee + provider.quoteDeliveryOverhead(instruction.refundChain);
+
+        if (refundAmount > overhead) {
+            wormhole.publishMessage{value: wormholeMessageFee}(
+                0,
+                encodeDeliveryInstructionsContainer(
+                    getInstructionsForEmptyMessageWithReceiverValue(
+                        instruction.refundChain, instruction.refundAddress, refundAmount - overhead, provider
+                    )
+                ),
+                provider.getConsistencyLevel()
+            );
+
+            pay(provider.getRewardAddress(), refundAmount - wormholeMessageFee);
+
+            return true;
+            
+        } else {
+            return false;
+        }
+        
     }
 
     function getInstructionsForEmptyMessageWithReceiverValue(
@@ -337,14 +361,14 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
         checkMessageInfosWithVAAs(container.messageInfos, targetParams.encodedVMs);
 
         _executeDelivery(
-            deliveryInstruction,
-            container,
             IWormholeRelayerInternalStructs.DeliveryVAAInfo({
                 sourceChain: deliveryVM.emitterChainId,
                 sourceSequence: deliveryVM.sequence,
                 deliveryVaaHash: deliveryVM.hash,
                 relayerRefundAddress: targetParams.relayerRefundAddress,
-                encodedVMs: targetParams.encodedVMs
+                encodedVMs: targetParams.encodedVMs,
+                internalInstruction: deliveryInstruction,
+                deliveryContainer: container
             })
         );
     }
