@@ -260,7 +260,8 @@ contract CoreRelayerMessages is CoreRelayerGetters {
     }
 
     /**
-     * Converts (maxTransactionFee - overhead) from source to target chain currency, using the provider's prices
+     * Converts (maxTransactionFee - overhead) from source to target chain currency, using the provider's prices.
+     * It also applies the assetConversionBuffer, similar to the receiverValue calculation.
      *
      * @param targetChain uint16
      * @param maxTransactionFee uint256

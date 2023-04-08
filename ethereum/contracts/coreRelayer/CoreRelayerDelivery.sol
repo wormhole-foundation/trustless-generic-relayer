@@ -29,8 +29,8 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      * - Checks if enough funds were passed into a forward
      * - Increases the maxTransactionFee of the first forward in the MultichainSend container
      *   in order to use all of the funds
-     * - Publishes the DeliveryInstruction, with a 'sufficientlyFunded' flag indicating whether the forward had enough funds
-     * - If the forward was funded, pay the relayer's reward address to deliver the forward
+     * - Publishes the DeliveryInstruction 
+     * - Pays the relayer's reward address to deliver the forward
      *
      * @param transactionFeeRefundAmount amount of maxTransactionFee that was unused
      * @param forwardInstruction A struct containing information about the user's forward/multichainForward request
@@ -82,9 +82,9 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
      *
      * - Calculates how much of 'maxTransactionFee' is left
      * - If the call succeeded and during execution of 'receiveWormholeMessages' there was a forward/multichainForward, then:
-     *      if there is enough 'maxTransactionFee' left to execute the forward, then execute the forward
-     *      else emit the forward instruction but with a flag (sufficientlyFunded = false) indicating that it wasn't paid for
+     *      if there is enough 'maxTransactionFee' left to execute the forward, then execute the forward.
      * - else:
+     *      revert the delivery to trigger a forwarding failure
      *      refund any of the 'maxTransactionFee' not used to internalInstruction.refundAddress
      *      if the call reverted, refund the 'receiverValue' to internalInstruction.refundAddress
      * - refund anything leftover to the relayer
