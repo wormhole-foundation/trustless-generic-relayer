@@ -46,6 +46,10 @@ contract RelayProvider is RelayProviderGovernance, IRelayProvider {
         return _state.supportedChains[targetChainId];
     }
 
+    function getTargetChainAddress(uint16 targetChainId) external view returns (bytes32 relayProviderAddress) {
+        return targetChainAddress(targetChainId);
+    }
+
     //Returns a buffer amount, and a buffer denominator, whereby the bufferAmount / bufferDenominator will be reduced from
     //receiverValue conversions, giving an overhead to the provider on each conversion
     function getAssetConversionBuffer(uint16 targetChain)

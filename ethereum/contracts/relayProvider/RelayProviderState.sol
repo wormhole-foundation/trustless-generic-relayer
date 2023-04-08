@@ -32,6 +32,8 @@ contract RelayProviderStorage {
         mapping(address => bool) initializedImplementations;
         // Supported chains to deliver to
         mapping(uint16 => bool) supportedChains;
+        // Contracts of this relay provider on other chains
+        mapping(uint16 => bytes32) targetChainAddresses;
         // Dictionary of wormhole chain id -> price data
         mapping(uint16 => PriceData) data;
         // The delivery overhead gas required to deliver a message to targetChain, denominated in targetChain's gas.

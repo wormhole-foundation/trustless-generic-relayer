@@ -103,7 +103,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
     ) internal {
         if (vaaInfo.internalInstruction.targetAddress == 0x0) {
             payRefunds(
-                vaaInfo.internalInstruction, vaaInfo.relayerRefundAddress, vaaInfo.internalInstruction.maximumRefundTarget, false, false, vaaInfo.deliveryContainer.relayProviderAddress
+                vaaInfo.internalInstruction, vaaInfo.relayerRefundAddress, vaaInfo.internalInstruction.maximumRefundTarget, false, false, vaaInfo.internalInstruction.targetRelayProvider
             );
             return;
         }
@@ -179,7 +179,7 @@ contract CoreRelayerDelivery is CoreRelayerGovernance {
             transactionFeeRefundAmount,
             callToInstructionExecutorSucceeded && callToTargetContractSucceeded,
             forwardInstruction.isValid,
-            vaaInfo.deliveryContainer.relayProviderAddress
+            vaaInfo.internalInstruction.targetRelayProvider
         );
     }
 

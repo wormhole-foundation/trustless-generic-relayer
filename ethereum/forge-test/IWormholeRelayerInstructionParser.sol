@@ -8,7 +8,6 @@ interface IWormholeRelayerInstructionParser {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
         bytes32 senderAddress;
-        bytes32 relayProviderAddress;
         IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
@@ -20,6 +19,7 @@ interface IWormholeRelayerInstructionParser {
         uint16 refundChain;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
+        bytes32 targetRelayProvider;
         ExecutionParameters executionParameters;
         bytes payload;
     }

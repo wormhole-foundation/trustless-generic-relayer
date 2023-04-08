@@ -53,7 +53,6 @@ contract CoreRelayerMessages is CoreRelayerGetters {
     {
         instructionsContainer.payloadId = 1;
         instructionsContainer.senderAddress = toWormholeFormat(msg.sender);
-        instructionsContainer.relayProviderAddress = toWormholeFormat(sendContainer.relayProviderAddress);
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
         instructionsContainer.messageInfos = sendContainer.messageInfos;
 
@@ -96,6 +95,8 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         instruction.receiverValueTarget =
             convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
 
+        instruction.targetRelayProvider = relayProvider.getTargetChainAddress(send.targetChain);
+
         instruction.executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
             version: 1,
             gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
@@ -136,7 +137,6 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         encoded = abi.encodePacked(
             container.payloadId,
             container.senderAddress,
-            container.relayProviderAddress,
             uint8(container.messageInfos.length),
             uint8(container.instructions.length)
         );
@@ -177,6 +177,7 @@ contract CoreRelayerMessages is CoreRelayerGetters {
             instruction.refundAddress,
             instruction.maximumRefundTarget,
             instruction.receiverValueTarget,
+            instruction.targetRelayProvider,
             instruction.executionParameters.version,
             instruction.executionParameters.gasLimit,
             uint32(instruction.payload.length),
@@ -379,6 +380,9 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         instruction.receiverValueTarget = encoded.toUint256(index);
         index += 32;
 
+        instruction.targetRelayProvider = encoded.toBytes32(index);
+        index += 32;
+
         instruction.executionParameters.version = encoded.toUint8(index);
         index += 1;
 
@@ -440,9 +444,6 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         bytes32 senderAddress = encoded.toBytes32(index);
         index += 32;
 
-        bytes32 relayProviderAddress = encoded.toBytes32(index);
-        index += 32;
-
         uint8 messagesArrayLen = encoded.toUint8(index);
         index += 1;
 
@@ -467,7 +468,6 @@ contract CoreRelayerMessages is CoreRelayerGetters {
         return IWormholeRelayerInternalStructs.DeliveryInstructionsContainer({
             payloadId: payloadId,
             senderAddress: senderAddress,
-            relayProviderAddress: relayProviderAddress,
             messageInfos: messageInfos,
             instructions: instructionArray
         });

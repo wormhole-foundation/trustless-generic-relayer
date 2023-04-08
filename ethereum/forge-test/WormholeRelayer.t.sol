@@ -1280,7 +1280,6 @@ contract WormholeRelayerTests is Test {
             .DeliveryInstructionsContainer({
             payloadId: 1,
             senderAddress: bytes32("234"),
-            relayProviderAddress: bytes32("456"),
             messageInfos: messageInfos,
             instructions: instructions
         });
@@ -1316,4 +1315,5 @@ contract WormholeRelayerTests is Test {
         assertTrue(newInstruction.maximumRefundTarget == instruction.maximumRefundTarget);
         assertTrue(newInstruction.receiverValueTarget == instruction.receiverValueTarget);
     }
+
 }

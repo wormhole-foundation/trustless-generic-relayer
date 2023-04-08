@@ -40,6 +40,10 @@ contract RelayProviderSetters is Context, RelayProviderState {
         _state.rewardAddress = rewardAddress;
     }
 
+    function setTargetChainAddress(bytes32 newAddress, uint16 targetChain) internal {
+        _state.targetChainAddresses[targetChain] = newAddress;
+    }
+
     function setMaximumBudget(uint16 targetChainId, uint256 amount) internal {
         _state.maximumBudget[targetChainId] = amount;
     }

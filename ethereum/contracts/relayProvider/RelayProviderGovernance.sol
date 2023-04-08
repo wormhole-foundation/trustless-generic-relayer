@@ -25,6 +25,7 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     event ChainSupportUpdated(uint16 targetChainId, bool isSupported);
     event OwnershipTransfered(address indexed oldOwner, address indexed newOwner);
     event RewardAddressUpdated(address indexed newAddress);
+    event TargetChainAddressUpdated(bytes32 indexed newAddress, uint16 indexed targetChain);
     event DeliverGasOverheadUpdated(uint32 indexed oldGasOverhead, uint32 indexed newGasOverhead);
     event CoreRelayerUpdated(address coreRelayer);
     event AssetConversionBufferUpdated(uint16 targetChain, uint16 buffer, uint16 bufferDenominator);
@@ -42,6 +43,11 @@ abstract contract RelayProviderGovernance is RelayProviderGetters, RelayProvider
     function updateRewardAddress(address payable newAddress) public onlyOwner {
         setRewardAddress(newAddress);
         emit RewardAddressUpdated(newAddress);
+    }
+
+    function updateTargetChainAddress(bytes32 newAddress, uint16 targetChain) public onlyOwner {
+        setTargetChainAddress(newAddress, targetChain);
+        emit TargetChainAddressUpdated(newAddress, targetChain);
     }
 
     function updateDeliverGasOverhead(uint16 chainId, uint32 newGasOverhead) public onlyOwner {

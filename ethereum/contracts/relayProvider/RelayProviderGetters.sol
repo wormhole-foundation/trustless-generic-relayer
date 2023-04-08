@@ -44,6 +44,10 @@ contract RelayProviderGetters is RelayProviderState {
         return _state.maximumBudget[targetChainId];
     }
 
+    function targetChainAddress(uint16 targetChainId) public view returns (bytes32) {
+        return _state.targetChainAddresses[targetChainId];
+    }
+
     function rewardAddress() public view returns (address payable) {
         return _state.rewardAddress;
     }

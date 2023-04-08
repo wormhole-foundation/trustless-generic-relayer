@@ -21,4 +21,6 @@ interface IRelayProvider {
     function getConsistencyLevel() external view returns (uint8 consistencyLevel);
 
     function isChainSupported(uint16 targetChainId) external view returns (bool supported);
+
+    function getTargetChainAddress(uint16 targetChainId) external view returns (bytes32 relayProviderAddress);
 }
