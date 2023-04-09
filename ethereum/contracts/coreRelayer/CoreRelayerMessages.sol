@@ -97,6 +97,8 @@ contract CoreRelayerMessages is CoreRelayerGetters {
 
         instruction.targetRelayProvider = relayProvider.getTargetChainAddress(send.targetChain);
 
+        instruction.payload = send.payload;
+
         instruction.executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
             version: 1,
             gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
@@ -261,8 +263,8 @@ contract CoreRelayerMessages is CoreRelayerGetters {
 
     /**
      * Converts (maxTransactionFee - overhead) from source to target chain currency, using the provider's prices.
-     * It also applies the assetConversionBuffer, similar to the receiverValue calculation.
      *
+     * It also applies the assetConversionBuffer, similar to the receiverValue calculation.
      * @param targetChain uint16
      * @param maxTransactionFee uint256
      * @param overhead uint256

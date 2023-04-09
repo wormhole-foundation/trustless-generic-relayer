@@ -269,7 +269,7 @@ contract WormholeRelayerTests is Test {
 
         setup.source.integration.sendMessageWithRefundAddress{
             value: maxTransactionFee + uint256(3) * setup.source.wormhole.messageFee()
-        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
+        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes(""));
 
         genericRelayer.relay(setup.sourceChainId);
 
@@ -301,7 +301,8 @@ contract WormholeRelayerTests is Test {
             address(setup.target.integration),
             setup.targetChainId,
             address(setup.target.refundAddress),
-            receiverValueSource
+            receiverValueSource,
+            bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -353,7 +354,8 @@ contract WormholeRelayerTests is Test {
             address(setup.target.integration),
             setup.sourceChainId,
             address(setup.source.refundAddress),
-            0
+            0,
+            bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -408,7 +410,8 @@ contract WormholeRelayerTests is Test {
             address(setup.target.integration),
             setup.targetChainId,
             address(setup.target.refundAddress),
-            receiverValueSource
+            receiverValueSource,
+            bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -630,7 +633,7 @@ contract WormholeRelayerTests is Test {
             // The victim requests their message to be sent.
             setup.source.integration.sendMessageWithRefundAddress{
                 value: computeBudget + uint256(3) * setup.source.wormhole.messageFee()
-            }(victimMsg, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
+            }(victimMsg, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes(""));
 
             // The relayer delivers the victim's message.
             // During the delivery process, the forward request injected by the malicious contract is acknowledged.
@@ -659,7 +662,7 @@ contract WormholeRelayerTests is Test {
 
         vm.deal(address(this), paymentNotEnough);
         sequence = setup.source.integration.sendMessageWithRefundAddress{value: paymentNotEnough}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
+            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -700,7 +703,8 @@ contract WormholeRelayerTests is Test {
             address(setup.target.integration),
             setup.targetChainId,
             address(0x0),
-            newReceiverValueSource
+            newReceiverValueSource,
+            bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -738,7 +742,8 @@ contract WormholeRelayerTests is Test {
             address(setup.target.integration),
             setup.targetChainId,
             address(0x0),
-            newReceiverValueSource - 1
+            newReceiverValueSource - 1,
+            bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -768,7 +773,7 @@ contract WormholeRelayerTests is Test {
         vm.recordLogs();
 
         setup.source.integration.sendMessageWithRefundAddress{value: payment}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
+            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -780,7 +785,7 @@ contract WormholeRelayerTests is Test {
         vm.deal(address(this), payment);
 
         setup.source.integration.sendMessageWithRefundAddress{value: payment}(
-            secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
+            secondMessage, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes("")
         );
 
         genericRelayer.relay(setup.sourceChainId);
@@ -880,7 +885,7 @@ contract WormholeRelayerTests is Test {
         ) + 3 * setup.source.wormhole.messageFee();
 
         setup.source.integration.sendMessageWithRefundAddress{value: stack.payment}(
-            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress
+            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress, bytes("")
         );
 
         prepareDeliveryStack(stack, setup);
@@ -919,7 +924,7 @@ contract WormholeRelayerTests is Test {
         ) + 3 * setup.source.wormhole.messageFee();
 
         setup.source.integration.sendMessageWithRefundAddress{value: stack.payment}(
-            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress
+            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress, bytes("")
         );
 
         prepareDeliveryStack(stack, setup);
@@ -954,7 +959,7 @@ contract WormholeRelayerTests is Test {
         ) + 3 * setup.source.wormhole.messageFee();
 
         setup.source.integration.sendMessageWithRefundAddress{value: stack.payment}(
-            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress
+            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress, bytes("")
         );
 
         prepareDeliveryStack(stack, setup);
@@ -980,7 +985,7 @@ contract WormholeRelayerTests is Test {
         ) + 3 * setup.source.wormhole.messageFee();
 
         setup.source.integration.sendMessageWithRefundAddress{value: stack.payment}(
-            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress
+            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress, bytes("")
         );
 
         prepareDeliveryStack(stack, setup);
@@ -1054,7 +1059,7 @@ contract WormholeRelayerTests is Test {
 
         vm.expectRevert(abi.encodeWithSignature("MaxTransactionFeeNotEnough(uint8)", 0));
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + 3 * wormholeFee}(
-            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress)
+            message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes("")
         );
     }
 
@@ -1080,7 +1085,7 @@ contract WormholeRelayerTests is Test {
         vm.expectRevert(abi.encodeWithSignature("FundsTooMuch(uint8)", 0));
         setup.source.integration.sendMessageWithRefundAddress{
             value: maxTransactionFee * 105 / 100 + 1 + 3 * wormholeFee
-        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress));
+        }(message, setup.targetChainId, address(setup.target.integration), address(setup.target.refundAddress), bytes(""));
     }
 
     function testRevertMultichainSendEmpty(GasParameters memory gasParams, FeeParameters memory feeParams) public {
@@ -1245,7 +1250,7 @@ contract WormholeRelayerTests is Test {
 
         vm.expectRevert(abi.encodeWithSignature("RelayProviderDoesNotSupportTargetChain()"));
         setup.source.integration.sendMessageWithRefundAddress{value: maxTransactionFee + uint256(3) * wormholeFee}(
-            message, 32, address(setup.target.integration), address(setup.target.refundAddress)
+            message, 32, address(setup.target.integration), address(setup.target.refundAddress), bytes("")
         );
     }
 
@@ -1314,6 +1319,43 @@ contract WormholeRelayerTests is Test {
 
         assertTrue(newInstruction.maximumRefundTarget == instruction.maximumRefundTarget);
         assertTrue(newInstruction.receiverValueTarget == instruction.receiverValueTarget);
+    }
+
+    function testDeliveryData(
+        GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        vm.recordLogs();
+
+        DeliveryStack memory stack;
+
+        stack.payment = setup.source.coreRelayer.quoteGas(
+            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
+        ) + 3 * setup.source.wormhole.messageFee();
+
+        bytes memory payload = abi.encodePacked(uint256(6));
+
+        setup.source.integration.sendMessageWithRefundAddress{value: stack.payment}(
+            message, setup.targetChainId, address(setup.target.integration), setup.target.refundAddress, payload
+        );
+
+        prepareDeliveryStack(stack, setup);
+
+        setup.target.coreRelayerFull.deliver{value: stack.budget}(stack.package);
+
+        IWormholeReceiver.DeliveryData memory deliveryData = setup.target.integration.getDeliveryData(stack.parsed.hash);
+
+
+        // console.log(payload.toUint256(0));
+        // console.log(deliveryData.payload.toUint256(0));
+
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+        assertTrue(setup.target.coreRelayer.fromWormholeFormat(deliveryData.sourceAddress) == address(setup.source.integration));
+        assertTrue(deliveryData.sourceChain == setup.sourceChainId);
+        assertTrue(deliveryData.maximumRefund > 0);
+        assertTrue(deliveryData.deliveryHash == stack.parsed.hash);
+        assertTrue(keccak256(deliveryData.payload) == keccak256(payload));
     }
 
 }
