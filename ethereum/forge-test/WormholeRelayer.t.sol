@@ -1358,4 +1358,32 @@ contract WormholeRelayerTests is Test {
         assertTrue(keccak256(deliveryData.payload) == keccak256(payload));
     }
 
+    function testInvalidRemoteRefundDoesNotRevert(
+        GasParameters memory gasParams, FeeParameters memory feeParams, bytes memory message
+    ) public {
+        StandardSetupTwoChains memory setup = standardAssumeAndSetupTwoChains(gasParams, feeParams, 1000000);
+
+        setup.source.relayProvider.updateTargetChainAddress(bytes32(0), setup.targetChainId);
+
+        vm.recordLogs();
+
+        DeliveryStack memory stack;
+
+        stack.payment = setup.source.coreRelayer.quoteGas(
+            setup.targetChainId, gasParams.targetGasLimit, address(setup.source.relayProvider)
+        ) + 3 * setup.source.wormhole.messageFee();
+
+        bytes memory payload = abi.encodePacked(uint256(6));
+
+        setup.source.integration.sendMessageGeneral{value: stack.payment}(
+            message, setup.targetChainId, address(setup.target.integration), setup.sourceChainId, address(setup.source.integration), 0, payload
+        );
+
+        prepareDeliveryStack(stack, setup);
+
+        setup.target.coreRelayerFull.deliver{value: stack.budget}(stack.package);
+
+        assertTrue(keccak256(setup.target.integration.getMessage()) == keccak256(message));
+    }
+
 }
