@@ -1,0 +1,68 @@
+Arguments: 
+  /Users/upendra/.nvm/versions/node/v16.17.1/bin/node /Users/upendra/.nvm/versions/node/v16.17.1/bin/yarn add node-forge
+
+PATH: 
+  /Users/upendra/.nvm/versions/node/v16.17.1/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  16.17.1
+
+Platform: 
+  darwin arm64
+
+Trace: 
+  Error: ENOTDIR: not a directory, scandir '/Users/upendra/Desktop/developer/blockchain/openSource/trustlessGenericRelayer/tGR/trustless-generic-relayer/ethereum/node_modules'
+
+npm manifest: 
+  {
+    "name": "generic-relayer",
+    "version": "1.0.0",
+    "description": "",
+    "main": "networks.js",
+    "devDependencies": {
+      "@poanet/solidity-flattener": "^3.0.8",
+      "@typechain/ethers-v5": "^10.1.1",
+      "@types/chai": "^4.3.3",
+      "@types/koa": "^2.13.5",
+      "@types/koa-router": "^7.4.4",
+      "@types/mocha": "^9.1.1",
+      "chai": "^4.3.6",
+      "dotenv": "^16.0.3",
+      "ethers": "^5.7.1",
+      "mocha": "^10.0.0",
+      "ts-mocha": "^10.0.0",
+      "ts-node": "^10.9.1"
+    },
+    "scripts": {
+      "build": "forge build -o build --via-ir",
+      "forge-test": "forge test -vvv --via-ir",
+      "integration-test": "bash shell-scripts/run_integration_tests.sh",
+      "load-test": "ENV=testnet ts-node ts-scripts/mockIntegrations/loadGeneration.ts",
+      "typechain": "bash ../sdk/scripts/make_ethers_types.sh",
+      "flatten": "mkdir -p node_modules/@poanet/solidity-flattener/contracts && cp -r contracts/* node_modules/@poanet/solidity-flattener/contracts/ && poa-solidity-flattener",
+      "deployAndConfigureTilt": "ENV=tilt bash ./ts-scripts/shell/deployConfigureTest.sh",
+      "readContractsTestnet": "ENV=testnet bash ./ts-scripts/shell/readContractStatus.sh",
+      "size": "forge build --sizes --force --via-ir"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "@certusone/wormhole-sdk": "^0.9.6",
+      "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
+      "elliptic": "^6.5.4",
+      "jsonfile": "^6.1.0",
+      "koa": "^2.14.1",
+      "koa-router": "^12.0.0",
+      "prom-client": "^14.2.0",
+      "typescript": "^4.8.3"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
