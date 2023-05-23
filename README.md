@@ -1,3 +1,8 @@
+# NOTICE: Development has been moved to the wormhole mono repo (wormhole-foundation/wormhole)
+
+At the time of writing this, the develpment branch is `generic-relayer-merge` with contracts under /ethereum/contracts/relayer and offchain relayer under /relayer/generic-relayer/relayer-engine-v2. 
+Eventually this will be merged down to main.
+
 # Generic Relayers
 
 ## Objective
