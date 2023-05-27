@@ -32,6 +32,9 @@ contract MockRelayerIntegration is IWormholeReceiver {
     // map that stores payloads from received VAAs
     mapping(bytes32 => bytes) verifiedPayloads;
 
+    // map that stores deliverydata from received deliveries
+    mapping(bytes32 => bytes) deliveryDatas;
+
     // mapping of other MockRelayerIntegration contracts
     mapping(uint16 => bytes32) registeredContracts;
 
@@ -51,17 +54,41 @@ contract MockRelayerIntegration is IWormholeReceiver {
         owner = msg.sender;
     }
 
-    function sendMessage(bytes memory _message, uint16 targetChainId, address destination) public payable {
-        sendMessageGeneral(_message, targetChainId, destination, destination, 0, 1);
+    function sendMessage(bytes memory _message, uint16 targetChainId, address destination)
+        public
+        payable
+        returns (uint64 sequence)
+    {
+        sequence = sendMessageGeneral(_message, targetChainId, destination, targetChainId, destination, 0, bytes(""));
     }
 
     function sendMessageWithRefundAddress(
         bytes memory _message,
         uint16 targetChainId,
         address destination,
-        address refundAddress
-    ) public payable {
-        sendMessageGeneral(_message, targetChainId, destination, refundAddress, 0, 1);
+        address refundAddress,
+        bytes memory payload
+    ) public payable returns (uint64 sequence) {
+        sequence = sendMessageGeneral(_message, targetChainId, destination, targetChainId, refundAddress, 0, payload);
+    }
+
+    function messageInfosCreator(uint64 sequence1, uint64 sequence2)
+        internal
+        returns (IWormholeRelayer.MessageInfo[] memory messageInfos)
+    {
+        messageInfos = new IWormholeRelayer.MessageInfo[](2);
+        messageInfos[0] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            relayer.toWormholeFormat(address(this)),
+            sequence1,
+            bytes32(0x0)
+        );
+        messageInfos[1] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            relayer.toWormholeFormat(address(this)),
+            sequence2,
+            bytes32(0x0)
+        );
     }
 
     function sendMessageWithForwardedResponse(
@@ -69,7 +96,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
         uint16 targetChainId,
         address destination,
         address refundAddress
-    ) public payable {
+    ) public payable returns (uint64 sequence) {
         uint16[] memory chains = new uint16[](1);
         chains[0] = wormhole.chainId();
         uint32[] memory gasLimits = new uint32[](1);
@@ -79,22 +106,34 @@ contract MockRelayerIntegration is IWormholeReceiver {
         newMessages[1] = abi.encodePacked(uint8(0));
         FurtherInstructions memory instructions =
             FurtherInstructions({keepSending: true, newMessages: newMessages, chains: chains, gasLimits: gasLimits});
-        wormhole.publishMessage{value: wormhole.messageFee()}(1, _message, 200);
-        wormhole.publishMessage{value: wormhole.messageFee()}(1, encodeFurtherInstructions(instructions), 200);
-        executeSend(targetChainId, destination, refundAddress, 0, 1);
+        uint64 sequence0 = wormhole.publishMessage{value: wormhole.messageFee()}(0, _message, 200);
+        uint64 sequence1 =
+            wormhole.publishMessage{value: wormhole.messageFee()}(0, encodeFurtherInstructions(instructions), 200);
+        sequence = executeSend(
+            targetChainId, destination, targetChainId, refundAddress, 0, bytes(""), messageInfosCreator(sequence0, sequence1)
+        );
     }
 
     function sendMessageGeneral(
         bytes memory fullMessage,
         uint16 targetChainId,
         address destination,
+        uint16 refundChain,
         address refundAddress,
         uint256 receiverValue,
-        uint32 nonce
-    ) public payable {
-        wormhole.publishMessage{value: wormhole.messageFee()}(nonce, fullMessage, 200);
-        wormhole.publishMessage{value: wormhole.messageFee()}(nonce, abi.encodePacked(uint8(0)), 200);
-        executeSend(targetChainId, destination, refundAddress, receiverValue, nonce);
+        bytes memory payload
+    ) public payable returns (uint64 sequence) {
+        uint64 sequence0 = wormhole.publishMessage{value: wormhole.messageFee()}(0, fullMessage, 200);
+        uint64 sequence1 = wormhole.publishMessage{value: wormhole.messageFee()}(0, abi.encodePacked(uint8(0)), 200);
+        sequence = executeSend(
+            targetChainId,
+            destination,
+            refundChain,
+            refundAddress,
+            receiverValue,
+            payload,
+            messageInfosCreator(sequence0, sequence1)
+        );
     }
 
     function sendMessagesWithFurtherInstructions(
@@ -102,54 +141,85 @@ contract MockRelayerIntegration is IWormholeReceiver {
         FurtherInstructions memory furtherInstructions,
         uint16[] memory chains,
         uint256[] memory computeBudgets
-    ) public payable {
+    ) public payable returns (uint64 sequence) {
+        IWormholeRelayer.MessageInfo[] memory messageInfos = new IWormholeRelayer.MessageInfo[](messages.length + 1);
         for (uint16 i = 0; i < messages.length; i++) {
-            wormhole.publishMessage{value: wormhole.messageFee()}(1, messages[i], 200);
+            uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(0, messages[i], 200);
+            messageInfos[i] = IWormholeRelayer.MessageInfo(
+                IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+                relayer.toWormholeFormat(address(this)),
+                sequence,
+                bytes32(0x0)
+            );
         }
-        wormhole.publishMessage{value: wormhole.messageFee()}(1, encodeFurtherInstructions(furtherInstructions), 200);
+        uint64 lastSequence = wormhole.publishMessage{value: wormhole.messageFee()}(
+            0, encodeFurtherInstructions(furtherInstructions), 200
+        );
+        messageInfos[messages.length] = IWormholeRelayer.MessageInfo(
+            IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+            relayer.toWormholeFormat(address(this)),
+            lastSequence,
+            bytes32(0x0)
+        );
         IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](chains.length);
         for (uint16 i = 0; i < chains.length; i++) {
+            bytes memory emptyArray;
             requests[i] = IWormholeRelayer.Send({
                 targetChain: chains[i],
                 targetAddress: registeredContracts[chains[i]],
+                refundChain: chains[i],
                 refundAddress: registeredContracts[chains[i]],
                 maxTransactionFee: computeBudgets[i],
                 receiverValue: 0,
+                payload: bytes(""),
                 relayParameters: relayer.getDefaultRelayParams()
             });
         }
         IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({
             requests: requests,
-            relayProviderAddress: relayer.getDefaultRelayProvider()
+            relayProviderAddress: relayer.getDefaultRelayProvider(),
+            messageInfos: messageInfos
         });
-        relayer.multichainSend{value: (msg.value - wormhole.messageFee() * (1 + messages.length))}(container, 1);
+        sequence = relayer.multichainSend{value: (msg.value - wormhole.messageFee() * (1 + messages.length))}(container);
     }
 
     function executeSend(
         uint16 targetChainId,
         address destination,
+        uint16 refundChainId,
         address refundAddress,
         uint256 receiverValue,
-        uint32 nonce
-    ) internal {
+        bytes memory payload,
+        IWormholeRelayer.MessageInfo[] memory messageInfos
+    ) internal returns (uint64 sequence) {
+        bytes memory emptyArray;
+
         IWormholeRelayer.Send memory request = IWormholeRelayer.Send({
             targetChain: targetChainId,
             targetAddress: relayer.toWormholeFormat(address(destination)),
+            refundChain: refundChainId,
             refundAddress: relayer.toWormholeFormat(address(refundAddress)), // This will be ignored on the target chain if the intent is to perform a forward
             maxTransactionFee: msg.value - 3 * wormhole.messageFee() - receiverValue,
             receiverValue: receiverValue,
+            payload: payload,
             relayParameters: relayer.getDefaultRelayParams()
         });
 
-        relayer.send{value: msg.value - 2 * wormhole.messageFee()}(request, nonce, relayer.getDefaultRelayProvider());
+        sequence = relayer.send{value: msg.value - 2 * wormhole.messageFee()}(
+            request, messageInfos, relayer.getDefaultRelayProvider()
+        );
     }
 
-    function receiveWormholeMessages(bytes[] memory wormholeObservations, bytes[] memory) public payable override {
+    function receiveWormholeMessages(
+        IWormholeReceiver.DeliveryData memory deliveryData,
+        bytes[] memory wormholeObservations
+    ) public payable override {
         // loop through the array of wormhole observations from the batch and store each payload
+        deliveryDatas[deliveryData.deliveryHash] = encodeDeliveryData(deliveryData);
         uint256 numObservations = wormholeObservations.length;
-        bytes[] memory messages = new bytes[](wormholeObservations.length - 2);
+        bytes[] memory messages = new bytes[](numObservations - 1);
         uint16 emitterChainId;
-        for (uint256 i = 0; i < numObservations - 2; i++) {
+        for (uint256 i = 0; i < numObservations - 1; i++) {
             (IWormhole.VM memory parsed, bool valid, string memory reason) =
                 wormhole.parseAndVerifyVM(wormholeObservations[i]);
             require(valid, reason);
@@ -160,32 +230,45 @@ contract MockRelayerIntegration is IWormholeReceiver {
         messageHistory.push(messages);
 
         (IWormhole.VM memory parsed, bool valid, string memory reason) =
-            wormhole.parseAndVerifyVM(wormholeObservations[wormholeObservations.length - 2]);
+            wormhole.parseAndVerifyVM(wormholeObservations[numObservations - 1]);
         FurtherInstructions memory instructions = decodeFurtherInstructions(parsed.payload);
-
         if (instructions.keepSending) {
+            IWormholeRelayer.MessageInfo[] memory messageInfos =
+                new IWormholeRelayer.MessageInfo[](instructions.newMessages.length);
             for (uint16 i = 0; i < instructions.newMessages.length; i++) {
-                wormhole.publishMessage{value: wormhole.messageFee()}(parsed.nonce, instructions.newMessages[i], 200);
+                uint64 sequence = wormhole.publishMessage{value: wormhole.messageFee()}(
+                    parsed.nonce, instructions.newMessages[i], 200
+                );
+                messageInfos[i] = IWormholeRelayer.MessageInfo(
+                    IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE,
+                    relayer.toWormholeFormat(address(this)),
+                    sequence,
+                    bytes32(0x0)
+                );
             }
             IWormholeRelayer.Send[] memory sendRequests = new IWormholeRelayer.Send[](instructions.chains.length);
             for (uint16 i = 0; i < instructions.chains.length; i++) {
+                bytes memory emptyArray;
                 sendRequests[i] = IWormholeRelayer.Send({
                     targetChain: instructions.chains[i],
                     targetAddress: registeredContracts[instructions.chains[i]],
+                    refundChain: instructions.chains[i],
                     refundAddress: registeredContracts[instructions.chains[i]],
                     maxTransactionFee: relayer.quoteGas(
                         instructions.chains[i], instructions.gasLimits[i], relayer.getDefaultRelayProvider()
                         ),
                     receiverValue: 0,
+                    payload: emptyArray,
                     relayParameters: relayer.getDefaultRelayParams()
                 });
             }
             IWormholeRelayer.MultichainSend memory container = IWormholeRelayer.MultichainSend({
                 requests: sendRequests,
-                relayProviderAddress: relayer.getDefaultRelayProvider()
+                relayProviderAddress: relayer.getDefaultRelayProvider(),
+                messageInfos: messageInfos
             });
 
-            relayer.multichainForward(container, parsed.nonce);
+            relayer.multichainForward(container);
         }
     }
 
@@ -205,6 +288,10 @@ contract MockRelayerIntegration is IWormholeReceiver {
             return new bytes[](0);
         }
         return messageHistory[messageHistory.length - 1];
+    }
+
+    function getDeliveryData(bytes32 vaaHash) public returns (DeliveryData memory deliveryData){
+        deliveryData = decodeDeliveryData(deliveryDatas[vaaHash]);
     }
 
     function getMessageHistory() public view returns (bytes[][] memory) {
@@ -237,7 +324,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
     function encodeFurtherInstructions(FurtherInstructions memory furtherInstructions)
         public
-        view
+        pure
         returns (bytes memory encodedFurtherInstructions)
     {
         encodedFurtherInstructions = abi.encodePacked(
@@ -261,7 +348,7 @@ contract MockRelayerIntegration is IWormholeReceiver {
 
     function decodeFurtherInstructions(bytes memory encodedFurtherInstructions)
         public
-        view
+        pure
         returns (FurtherInstructions memory furtherInstructions)
     {
         uint256 index = 0;
@@ -295,6 +382,39 @@ contract MockRelayerIntegration is IWormholeReceiver {
         }
         furtherInstructions.chains = chains;
         furtherInstructions.gasLimits = gasLimits;
+    }
+
+    function encodeDeliveryData(DeliveryData memory deliveryData) public returns (bytes memory encoded){
+        encoded = abi.encodePacked(
+            deliveryData.sourceAddress,
+            deliveryData.sourceChain,
+            deliveryData.maximumRefund,
+            deliveryData.deliveryHash,
+            uint32(deliveryData.payload.length),
+            deliveryData.payload
+        );
+    }
+
+    function decodeDeliveryData(bytes memory encoded) public returns (DeliveryData memory deliveryData){
+        uint256 index = 0;
+        deliveryData.sourceAddress = encoded.toBytes32(index);
+        index += 32;
+
+        deliveryData.sourceChain = encoded.toUint16(index);
+        index += 2;
+
+        deliveryData.maximumRefund = encoded.toUint256(index);
+        index += 32;
+        
+        deliveryData.deliveryHash = encoded.toBytes32(index);
+        index += 32;
+
+        uint32 payloadLength = encoded.toUint32(index);
+        index += 4;
+
+        deliveryData.payload = encoded.slice(index, payloadLength);
+        index += payloadLength;
+
     }
 
     receive() external payable {}

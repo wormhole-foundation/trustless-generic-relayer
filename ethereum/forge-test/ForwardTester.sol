@@ -26,19 +26,11 @@ contract ForwardTester is IWormholeReceiver {
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         genericRelayer = new MockGenericRelayer(_wormhole, _wormholeSimulator, _wormholeRelayer);
         genericRelayer.setWormholeRelayerContract(wormhole.chainId(), address(wormholeRelayer));
-        genericRelayer.setProviderDeliveryAddress(
-            wormhole.chainId(),
-            wormholeRelayer.fromWormholeFormat(
-                IRelayProvider(wormholeRelayer.getDefaultRelayProvider()).getDeliveryAddress(wormhole.chainId())
-            )
-        );
-        genericRelayer.setWormholeFee(wormhole.chainId(), wormhole.messageFee());
     }
 
     enum Action {
         MultipleForwardsRequested,
         ForwardRequestFromWrongAddress,
-        NonceIsZero,
         MultichainSendEmpty,
         MaxTransactionFeeNotEnough,
         FundsTooMuch,
@@ -46,56 +38,112 @@ contract ForwardTester is IWormholeReceiver {
         WorksCorrectly
     }
 
-    function receiveWormholeMessages(bytes[] memory vaas, bytes[] memory additionalData) public payable override {
+    function receiveWormholeMessages(IWormholeReceiver.DeliveryData memory deliveryData, bytes[] memory vaas)
+        public
+        payable
+        override
+    {
         (IWormhole.VM memory vaa, bool valid, string memory reason) = wormhole.parseAndVerifyVM(vaas[0]);
         require(valid, reason);
 
         bytes memory payload = vaa.payload;
         Action action = Action(payload.toUint8(0));
 
+        IWormholeRelayer.MessageInfo[] memory empty = new IWormholeRelayer.MessageInfo[](0);
+
         if (action == Action.MultipleForwardsRequested) {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
-            wormholeRelayer.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
-            wormholeRelayer.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
+
+            wormholeRelayer.forward(
+                vaa.emitterChainId,
+                vaa.emitterAddress,
+                vaa.emitterAddress,
+                vaa.emitterChainId,
+                maxTransactionFee,
+                0,
+                bytes(""),
+                empty
+            );
+            wormholeRelayer.forward(
+                vaa.emitterChainId,
+                vaa.emitterAddress,
+                vaa.emitterAddress,
+                vaa.emitterChainId,
+                maxTransactionFee,
+                0,
+                bytes(""),
+                empty
+            );
         } else if (action == Action.ForwardRequestFromWrongAddress) {
             // Emitter must be a wormhole relayer
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
             DummyContract dc = new DummyContract(address(wormholeRelayer));
-            dc.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
-        } else if (action == Action.NonceIsZero) {
-            uint256 maxTransactionFee =
-                wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
-            wormholeRelayer.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 0);
+            dc.forward(
+                vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, bytes(""), empty
+            );
         } else if (action == Action.MultichainSendEmpty) {
             wormholeRelayer.multichainForward(
                 IWormholeRelayer.MultichainSend(
-                    wormholeRelayer.getDefaultRelayProvider(), new IWormholeRelayer.Send[](0)
-                ),
-                1
+                    wormholeRelayer.getDefaultRelayProvider(), empty, new IWormholeRelayer.Send[](0)
+                )
             );
         } else if (action == Action.MaxTransactionFeeNotEnough) {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 1, wormholeRelayer.getDefaultRelayProvider()) - 1;
-            wormholeRelayer.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
+            wormholeRelayer.forward(
+                vaa.emitterChainId,
+                vaa.emitterAddress,
+                vaa.emitterAddress,
+                vaa.emitterChainId,
+                maxTransactionFee,
+                0,
+                bytes(""),
+                empty
+            );
         } else if (action == Action.FundsTooMuch) {
             // set maximum budget to less than this
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
-            wormholeRelayer.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
+            wormholeRelayer.forward(
+                vaa.emitterChainId,
+                vaa.emitterAddress,
+                vaa.emitterAddress,
+                vaa.emitterChainId,
+                maxTransactionFee * 105 / 100 + 1,
+                0,
+                bytes(""),
+                empty
+            );
         } else if (action == Action.ReentrantCall) {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(wormhole.chainId(), 10000, wormholeRelayer.getDefaultRelayProvider());
             vm.recordLogs();
             wormholeRelayer.send{value: maxTransactionFee + wormhole.messageFee()}(
-                wormhole.chainId(), vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1
+                wormhole.chainId(),
+                vaa.emitterAddress,
+                vaa.emitterAddress,
+                wormhole.chainId(),
+                maxTransactionFee,
+                0,
+                bytes(""),
+                empty
             );
             genericRelayer.relay(wormhole.chainId());
         } else {
             uint256 maxTransactionFee =
                 wormholeRelayer.quoteGas(vaa.emitterChainId, 10000, wormholeRelayer.getDefaultRelayProvider());
-            wormholeRelayer.forward(vaa.emitterChainId, vaa.emitterAddress, vaa.emitterAddress, maxTransactionFee, 0, 1);
+            wormholeRelayer.forward(
+                vaa.emitterChainId,
+                vaa.emitterAddress,
+                vaa.emitterAddress,
+                vaa.emitterChainId,
+                maxTransactionFee,
+                0,
+                bytes(""),
+                empty
+            );
         }
     }
 
@@ -115,8 +163,11 @@ contract DummyContract {
         bytes32 refundAddress,
         uint256 maxTransactionFee,
         uint256 receiverValue,
-        uint32 nonce
+        bytes memory payload,
+        IWormholeRelayer.MessageInfo[] memory messages
     ) public {
-        wormholeRelayer.forward(chainId, targetAddress, refundAddress, maxTransactionFee, receiverValue, nonce);
+        wormholeRelayer.forward(
+            chainId, targetAddress, refundAddress, chainId, maxTransactionFee, receiverValue, bytes(""), messages
+        );
     }
 }

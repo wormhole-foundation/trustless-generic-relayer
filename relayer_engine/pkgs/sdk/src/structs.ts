@@ -3,14 +3,32 @@ import { arrayify } from "ethers/lib/utils"
 
 export enum RelayerPayloadId {
   Delivery = 1,
-  Redelivery = 2,
   // DeliveryStatus = 3,
+}
+
+export enum DeliveryStatus {
+  WaitingForVAA = "Waiting for VAA",
+  PendingDelivery = "Pending Delivery",
+  DeliverySuccess = "Delivery Success",
+  ReceiverFailure = "Receiver Failure",
+  InvalidRedelivery = "Invalid Redelivery",
+  ForwardRequestSuccess = "Forward Request Success",
+  ForwardRequestFailure = "Forward Request Failure",
+  ThisShouldNeverHappen = "This should never happen. Contact Support.",
+  DeliveryDidntHappenWithinRange = "Delivery didn't happen within given block range",
 }
 
 export interface DeliveryInstructionsContainer {
   payloadId: number // 1
-  sufficientlyFunded: boolean
+  messages: MessageInfo[]
   instructions: DeliveryInstruction[]
+}
+
+export interface MessageInfo {
+  payloadType: MessageInfoType
+  emitterAddress?: Buffer
+  sequence?: BigNumber
+  vaaHash?: Buffer
 }
 
 export interface DeliveryInstruction {
@@ -28,20 +46,12 @@ export interface ExecutionParameters {
   providerDeliveryAddress: Buffer
 }
 
-export interface RedeliveryByTxHashInstruction {
-  payloadId: number //2
-  sourceChain: number
-  sourceTxHash: Buffer
-  sourceNonce: BigNumber
-  targetChain: number
-  deliveryIndex: number
-  multisendIndex: number
-  newMaximumRefundTarget: BigNumber
-  newReceiverValueTarget: BigNumber
-  executionParameters: ExecutionParameters
+export enum MessageInfoType {
+  EMITTER_SEQUENCE = 0,
+  VAAHASH = 1,
 }
 
-export function parsePayloadType(
+export function parseWormholeRelayerPayloadType(
   stringPayload: string | Buffer | Uint8Array
 ): RelayerPayloadId {
   const payload =
@@ -52,9 +62,7 @@ export function parsePayloadType(
   return payload[0]
 }
 
-export function parseDeliveryInstructionsContainer(
-  bytes: Buffer
-): DeliveryInstructionsContainer {
+export function parseWormholeRelayerSend(bytes: Buffer): DeliveryInstructionsContainer {
   let idx = 0
   const payloadId = bytes.readUInt8(idx)
   if (payloadId !== RelayerPayloadId.Delivery) {
@@ -64,11 +72,19 @@ export function parseDeliveryInstructionsContainer(
   }
   idx += 1
 
-  const sufficientlyFunded = Boolean(bytes.readUInt8(idx))
+  const numMessages = bytes.readUInt8(idx)
   idx += 1
+
+  let messages = [] as MessageInfo[]
+  for (let i = 0; i < numMessages; ++i) {
+    const res = parseMessageInfo(bytes, idx)
+    idx = res[1]
+    messages.push(res[0])
+  }
 
   const numInstructions = bytes.readUInt8(idx)
   idx += 1
+
   let instructions = [] as DeliveryInstruction[]
   for (let i = 0; i < numInstructions; ++i) {
     const targetChain = bytes.readUInt16BE(idx)
@@ -85,8 +101,9 @@ export function parseDeliveryInstructionsContainer(
       Uint8Array.prototype.subarray.call(bytes, idx, idx + 32)
     )
     idx += 32
-    const executionParameters = parseExecutionParameters(bytes, idx)
-    idx += 37
+    let res = parseWormholeRelayerExecutionParameters(bytes, idx)
+    const executionParameters = res[0]
+    idx = res[1]
     instructions.push(
       // dumb typechain format
       {
@@ -99,74 +116,58 @@ export function parseDeliveryInstructionsContainer(
       }
     )
   }
+
   return {
     payloadId,
-    sufficientlyFunded,
+    messages,
     instructions,
   }
 }
 
-export function parseRedeliveryByTxHashInstruction(
-  bytes: Buffer
-): RedeliveryByTxHashInstruction {
-  let idx = 0
-  const payloadId = bytes.readUInt8(idx)
-  if (payloadId !== RelayerPayloadId.Redelivery) {
-    throw new Error(
-      `Expected Delivery payload type (${RelayerPayloadId.Redelivery}), found: ${payloadId}`
+function parseMessageInfo(bytes: Buffer, idx: number): [MessageInfo, number] {
+  const payloadType = bytes.readUint8(idx) as MessageInfoType
+  idx += 1
+  if (payloadType == MessageInfoType.EMITTER_SEQUENCE) {
+    const emitterAddress = bytes.slice(idx, idx + 32)
+    idx += 32
+    const sequence = ethers.BigNumber.from(
+      Uint8Array.prototype.subarray.call(bytes, idx, idx + 8)
     )
-  }
-  idx += 1
-
-  const sourceChain = bytes.readUInt16BE(idx)
-  idx += 2
-
-  const sourceTxHash = bytes.slice(idx, idx + 32)
-  idx += 32
-
-  const sourceNonce = BigNumber.from(bytes.slice(idx, idx + 4))
-  idx += 4
-
-  const targetChain = bytes.readUInt16BE(idx)
-  idx += 2
-
-  const deliveryIndex = bytes.readUint8(idx)
-  idx += 1
-
-  const multisendIndex = bytes.readUint8(idx)
-  idx += 1
-
-  // note: confirmed that BigNumber.from(<Buffer>) assumes big endian
-  const newMaximumRefundTarget = BigNumber.from(bytes.slice(idx, idx + 32))
-  idx += 32
-
-  const newReceiverValueTarget = BigNumber.from(bytes.slice(idx, idx + 32))
-  idx += 32
-
-  const executionParameters = parseExecutionParameters(bytes, idx)
-  idx += 37
-  return {
-    payloadId,
-    sourceChain,
-    sourceTxHash,
-    sourceNonce,
-    targetChain,
-    deliveryIndex,
-    multisendIndex,
-    newMaximumRefundTarget,
-    newReceiverValueTarget,
-    executionParameters,
+    idx += 8
+    return [
+      {
+        payloadType,
+        emitterAddress,
+        sequence,
+      },
+      idx,
+    ]
+  } else if (payloadType == MessageInfoType.VAAHASH) {
+    const vaaHash = bytes.slice(idx, idx + 32)
+    idx += 32
+    return [
+      {
+        payloadType,
+        vaaHash,
+      },
+      idx,
+    ]
+  } else {
+    throw new Error("Unexpected MessageInfo payload type")
   }
 }
 
-function parseExecutionParameters(bytes: Buffer, idx: number = 0): ExecutionParameters {
+function parseWormholeRelayerExecutionParameters(
+  bytes: Buffer,
+  idx: number
+): [ExecutionParameters, number] {
   const version = bytes.readUInt8(idx)
   idx += 1
   const gasLimit = bytes.readUint32BE(idx)
   idx += 4
   const providerDeliveryAddress = bytes.slice(idx, idx + 32)
   idx += 32
-  return { version, gasLimit, providerDeliveryAddress }
+  return [{ version, gasLimit, providerDeliveryAddress }, idx]
 }
 
 /*

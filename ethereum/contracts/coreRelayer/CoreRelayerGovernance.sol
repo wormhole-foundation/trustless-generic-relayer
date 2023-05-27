@@ -1,4 +1,3 @@
-// contracts/Relayer.sol
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
@@ -9,7 +8,7 @@ import "../libraries/external/BytesLib.sol";
 
 import "./CoreRelayerGetters.sol";
 import "./CoreRelayerSetters.sol";
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "./CoreRelayerMessages.sol";
 
 import "../interfaces/IWormhole.sol";

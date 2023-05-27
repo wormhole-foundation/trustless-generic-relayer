@@ -1,4 +1,3 @@
-// contracts/Bridge.sol
 // SPDX-License-Identifier: Apache 2
 
 pragma solidity ^0.8.0;
@@ -6,10 +5,10 @@ pragma solidity ^0.8.0;
 import "../libraries/external/BytesLib.sol";
 
 import "./CoreRelayerGetters.sol";
-import "./CoreRelayerStructs.sol";
+import "../interfaces/IWormholeRelayerInternalStructs.sol";
 import "../interfaces/IWormholeRelayer.sol";
 
-contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
+contract CoreRelayerMessages is CoreRelayerGetters {
     using BytesLib for bytes;
 
     error InvalidPayloadId(uint8 payloadId);
@@ -22,7 +21,7 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      */
     function getTotalFeeMultichainSend(IWormholeRelayer.MultichainSend memory sendContainer, uint256 wormholeMessageFee)
         internal
-        view
+        pure
         returns (uint256 totalFee)
     {
         totalFee = wormholeMessageFee;
@@ -50,12 +49,15 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function convertMultichainSendToDeliveryInstructionsContainer(IWormholeRelayer.MultichainSend memory sendContainer)
         internal
         view
-        returns (DeliveryInstructionsContainer memory instructionsContainer)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory instructionsContainer)
     {
         instructionsContainer.payloadId = 1;
+        instructionsContainer.senderAddress = toWormholeFormat(msg.sender);
         IRelayProvider relayProvider = IRelayProvider(sendContainer.relayProviderAddress);
+        instructionsContainer.messageInfos = sendContainer.messageInfos;
+
         uint256 length = sendContainer.requests.length;
-        instructionsContainer.instructions = new DeliveryInstruction[](length);
+        instructionsContainer.instructions = new IWormholeRelayerInternalStructs.DeliveryInstruction[](length);
         for (uint256 i = 0; i < length; i++) {
             instructionsContainer.instructions[i] =
                 convertSendToDeliveryInstruction(sendContainer.requests[i], relayProvider);
@@ -80,23 +82,26 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     function convertSendToDeliveryInstruction(IWormholeRelayer.Send memory send, IRelayProvider relayProvider)
         internal
         view
-        returns (DeliveryInstruction memory instruction)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction)
     {
         instruction.targetChain = send.targetChain;
         instruction.targetAddress = send.targetAddress;
+        instruction.refundChain = send.refundChain;
         instruction.refundAddress = send.refundAddress;
-        bytes32 deliveryAddress = relayProvider.getDeliveryAddress(send.targetChain);
-        if (deliveryAddress == bytes32(0x0)) {
-            revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
-        }
+
         instruction.maximumRefundTarget =
             calculateTargetDeliveryMaximumRefund(send.targetChain, send.maxTransactionFee, relayProvider);
+
         instruction.receiverValueTarget =
             convertReceiverValueAmount(send.receiverValue, send.targetChain, relayProvider);
-        instruction.executionParameters = ExecutionParameters({
+
+        instruction.targetRelayProvider = relayProvider.getTargetChainAddress(send.targetChain);
+
+        instruction.payload = send.payload;
+
+        instruction.executionParameters = IWormholeRelayerInternalStructs.ExecutionParameters({
             version: 1,
-            gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider),
-            providerDeliveryAddress: deliveryAddress
+            gasLimit: calculateTargetGasDeliveryAmount(send.targetChain, send.maxTransactionFee, relayProvider)
         });
     }
 
@@ -108,13 +113,13 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
      * @param container A DeliveryInstructionsContainer
      * @param relayProvider The relayProvider whos maximum budget we are checking against
      */
-    function checkInstructions(DeliveryInstructionsContainer memory container, IRelayProvider relayProvider)
-        internal
-        view
-    {
+    function checkInstructions(
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container,
+        IRelayProvider relayProvider
+    ) internal view {
         uint256 length = container.instructions.length;
         for (uint8 i = 0; i < length; i++) {
-            DeliveryInstruction memory instruction = container.instructions[i];
+            IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction = container.instructions[i];
             if (instruction.executionParameters.gasLimit == 0) {
                 revert IWormholeRelayer.MaxTransactionFeeNotEnough(i);
             }
@@ -127,118 +132,58 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         }
     }
 
-    /**
-     * @notice Check if for a redelivery instruction,
-     * - the total amount of target chain currency needed for execution of this instruction is within the maximum budget,
-     *   i.e. (maximumRefundTarget + receiverValueTarget) <= (the relayProvider's maximum budget for the target chain)
-     * - the gasLimit is greater than 0
-     * @param instruction A RedeliveryByTxHashInstruction
-     * @param relayProvider The relayProvider whos maximum budget we are checking against
-     */
-    function checkRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction, IRelayProvider relayProvider)
-        internal
-        view
-    {
-        if (instruction.executionParameters.gasLimit == 0) {
-            revert IWormholeRelayer.MaxTransactionFeeNotEnough(0);
-        }
-        if (
-            instruction.newMaximumRefundTarget + instruction.newReceiverValueTarget
-                > relayProvider.quoteMaximumBudget(instruction.targetChain)
-        ) {
-            revert IWormholeRelayer.FundsTooMuch(0);
-        }
-    }
-
-    /**
-     * @notice This function converts a ResendByTx struct into a RedeliveryByTxHashInstruction struct that
-     * describes to the relayer exactly how to relay for the ResendByTx.
-     * Specifically, the RedeliveryByTxHashInstruction struct that contains nine fields:
-     * 1) sourceChain, 2) sourceTxHash, 3) sourceNonce, 4) targetChain, 5) deliveryIndex, 6) multisendIndex (all which are part of the ResendByTxHash struct),
-     * 7) newMaximumRefundTarget: The new maximum amount that can be refunded to 'refundAddress' (e.g. if the call to 'receiveWormholeMessages' takes 0 gas),
-     * 8) newReceiverValueTarget: The new amount that will be passed into 'receiveWormholeMessages' as value, in target chain currency
-     * 9) executionParameters: a struct with information about execution, specifically:
-     *    executionParameters.gasLimit: The maximum amount of gas 'receiveWormholeMessages' is allowed to use
-     *    executionParameters.providerDeliveryAddress: The address of the relayer that will execute this ResendByTx request
-     * The latter 3 fields are calculated using the relayProvider's getters
-     * @param resend A ResendByTx struct
-     * @param relayProvider The relay provider chosen for this ResendByTx
-     * @return instruction A DeliveryInstruction
-     */
-    function convertResendToRedeliveryInstruction(
-        IWormholeRelayer.ResendByTx memory resend,
-        IRelayProvider relayProvider
-    ) internal view returns (RedeliveryByTxHashInstruction memory instruction) {
-        instruction.payloadId = 2;
-        instruction.sourceChain = resend.sourceChain;
-        instruction.sourceTxHash = resend.sourceTxHash;
-        instruction.sourceNonce = resend.sourceNonce;
-        instruction.targetChain = resend.targetChain;
-        instruction.deliveryIndex = resend.deliveryIndex;
-        instruction.multisendIndex = resend.multisendIndex;
-        instruction.newMaximumRefundTarget =
-            calculateTargetRedeliveryMaximumRefund(resend.targetChain, resend.newMaxTransactionFee, relayProvider);
-        instruction.newReceiverValueTarget =
-            convertReceiverValueAmount(resend.newReceiverValue, resend.targetChain, relayProvider);
-        instruction.executionParameters = ExecutionParameters({
-            version: 1,
-            gasLimit: calculateTargetGasRedeliveryAmount(resend.targetChain, resend.newMaxTransactionFee, relayProvider),
-            providerDeliveryAddress: relayProvider.getDeliveryAddress(resend.targetChain)
-        });
-    }
-
-    // encode a 'RedeliveryByTxHashInstruction' into bytes
-    function encodeRedeliveryInstruction(RedeliveryByTxHashInstruction memory instruction)
-        internal
-        pure
-        returns (bytes memory encoded)
-    {
+    // encode a 'IWormholeRelayerInternalStructs.DeliveryInstructionsContainer' into bytes
+    function encodeDeliveryInstructionsContainer(
+        IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory container
+    ) public pure returns (bytes memory encoded) {
         encoded = abi.encodePacked(
-            instruction.payloadId,
-            instruction.sourceChain,
-            instruction.sourceTxHash,
-            instruction.sourceNonce,
-            instruction.targetChain,
-            instruction.deliveryIndex,
-            instruction.multisendIndex,
-            instruction.newMaximumRefundTarget,
-            instruction.newReceiverValueTarget,
-            instruction.executionParameters.version,
-            instruction.executionParameters.gasLimit,
-            instruction.executionParameters.providerDeliveryAddress
+            container.payloadId,
+            container.senderAddress,
+            uint8(container.messageInfos.length),
+            uint8(container.instructions.length)
         );
-    }
 
-    // encode a 'DeliveryInstructionsContainer' into bytes
-    function encodeDeliveryInstructionsContainer(DeliveryInstructionsContainer memory container)
-        internal
-        pure
-        returns (bytes memory encoded)
-    {
-        encoded = abi.encodePacked(
-            container.payloadId, uint8(container.sufficientlyFunded ? 1 : 0), uint8(container.instructions.length)
-        );
+        for (uint256 i = 0; i < container.messageInfos.length; i++) {
+            encoded = abi.encodePacked(encoded, encodeMessageInfo(container.messageInfos[i]));
+        }
 
         for (uint256 i = 0; i < container.instructions.length; i++) {
             encoded = abi.encodePacked(encoded, encodeDeliveryInstruction(container.instructions[i]));
         }
     }
 
-    // encode a 'DeliveryInstruction' into bytes
-    function encodeDeliveryInstruction(DeliveryInstruction memory instruction)
+    // encode a 'MessageInfo' into bytes
+    function encodeMessageInfo(IWormholeRelayer.MessageInfo memory messageInfo)
         internal
+        pure
+        returns (bytes memory encoded)
+    {
+        encoded = abi.encodePacked(uint8(1), uint8(messageInfo.infoType));
+        if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
+            encoded = abi.encodePacked(encoded, messageInfo.emitterAddress, messageInfo.sequence);
+        } else if (messageInfo.infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
+            encoded = abi.encodePacked(encoded, messageInfo.vaaHash);
+        }
+    }
+
+    // encode a 'DeliveryInstruction' into bytes
+    function encodeDeliveryInstruction(IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction)
+        public
         pure
         returns (bytes memory encoded)
     {
         encoded = abi.encodePacked(
             instruction.targetChain,
             instruction.targetAddress,
+            instruction.refundChain,
             instruction.refundAddress,
             instruction.maximumRefundTarget,
             instruction.receiverValueTarget,
+            instruction.targetRelayProvider,
             instruction.executionParameters.version,
             instruction.executionParameters.gasLimit,
-            instruction.executionParameters.providerDeliveryAddress
+            uint32(instruction.payload.length),
+            instruction.payload
         );
     }
 
@@ -290,53 +235,6 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /**
-     * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the gas limit of the redelivery transaction
-     * should be
-     *
-     * It does this by calculating (maxTransactionFee - redeliveryOverhead)/gasPrice
-     * where 'redeliveryOverhead' is the relayProvider's base fee for redelivering to targetChain (in units of source chain currency)
-     * and 'gasPrice' is the relayProvider's fee per unit of target chain gas (in units of source chain currency)
-     *
-     * @param targetChain target chain
-     * @param maxTransactionFee uint256
-     * @param provider IRelayProvider
-     * @return gasAmount
-     */
-    function calculateTargetGasRedeliveryAmount(uint16 targetChain, uint256 maxTransactionFee, IRelayProvider provider)
-        internal
-        view
-        returns (uint32 gasAmount)
-    {
-        gasAmount = calculateTargetGasDeliveryAmountHelper(
-            targetChain, maxTransactionFee, provider.quoteRedeliveryOverhead(targetChain), provider
-        );
-    }
-
-    /**
-     * Given a targetChain, maxTransactionFee, and a relay provider, this function calculates what the maximum refund of the redelivery transaction
-     * should be, in terms of target chain currency
-     *
-     * The maximum refund is the amount that would be refunded to refundAddress if the call to 'receiveWormholeMessages' takes 0 gas
-     *
-     * It does this by calculating (maxTransactionFee - redeliveryOverhead) and converting (using the relay provider's prices) to target chain currency
-     * (where 'redeliveryOverhead' is the relayProvider's base fee for redelivering to targetChain [in units of source chain currency])
-     *
-     * @param targetChain target chain
-     * @param maxTransactionFee uint256
-     * @param provider IRelayProvider
-     * @return maximumRefund uint256
-     */
-    function calculateTargetRedeliveryMaximumRefund(
-        uint16 targetChain,
-        uint256 maxTransactionFee,
-        IRelayProvider provider
-    ) internal view returns (uint256 maximumRefund) {
-        maximumRefund = calculateTargetDeliveryMaximumRefundHelper(
-            targetChain, maxTransactionFee, provider.quoteRedeliveryOverhead(targetChain), provider
-        );
-    }
-
-    /**
      * Performs the calculation (maxTransactionFee - overhead)/(price of 1 unit of target chain gas, in source chain currency)
      * and bounds the result between 0 and 2^32-1, inclusive
      *
@@ -364,8 +262,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
     }
 
     /**
-     * Converts (maxTransactionFee - overhead) from source to target chain currency, using the provider's prices
+     * Converts (maxTransactionFee - overhead) from source to target chain currency, using the provider's prices.
      *
+     * It also applies the assetConversionBuffer, similar to the receiverValue calculation.
      * @param targetChain uint16
      * @param maxTransactionFee uint256
      * @param overhead uint256
@@ -378,8 +277,11 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         IRelayProvider provider
     ) internal view returns (uint256 maximumRefund) {
         if (maxTransactionFee >= overhead) {
+            (uint16 buffer, uint16 denominator) = provider.getAssetConversionBuffer(targetChain);
             uint256 remainder = maxTransactionFee - overhead;
-            maximumRefund = assetConversionHelper(chainId(), remainder, targetChain, 1, 1, false, provider);
+            maximumRefund = assetConversionHelper(
+                chainId(), remainder, targetChain, denominator, uint256(0) + denominator + buffer, false, provider
+            );
         } else {
             maximumRefund = 0;
         }
@@ -410,6 +312,9 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         bool roundUp,
         IRelayProvider provider
     ) internal view returns (uint256 targetAmount) {
+        if (!provider.isChainSupported(targetChain)) {
+            revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
+        }
         uint256 srcNativeCurrencyPrice = provider.quoteAssetPrice(sourceChain);
         if (srcNativeCurrencyPrice == 0) {
             revert IWormholeRelayer.RelayProviderDoesNotSupportTargetChain();
@@ -452,42 +357,33 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         );
     }
 
-    // decode a 'RedeliveryByTxHashInstruction' from bytes
-    function decodeRedeliveryInstruction(bytes memory encoded)
+    // decode a 'DeliveryInstruction' from bytes
+    function decodeDeliveryInstruction(bytes memory encoded, uint256 index)
         public
         pure
-        returns (RedeliveryByTxHashInstruction memory instruction)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstruction memory instruction, uint256 newIndex)
     {
-        uint256 index = 0;
-
-        instruction.payloadId = encoded.toUint8(index);
-        if (instruction.payloadId != 2) {
-            revert InvalidPayloadId(instruction.payloadId);
-        }
-        index += 1;
-
-        instruction.sourceChain = encoded.toUint16(index);
-        index += 2;
-
-        instruction.sourceTxHash = encoded.toBytes32(index);
-        index += 32;
-
-        instruction.sourceNonce = encoded.toUint32(index);
-        index += 4;
-
+        // target chain of the delivery instruction
         instruction.targetChain = encoded.toUint16(index);
         index += 2;
 
-        instruction.deliveryIndex = encoded.toUint8(index);
-        index += 1;
-
-        instruction.multisendIndex = encoded.toUint8(index);
-        index += 1;
-
-        instruction.newMaximumRefundTarget = encoded.toUint256(index);
+        // target contract address
+        instruction.targetAddress = encoded.toBytes32(index);
         index += 32;
 
-        instruction.newReceiverValueTarget = encoded.toUint256(index);
+        instruction.refundChain = encoded.toUint16(index);
+        index += 2;
+        // address to send the refund to
+        instruction.refundAddress = encoded.toBytes32(index);
+        index += 32;
+
+        instruction.maximumRefundTarget = encoded.toUint256(index);
+        index += 32;
+
+        instruction.receiverValueTarget = encoded.toUint256(index);
+        index += 32;
+
+        instruction.targetRelayProvider = encoded.toBytes32(index);
         index += 32;
 
         instruction.executionParameters.version = encoded.toUint8(index);
@@ -496,15 +392,49 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
         instruction.executionParameters.gasLimit = encoded.toUint32(index);
         index += 4;
 
-        instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
-        index += 32;
+        uint32 payloadLength = encoded.toUint32(index);
+        index += 4;
+
+        instruction.payload = encoded.slice(index, payloadLength);
+        index += payloadLength;
+
+        newIndex = index;
+    }
+
+    // decode a 'MessageInfo' from bytes
+    function decodeMessageInfo(bytes memory encoded, uint256 index)
+        public
+        pure
+        returns (IWormholeRelayer.MessageInfo memory messageInfo, uint256 newIndex)
+    {
+        uint8 payloadId = encoded.toUint8(index);
+        index += 1;
+
+        if (payloadId != 1) {
+            revert InvalidPayloadId(payloadId);
+        }
+
+        IWormholeRelayer.MessageInfoType infoType = IWormholeRelayer.MessageInfoType(encoded.toUint8(index));
+        index += 1;
+
+        if (infoType == IWormholeRelayer.MessageInfoType.EMITTER_SEQUENCE) {
+            messageInfo.emitterAddress = encoded.toBytes32(index);
+            index += 32;
+
+            messageInfo.sequence = encoded.toUint64(index);
+            index += 8;
+        } else if (infoType == IWormholeRelayer.MessageInfoType.VAAHASH) {
+            messageInfo.vaaHash = encoded.toBytes32(index);
+            index += 32;
+        }
+        newIndex = index;
     }
 
     // decode a 'DeliveryInstructionsContainer' from bytes
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         public
         pure
-        returns (DeliveryInstructionsContainer memory)
+        returns (IWormholeRelayerInternalStructs.DeliveryInstructionsContainer memory)
     {
         uint256 index = 0;
 
@@ -513,54 +443,69 @@ contract CoreRelayerMessages is CoreRelayerStructs, CoreRelayerGetters {
             revert InvalidPayloadId(payloadId);
         }
         index += 1;
-        bool sufficientlyFunded = encoded.toUint8(index) == 1;
+
+        bytes32 senderAddress = encoded.toBytes32(index);
+        index += 32;
+
+        uint8 messagesArrayLen = encoded.toUint8(index);
         index += 1;
-        uint8 arrayLen = encoded.toUint8(index);
+
+        uint8 instructionsArrayLen = encoded.toUint8(index);
         index += 1;
 
-        DeliveryInstruction[] memory instructionArray = new DeliveryInstruction[](arrayLen);
+        IWormholeRelayer.MessageInfo[] memory messageInfos = new IWormholeRelayer.MessageInfo[](messagesArrayLen);
+        for (uint8 i = 0; i < messagesArrayLen; i++) {
+            (messageInfos[i], index) = decodeMessageInfo(encoded, index);
+        }
 
-        for (uint8 i = 0; i < arrayLen; i++) {
-            DeliveryInstruction memory instruction;
-
-            // target chain of the delivery instruction
-            instruction.targetChain = encoded.toUint16(index);
-            index += 2;
-
-            // target contract address
-            instruction.targetAddress = encoded.toBytes32(index);
-            index += 32;
-
-            // address to send the refund to
-            instruction.refundAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instruction.maximumRefundTarget = encoded.toUint256(index);
-            index += 32;
-
-            instruction.receiverValueTarget = encoded.toUint256(index);
-            index += 32;
-
-            instruction.executionParameters.version = encoded.toUint8(index);
-            index += 1;
-
-            instruction.executionParameters.gasLimit = encoded.toUint32(index);
-            index += 4;
-
-            instruction.executionParameters.providerDeliveryAddress = encoded.toBytes32(index);
-            index += 32;
-
-            instructionArray[i] = instruction;
+        IWormholeRelayerInternalStructs.DeliveryInstruction[] memory instructionArray =
+            new IWormholeRelayerInternalStructs.DeliveryInstruction[](instructionsArrayLen);
+        for (uint8 i = 0; i < instructionsArrayLen; i++) {
+            (instructionArray[i], index) = decodeDeliveryInstruction(encoded, index);
         }
 
         if (index != encoded.length) {
             revert InvalidDeliveryInstructionsPayload(encoded.length);
         }
 
-        return DeliveryInstructionsContainer({
+        return IWormholeRelayerInternalStructs.DeliveryInstructionsContainer({
             payloadId: payloadId,
-            sufficientlyFunded: sufficientlyFunded,
+            senderAddress: senderAddress,
+            messageInfos: messageInfos,
             instructions: instructionArray
+        });
+    }
+
+    /**
+     * @notice Helper function that converts an EVM address to wormhole format
+     * @param addr (EVM 20-byte address)
+     * @return whFormat (32-byte address in Wormhole format)
+     */
+    function toWormholeFormat(address addr) public pure returns (bytes32 whFormat) {
+        return bytes32(uint256(uint160(addr)));
+    }
+
+    /**
+     * @notice Helper function that converts an Wormhole format (32-byte) address to the EVM 'address' 20-byte format
+     * @param whFormatAddress (32-byte address in Wormhole format)
+     * @return addr (EVM 20-byte address)
+     */
+    function fromWormholeFormat(bytes32 whFormatAddress) public pure returns (address addr) {
+        return address(uint160(uint256(whFormatAddress)));
+    }
+
+    // Helper to put one Send struct into a MultichainSend struct
+    function multichainSendContainer(
+        IWormholeRelayer.Send memory request,
+        address relayProvider,
+        IWormholeRelayer.MessageInfo[] memory messageInfos
+    ) internal pure returns (IWormholeRelayer.MultichainSend memory container) {
+        IWormholeRelayer.Send[] memory requests = new IWormholeRelayer.Send[](1);
+        requests[0] = request;
+        container = IWormholeRelayer.MultichainSend({
+            relayProviderAddress: relayProvider,
+            requests: requests,
+            messageInfos: messageInfos
         });
     }
 }

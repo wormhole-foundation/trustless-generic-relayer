@@ -228,4 +228,23 @@ contract TestRelayProvider is Test {
         uint256 readValues = relayProvider.quoteGasPrice(dstChainId);
         require(readValues == expected, "relayProvider.quotePrices != expected");
     }
+
+    function testUpdateTargetChainContracts(bytes32 newAddress, uint16 targetChain) public {
+        initializeRelayProvider();
+
+        relayProvider.updateTargetChainAddress(newAddress, targetChain);
+        bytes32 updated = relayProvider.getTargetChainAddress(targetChain);
+
+        assertTrue(newAddress == updated);
+    }
+
+    function testUpdateRewardAddress(address payable newAddress) public {
+        initializeRelayProvider();
+
+        relayProvider.updateRewardAddress(newAddress);
+        address payable updated = relayProvider.getRewardAddress();
+
+        assertTrue(newAddress == updated);
+    }
+
 }

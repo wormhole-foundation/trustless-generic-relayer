@@ -2,10 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+import "../contracts/interfaces/IWormholeRelayer.sol";
+
 interface IWormholeRelayerInstructionParser {
     struct DeliveryInstructionsContainer {
         uint8 payloadId; //1
-        bool sufficientlyFunded;
+        bytes32 senderAddress;
+        IWormholeRelayer.MessageInfo[] messages;
         DeliveryInstruction[] instructions;
     }
 
@@ -13,39 +16,23 @@ interface IWormholeRelayerInstructionParser {
         uint16 targetChain;
         bytes32 targetAddress;
         bytes32 refundAddress;
+        uint16 refundChain;
         uint256 maximumRefundTarget;
         uint256 receiverValueTarget;
+        bytes32 targetRelayProvider;
         ExecutionParameters executionParameters;
+        bytes payload;
     }
 
     struct ExecutionParameters {
         uint8 version;
         uint32 gasLimit;
-        bytes32 providerDeliveryAddress;
-    }
-
-    struct RedeliveryByTxHashInstruction {
-        uint8 payloadId; //2
-        uint16 sourceChain;
-        bytes32 sourceTxHash;
-        uint32 sourceNonce;
-        uint16 targetChain;
-        uint8 deliveryIndex;
-        uint8 multisendIndex;
-        uint256 newMaximumRefundTarget;
-        uint256 newReceiverValueTarget;
-        ExecutionParameters executionParameters;
     }
 
     function decodeDeliveryInstructionsContainer(bytes memory encoded)
         external
         pure
         returns (DeliveryInstructionsContainer memory);
-
-    function decodeRedeliveryInstruction(bytes memory encoded)
-        external
-        pure
-        returns (RedeliveryByTxHashInstruction memory instruction);
 
     function toWormholeFormat(address addr) external pure returns (bytes32 whFormat);
 
