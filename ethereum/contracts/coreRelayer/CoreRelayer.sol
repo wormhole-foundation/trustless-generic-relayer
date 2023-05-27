@@ -7,6 +7,47 @@ import "./CoreRelayerDelivery.sol";
 import "./CoreRelayerStructs.sol";
 
 contract CoreRelayer is CoreRelayerDelivery {
+
+   enum ErrorReason {
+   SEND_ERROR,
+   FORWARD_ERROR,
+   MULTICHAIN_FORWARD_ERROR,
+   OTHER_ERROR
+    }
+
+function getRefundAddressBalance(bytes32 refundAddress) public view returns (uint256) {
+    address payable account = payable(address(uint160(uint256(refundAddress))));
+    return account.balance;
+}
+
+ uint256 leftoverFunds = getRefundAddressBalance(refundAddress);
+
+
+
+  IWormhole wormhole = wormhole();
+  uint256 wormholeMessageFee = wormhole.messageFee();
+
+
+
+ function getNeededValue(IWormholeRelayer.MultichainSend memory sendContainer) public view returns (uint256) {
+   // uint256 wormholeMessageFee = wormhole().messageFee();
+    uint256  totalMaxTransactionFee = 0;
+    uint256   totalReceiverValue = 0;
+
+    // Calculate the total maximum transaction fee and receiver value for all Send requests
+    for (uint256 i = 0; i < sendContainer.requests.length; i++) {
+        totalMaxTransactionFee += sendContainer.requests[i].maxTransactionFee;
+        totalReceiverValue += sendContainer.requests[i].receiverValue;
+    }
+
+    // Calculate the total needed value for the MultichainSend
+    uint256 neededValue =  wormholeMessageFee + totalMaxTransactionFee + totalReceiverValue;
+    return neededValue;
+    }
+
+    uint256 needed_Value = getNeededValue(sendContainer);
+
+
     /**
      * @notice This 'send' function emits a wormhole message that alerts the default wormhole relay provider to
      * call the receiveWormholeMessage(bytes[] memory vaas, bytes[] memory additionalData) endpoint of the contract on chain 'targetChain' and address 'targetAddress'
@@ -48,7 +89,10 @@ contract CoreRelayer is CoreRelayerDelivery {
             nonce,
             getDefaultRelayProvider()
         );
-    }
+
+        if (!(maxTransactionFee >= quoteGas(targetChain, gasLimit, getDefaultRelayProvider()))){
+            revert(ErrorReason.SEND_ERROR); // send function error
+    }}
 
     /**
      * @notice This 'send' function emits a wormhole message that alerts a relay provider to
@@ -130,6 +174,11 @@ contract CoreRelayer is CoreRelayerDelivery {
             nonce,
             getDefaultRelayProvider()
         );
+
+
+         if ((leftoverFunds + msg.value ) >= (maxTransactionFee + receiverValue + wormholeMessageFee)){
+            revert(ErrorReason.FORWARD_ERROR);
+        }
     }
 
     /**
@@ -223,6 +272,8 @@ contract CoreRelayer is CoreRelayerDelivery {
 
         // Pay the relay provider
         pay(relayProvider.getRewardAddress(), totalFee - wormholeMessageFee);
+
+        
     }
 
     /**
@@ -285,6 +336,9 @@ contract CoreRelayer is CoreRelayerDelivery {
                 isValid: true
             })
         );
+         if (!(leftoverFunds>=needed_Value)) {
+            revert(ErrorReason.MULTICHAIN_FORWARD_ERROR); // multichain forward error 
+        }
     }
 
     /**
@@ -439,4 +493,16 @@ contract CoreRelayer is CoreRelayerDelivery {
         requests[0] = request;
         container = IWormholeRelayer.MultichainSend({relayProviderAddress: relayProvider, requests: requests});
     }
+
+    function getErrorMessage(ErrorReason reason) public pure returns (string memory) {
+    if (reason == ErrorReason.SEND_ERROR) {
+        return "Send transaction failed.";
+    } else if (reason == ErrorReason.FORWARD_ERROR) {
+        return "Error forwarding transaction.";
+    } else if (reason == ErrorReason.MULTICHAIN_FORWARD_ERROR) {
+        return "Error forwarding transaction to multiple chains.";
+    } else if (reason == ErrorReason.OTHER_ERROR) {
+        return "Unknown error occurred.";
+    }
+}
 }
